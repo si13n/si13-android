@@ -1,78 +1,80 @@
 # SI13 Android
 
-Учебное Android-приложение на Kotlin. Проект используется для изучения Android-разработки, навигации, авторизации через Google/Firebase и подготовки UI к Espresso-тестам.
+SI13 Android is a Kotlin Android application with bottom navigation, Google/Firebase authentication, guest mode, authenticated profile state, and basic Espresso test setup.
 
-## Что умеет приложение
+## Current Features
 
-- Запускает `MainActivity` как единственную entry point activity.
-- Показывает основной экран с bottom navigation.
-- Поддерживает два раздела:
+- Starts from a single `MainActivity`.
+- Uses bottom navigation for the main app sections.
+- Provides two main screens:
   - `Home`
   - `Profile`
-- Для незалогиненного пользователя при старте показывает login bottom sheet.
-- Позволяет продолжить работу как guest.
-- Позволяет войти через Google.
-- Сохраняет состояние авторизации локально.
-- Показывает guest profile для незалогиненного пользователя.
-- Показывает Google account data для залогиненного пользователя:
-  - имя
+- Shows a login bottom sheet on startup when the user is not authenticated.
+- Allows the user to continue as a guest.
+- Supports Google sign-in through Firebase Authentication.
+- Persists authentication state locally.
+- Shows a guest profile for unauthenticated users.
+- Shows Google account data for authenticated users:
+  - display name
   - email
-  - avatar, если он доступен
-- Позволяет выйти из аккаунта.
+  - profile picture when available
+- Allows the user to sign out.
 
-## Модули
+## Module Structure
 
-Проект содержит один Android-модуль:
+The project has one Android module:
 
 ```text
 app
 ```
 
-Package/application id:
+Application id and namespace:
 
 ```text
 com.si13.app
 ```
 
-Основная конфигурация модуля находится в:
+Main module configuration:
 
 ```text
 app/build.gradle.kts
 ```
 
-Версии зависимостей вынесены в:
+Dependency versions are managed through the Gradle version catalog:
 
 ```text
 gradle/libs.versions.toml
 ```
 
-## Основные экраны
+## Main Screens
 
 ### MainActivity
 
-Файл:
+File:
 
 ```text
 app/src/main/java/com/si13/app/MainActivity.kt
 ```
 
-`MainActivity`:
+Responsibilities:
 
-- загружает `activity_main.xml`
-- настраивает `NavHostFragment`
-- подключает `BottomNavigationView` к `NavController`
-- при первом запуске проверяет auth state
-- если пользователь не залогинен, показывает `LoginBottomSheet`
+- loads `activity_main.xml`
+- hosts the app navigation graph through `NavHostFragment`
+- connects `BottomNavigationView` to `NavController`
+- checks authentication state on first creation
+- shows `LoginBottomSheet` for unauthenticated users
 
 ### HomeFragment
 
-Файл:
+File:
 
 ```text
 app/src/main/java/com/si13/app/HomeFragment.kt
 ```
 
-Простой стартовый экран приложения. Использует layout:
+The default screen in the navigation graph.
+
+Layout:
 
 ```text
 app/src/main/res/layout/fragment_home.xml
@@ -80,37 +82,36 @@ app/src/main/res/layout/fragment_home.xml
 
 ### ProfileFragment
 
-Файл:
+File:
 
 ```text
 app/src/main/java/com/si13/app/ProfileFragment.kt
 ```
 
-Показывает разные состояния профиля:
+Displays either guest state or authenticated user state.
 
-- guest mode
-- authenticated mode
+Guest state:
 
-В guest mode отображается:
+- shows `Guest`
+- explains that the app is being used without an account
+- shows `Continue with Google`
+- hides `Sign out`
 
-- статус `Guest`
-- описание guest-режима
-- кнопка `Continue with Google`
+Authenticated state:
 
-В authenticated mode отображается:
+- shows the user's display name
+- shows the user's email
+- shows the profile picture when available
+- shows `Sign out`
+- hides `Continue with Google`
 
-- имя пользователя
-- email
-- avatar, если доступен
-- кнопка `Sign out`
+`ProfileFragment` starts Google sign-in directly. It does not open the login bottom sheet.
 
-`ProfileFragment` не открывает login bottom sheet. Кнопка `Continue with Google` запускает Google sign-in напрямую.
+## Navigation
 
-## Навигация
+Navigation is implemented with Android Navigation Component.
 
-Навигация сделана через Android Navigation Component.
-
-Nav graph:
+Navigation graph:
 
 ```text
 app/src/main/res/navigation/nav_graph.xml
@@ -122,28 +123,28 @@ Bottom navigation menu:
 app/src/main/res/menu/bottom_nav_menu.xml
 ```
 
-В `nav_graph.xml` сейчас два destination:
+Current destinations:
 
 - `homeFragment`
 - `profileFragment`
 
-`HomeFragment` является стартовым экраном.
+`homeFragment` is the start destination.
 
-## Авторизация
+## Authentication
 
-Авторизация сделана через:
+Authentication uses:
 
 - Firebase Authentication
-- Google Sign-In через Credential Manager
+- Android Credential Manager
 - Google Identity `googleid`
 
-Firebase config:
+Firebase configuration:
 
 ```text
 app/google-services.json
 ```
 
-Google Services plugin подключен в Gradle:
+The Google Services Gradle plugin is applied in the app module:
 
 ```kotlin
 alias(libs.plugins.google.services)
@@ -151,86 +152,84 @@ alias(libs.plugins.google.services)
 
 ### AuthRepository
 
-Файл:
+File:
 
 ```text
 app/src/main/java/com/si13/app/AuthRepository.kt
 ```
 
-Отвечает за локальное состояние авторизации через `SharedPreferences`.
+Stores local authentication state in `SharedPreferences`.
 
-Хранит:
+Stored values:
 
 - authenticated flag
 - display name
 - email
-- photo URL
+- profile photo URL
 
-Используется для того, чтобы приложение знало, показывать guest UI или authenticated UI после перезапуска.
+This repository is used to decide whether the UI should render guest mode or authenticated mode after app restart.
 
 ### GoogleAuthClient
 
-Файл:
+File:
 
 ```text
 app/src/main/java/com/si13/app/GoogleAuthClient.kt
 ```
 
-Отвечает за низкоуровневый Google sign-in flow:
+Handles the low-level Google sign-in flow:
 
-- получает `default_web_client_id`
-- запускает Credential Manager
-- получает Google ID token
-- передает token в Firebase Auth
-- возвращает результат:
+- reads `default_web_client_id`
+- launches Credential Manager
+- receives a Google ID token
+- exchanges the token for Firebase credentials
+- returns a typed result:
   - success
   - cancelled
   - failure
 
 ### GoogleSignInHandler
 
-Файл:
+File:
 
 ```text
 app/src/main/java/com/si13/app/GoogleSignInHandler.kt
 ```
 
-Общий helper для UI-слоя.
-
-Используется в:
+Shared UI-layer helper used by:
 
 - `LoginBottomSheet`
 - `ProfileFragment`
 
-Отвечает за:
+Responsibilities:
 
-- отключение кнопок на время sign-in
-- запуск `GoogleAuthClient`
-- сохранение пользователя в `AuthRepository`
-- показ ошибки в `TextView`
-- вызов success callback
+- disables sign-in controls during authentication
+- starts `GoogleAuthClient`
+- persists the authenticated user through `AuthRepository`
+- displays authentication errors in a `TextView`
+- calls the success callback when sign-in completes
 
 ### LoginBottomSheet
 
-Файл:
+File:
 
 ```text
 app/src/main/java/com/si13/app/LoginBottomSheet.kt
 ```
 
-Показывается только как стартовый prompt для незалогиненного пользователя.
+Startup prompt shown only for unauthenticated users.
 
-Содержит:
+Contains:
 
 - `Continue with Google`
 - `Continue as guest`
-- поле для ошибки авторизации
+- authentication error text
 
-Если пользователь выбирает `Continue as guest`, bottom sheet закрывается.
+Selecting `Continue as guest` dismisses the bottom sheet and keeps the user in guest mode.
 
-## UI и ресурсы
+## UI Resources
 
-Основные layout-файлы:
+Main layouts:
 
 ```text
 app/src/main/res/layout/activity_main.xml
@@ -239,50 +238,50 @@ app/src/main/res/layout/fragment_home.xml
 app/src/main/res/layout/fragment_profile.xml
 ```
 
-Google button оформлена кастомно:
+Google sign-in button resources:
 
 ```text
 app/src/main/res/drawable/bg_google_sign_in_button.xml
 app/src/main/res/drawable/ic_google_g.xml
 ```
 
-Иконки bottom navigation:
+Bottom navigation icons:
 
 ```text
 app/src/main/res/drawable/ic_home.xml
 app/src/main/res/drawable/ic_profile.xml
 ```
 
-Строки:
+String resources:
 
 ```text
 app/src/main/res/values/strings.xml
 ```
 
-Темы:
+Themes:
 
 ```text
 app/src/main/res/values/themes.xml
 app/src/main/res/values-night/themes.xml
 ```
 
-## Espresso preparation
+## Espresso Test Setup
 
-В проекте подключены зависимости для instrumented UI-тестов:
+Instrumented UI test dependencies:
 
 - `androidx.test.ext:junit`
 - `androidx.test.espresso:espresso-core`
 - `androidx.test:core`
 
-Тесты находятся в:
+Test source set:
 
 ```text
 app/src/androidTest/java/com/si13/app
 ```
 
-Простой smoke-test запускает `MainActivity` через `ActivityScenario`.
+The current smoke test launches `MainActivity` through `ActivityScenario`.
 
-Для будущих Espresso-тестов у ключевых UI-элементов есть стабильные ids, например:
+Stable view IDs are available for future Espresso tests:
 
 - `main`
 - `nav_host_fragment`
@@ -300,7 +299,7 @@ app/src/androidTest/java/com/si13/app
 - `continue_as_guest_button`
 - `login_error_text`
 
-## Сборка
+## Build Commands
 
 Debug build:
 
@@ -308,7 +307,7 @@ Debug build:
 ./gradlew assembleDebug
 ```
 
-Сборка APK с instrumented tests:
+Instrumented test APK:
 
 ```bash
 ./gradlew assembleDebugAndroidTest
@@ -320,15 +319,13 @@ Unit tests:
 ./gradlew testDebugUnitTest
 ```
 
-Instrumented tests на подключенном устройстве или эмуляторе:
+Instrumented tests on a connected device or emulator:
 
 ```bash
 ./gradlew connectedDebugAndroidTest
 ```
 
-## Важные зависимости
-
-Основные библиотеки:
+## Main Dependencies
 
 - AndroidX AppCompat
 - AndroidX Core KTX
@@ -342,24 +339,24 @@ Instrumented tests на подключенном устройстве или э�
 - Coil
 - Espresso
 
-## Текущее поведение авторизации
+## Authentication Flow
 
-При первом запуске:
+Startup flow:
 
-1. `MainActivity` проверяет `AuthRepository.isAuthenticated()`.
-2. Если пользователь не authenticated, открывается `LoginBottomSheet`.
-3. Пользователь может выбрать:
+1. `MainActivity` checks `AuthRepository.isAuthenticated()`.
+2. If the user is not authenticated, `LoginBottomSheet` is shown.
+3. The user can choose:
    - `Continue with Google`
    - `Continue as guest`
 
-При успешном Google sign-in:
+Successful Google sign-in:
 
-1. `GoogleAuthClient` получает Firebase user.
-2. `GoogleSignInHandler` сохраняет user в `AuthRepository`.
-3. UI переключается в authenticated state.
+1. `GoogleAuthClient` receives a Firebase user.
+2. `GoogleSignInHandler` stores the user in `AuthRepository`.
+3. The UI switches to authenticated state.
 
-При sign out:
+Sign out:
 
-1. Вызывается `FirebaseAuth.getInstance().signOut()`.
-2. Локальные данные очищаются через `AuthRepository.clear()`.
-3. Profile переключается в guest state.
+1. `FirebaseAuth.getInstance().signOut()` signs out from Firebase.
+2. `AuthRepository.clear()` removes local auth data.
+3. `ProfileFragment` switches back to guest state.
