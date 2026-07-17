@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">si13</string>
     <string name="home">Home</string>
+    <string name="login_bottom_sheet_title">Sign in</string>
+    <string name="login_bottom_sheet_message">Sign in to access a personalized profile.</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="continue_as_guest">Continue as guest</string>
+    <string name="google_sign_in_not_available">Google sign-in will be added later.</string>
     <string name="profile">Profile</string>
 </resources>
