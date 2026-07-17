@@ -7,4 +7,8 @@
     <string name="continue_as_guest">Continue as guest</string>
     <string name="google_sign_in_not_available">Google sign-in will be added later.</string>
     <string name="profile">Profile</string>
+    <string name="guest_status">Guest</string>
+    <string name="guest_profile_message">You are using the application without an account.</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_out">Sign out</string>
 </resources>
