@@ -5,10 +5,14 @@
     <string name="login_bottom_sheet_message">Sign in to access a personalized profile.</string>
     <string name="sign_in_with_google">Sign in with Google</string>
     <string name="continue_as_guest">Continue as guest</string>
-    <string name="google_sign_in_not_available">Google sign-in will be added later.</string>
+    <string name="firebase_config_missing">Firebase is not configured yet. Add google-services.json and enable Google sign-in.</string>
+    <string name="google_sign_in_failed">Google sign-in failed. Please try again.</string>
     <string name="profile">Profile</string>
     <string name="guest_status">Guest</string>
     <string name="guest_profile_message">You are using the application without an account.</string>
+    <string name="profile_picture">Profile picture</string>
     <string name="sign_in">Sign in</string>
     <string name="sign_out">Sign out</string>
+    <string name="unknown_email">No email available</string>
+    <string name="unknown_name">Google user</string>
 </resources>

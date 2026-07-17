@@ -6,11 +6,11 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.si13.HomeFragment"
+        android:name="com.si13.app.HomeFragment"
         android:label="@string/home" />
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.example.si13.ProfileFragment"
+        android:name="com.si13.app.ProfileFragment"
         android:label="@string/profile" />
 </navigation>

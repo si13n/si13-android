@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "796246251027",
+    "project_id": "si13-f6273",
+    "storage_bucket": "si13-f6273.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796246251027:android:36e6a71946eb6fbb3091e6",
+        "android_client_info": {
+          "package_name": "com.si13.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "796246251027-pbbmh9cpq8dpgifl9o0nql602509unbh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.si13.app",
+            "certificate_hash": "129b277d41028751cbcb0aa625ffab14493a47ad"
+          }
+        },
+        {
+          "client_id": "796246251027-r7qhvfvl56k2mr686obivnj2bciu6iti.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPY8T7qGZU_1VSjIY7ES25pX2g1qwvXbc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "796246251027-r7qhvfvl56k2mr686obivnj2bciu6iti.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
