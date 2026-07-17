@@ -7,16 +7,19 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
-class ProfileFragment : Fragment(R.layout.fragment_profile_hragment) {
+class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private lateinit var authRepository: AuthRepository
     private lateinit var profilePictureImage: ImageView
     private lateinit var profileStatusText: TextView
     private lateinit var profileMessageText: TextView
     private lateinit var profileEmailText: TextView
-    private lateinit var signInButton: Button
+    private lateinit var profileErrorText: TextView
+    private lateinit var signInButton: View
     private lateinit var signOutButton: Button
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -27,18 +30,20 @@ class ProfileFragment : Fragment(R.layout.fragment_profile_hragment) {
         profileStatusText = view.findViewById(R.id.profile_status_text)
         profileMessageText = view.findViewById(R.id.profile_message_text)
         profileEmailText = view.findViewById(R.id.profile_email_text)
+        profileErrorText = view.findViewById(R.id.profile_error_text)
         signInButton = view.findViewById(R.id.profile_sign_in_button)
         signOutButton = view.findViewById(R.id.profile_sign_out_button)
 
-        parentFragmentManager.setFragmentResultListener(
-            LoginBottomSheet.LOGIN_RESULT_KEY,
-            viewLifecycleOwner
-        ) { _, _ ->
-            renderProfile()
-        }
-
         signInButton.setOnClickListener {
-            LoginBottomSheet().show(parentFragmentManager, LoginBottomSheet.TAG)
+            lifecycleScope.launch {
+                GoogleSignInHandler(requireContext(), requireActivity()).signIn(
+                    signInButton = signInButton,
+                    errorText = profileErrorText,
+                    onSuccess = {
+                        renderProfile()
+                    }
+                )
+            }
         }
 
         signOutButton.setOnClickListener {
@@ -64,6 +69,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile_hragment) {
         profileMessageText.text = getString(R.string.guest_profile_message)
         profileMessageText.isVisible = true
         profileEmailText.isVisible = false
+        profileErrorText.isVisible = false
         signInButton.isVisible = true
         signOutButton.isVisible = false
     }
@@ -76,6 +82,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile_hragment) {
         profileMessageText.isVisible = false
         profileEmailText.text = email
         profileEmailText.isVisible = true
+        profileErrorText.isVisible = false
         signInButton.isVisible = false
         signOutButton.isVisible = true
 

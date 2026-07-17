@@ -3,7 +3,7 @@
     <string name="home">Home</string>
     <string name="login_bottom_sheet_title">Sign in</string>
     <string name="login_bottom_sheet_message">Sign in to access a personalized profile.</string>
-    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="sign_in_with_google">Continue with Google</string>
     <string name="continue_as_guest">Continue as guest</string>
     <string name="firebase_config_missing">Firebase is not configured yet. Add google-services.json and enable Google sign-in.</string>
     <string name="google_sign_in_failed">Google sign-in failed. Please try again.</string>
