@@ -6,10 +6,19 @@
     android:orientation="vertical"
     android:padding="24dp">
 
+    <ImageView
+        android:id="@+id/profile_picture_image"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:contentDescription="@string/profile_picture"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/profile_status_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:gravity="center"
         android:text="@string/guest_status"
         android:textSize="24sp" />
@@ -22,6 +31,15 @@
         android:gravity="center"
         android:text="@string/guest_profile_message"
         android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/profile_email_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/profile_sign_in_button"

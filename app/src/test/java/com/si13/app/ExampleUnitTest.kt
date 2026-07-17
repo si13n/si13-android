@@ -1,4 +1,4 @@
-package com.example.si13
+package com.si13.app
 
 import org.junit.Test
 
