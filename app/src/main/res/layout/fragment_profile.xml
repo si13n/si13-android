@@ -63,6 +63,7 @@
             android:src="@drawable/ic_google_g" />
 
         <TextView
+            android:id="@+id/profile_sign_in_text"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
