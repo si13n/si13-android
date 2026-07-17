@@ -20,12 +20,38 @@
         android:text="@string/login_bottom_sheet_message"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
 
-    <Button
+    <LinearLayout
         android:id="@+id/sign_in_with_google_button"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginTop="24dp"
-        android:text="@string/sign_in_with_google" />
+        android:background="@drawable/bg_google_sign_in_button"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:minHeight="40dp"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_google_g" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="@string/sign_in_with_google"
+            android:textColor="#1F1F1F"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <Button
         android:id="@+id/continue_as_guest_button"
