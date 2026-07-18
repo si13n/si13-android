@@ -17,6 +17,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "io.qameta.allure.android.runners.AllureAndroidJUnitRunner"
+        testInstrumentationRunnerArguments["useTestStorageService"] = "true"
     }
 
     buildTypes {
@@ -55,4 +56,5 @@ dependencies {
     androidTestImplementation(libs.allure.kotlin.commons)
     androidTestImplementation(libs.allure.kotlin.junit4)
     androidTestImplementation(libs.allure.kotlin.model)
+    androidTestUtil(libs.androidx.test.services)
 }

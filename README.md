@@ -282,9 +282,8 @@ app/src/androidTest/java/com/si13/app
 
 The current smoke test launches `MainActivity` through `ActivityScenario`.
 
-GitHub Actions runs Espresso tests on an emulator and uploads a single-file
-Allure report artifact named `allure-report`. Download the artifact from the
-workflow run and open `index.html` in a browser.
+GitHub Actions runs Espresso tests on an emulator and uploads the single-file
+Allure report as an unarchived `index.html` artifact.
 
 Stable view IDs are available for future Espresso tests:
 
