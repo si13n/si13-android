@@ -49,7 +49,7 @@ jobs:
             mkdir -p allure-results
             adb exec-out run-as com.si13.app sh -c 'cd /data/data/com.si13.app/files && tar cf - allure-results 2>/dev/null' > allure-results.tar || true
             if [ -s allure-results.tar ]; then
-              tar xf allure-results.tar
+              tar xf allure-results.tar || true
             fi
 
             exit "$test_exit_code"
@@ -60,7 +60,22 @@ jobs:
 
       - name: Generate Allure report
         if: always()
-        run: allure generate allure-results --single-file --clean --output allure-report
+        run: |
+          if find allure-results -type f | grep -q .; then
+            allure generate allure-results --single-file --clean --output allure-report
+          else
+            mkdir -p allure-report
+            printf '%s\n' \
+              '<!doctype html>' \
+              '<html lang="en">' \
+              '<head><meta charset="utf-8"><title>Allure report unavailable</title></head>' \
+              '<body>' \
+              '<h1>Allure report unavailable</h1>' \
+              '<p>No Allure result files were collected from the emulator.</p>' \
+              '</body>' \
+              '</html>' \
+              > allure-report/index.html
+          fi
 
       - name: Upload Allure report
         if: always()
