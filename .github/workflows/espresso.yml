@@ -3,37 +3,51 @@ name: Android Espresso Test
 on:
   pull_request:
   push:
+    branches:
+      - main
   workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
 
 jobs:
   espresso-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
+      # Download the project
       - name: Checkout project
         uses: actions/checkout@v6
 
+      # Install Java and restore Gradle cache
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
 
+      # Allow Gradle execution
       - name: Make Gradle executable
         run: chmod +x gradlew
 
+      # Enable emulator acceleration
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Create emulator and run Espresso
       - name: Run Espresso test
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
           target: default
           arch: x86_64
+          emulator-boot-timeout: 180
           disable-animations: true
           emulator-options: >-
             -no-window
@@ -41,32 +55,28 @@ jobs:
             -noaudio
             -no-boot-anim
             -camera-back none
-          script: ./scripts/run-espresso-with-allure.sh
+            -no-snapshot-load
+            -no-snapshot-save
+            -no-metrics
+          script: ./gradlew :app:connectedDebugAndroidTest --console=plain
 
-      - name: Publish Espresso summary
+      # Show results in GitHub Actions
+      - name: Publish test summary
         if: always()
-        run: python3 scripts/write-espresso-summary.py
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: Espresso Test Report
+          report_paths: "app/build/outputs/androidTest-results/connected/**/*.xml"
+          detailed_summary: true
+          include_passed: true
+          include_time_in_summary: true
 
-      - name: Install Allure CLI
+      # Save the full Android HTML report
+      - name: Upload HTML report
         if: always()
-        run: npm install -g allure-commandline@2.43.0
-
-      - name: Generate Allure report
-        if: always()
-        run: |
-          if find allure-results -type f | grep -q .; then
-            allure generate allure-results --single-file --clean --output allure-report
-          else
-            echo "No Allure result files were collected from the emulator."
-            exit 1
-          fi
-
-      - name: Upload Allure report
-        if: always() && hashFiles('allure-report/index.html') != ''
         uses: actions/upload-artifact@v7
         with:
-          name: allure-report
-          path: allure-report/index.html
-          if-no-files-found: error
+          name: espresso-html-report
+          path: app/build/reports/androidTests/connected/
+          if-no-files-found: ignore
           retention-days: 7
-          archive: false
