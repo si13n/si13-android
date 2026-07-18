@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   espresso-test:
     runs-on: ubuntu-latest
@@ -54,3 +58,24 @@ jobs:
             -no-snapshot-save
             -no-metrics
           script: ./gradlew :app:connectedDebugAndroidTest --console=plain
+
+      # Show results in GitHub Actions
+      - name: Publish test summary
+        if: always()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: Espresso Test Report
+          report_paths: "app/build/outputs/androidTest-results/connected/**/*.xml"
+          detailed_summary: true
+          include_passed: true
+          include_time_in_summary: true
+
+      # Save the full Android HTML report
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: espresso-html-report
+          path: app/build/reports/androidTests/connected/
+          if-no-files-found: ignore
+          retention-days: 7
