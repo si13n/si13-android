@@ -43,6 +43,10 @@ jobs:
             -camera-back none
           script: ./scripts/run-espresso-with-allure.sh
 
+      - name: Publish Espresso summary
+        if: always()
+        run: python3 scripts/write-espresso-summary.py
+
       - name: Install Allure CLI
         if: always()
         run: npm install -g allure-commandline@2.43.0
