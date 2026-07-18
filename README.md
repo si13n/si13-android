@@ -272,6 +272,7 @@ Instrumented UI test dependencies:
 - `androidx.test.ext:junit`
 - `androidx.test.espresso:espresso-core`
 - `androidx.test:core`
+- `io.qameta.allure:allure-kotlin-android`
 
 Test source set:
 
@@ -280,6 +281,10 @@ app/src/androidTest/java/com/si13/app
 ```
 
 The current smoke test launches `MainActivity` through `ActivityScenario`.
+
+GitHub Actions runs Espresso tests on an emulator and uploads a single-file
+Allure report artifact named `allure-report`. Download the artifact from the
+workflow run and open `index.html` in a browser.
 
 Stable view IDs are available for future Espresso tests:
 

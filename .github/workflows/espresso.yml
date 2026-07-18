@@ -1,6 +1,7 @@
 name: Android Espresso Test
 
 on:
+  pull_request:
   push:
   workflow_dispatch:
 
@@ -40,4 +41,32 @@ jobs:
             -noaudio
             -no-boot-anim
             -camera-back none
-          script: ./gradlew connectedDebugAndroidTest
+          script: |
+            set +e
+            ./gradlew connectedDebugAndroidTest --console=plain
+            test_exit_code=$?
+
+            mkdir -p allure-results
+            adb exec-out run-as com.si13.app sh -c 'cd /data/data/com.si13.app/files && tar cf - allure-results 2>/dev/null' > allure-results.tar || true
+            if [ -s allure-results.tar ]; then
+              tar xf allure-results.tar
+            fi
+
+            exit "$test_exit_code"
+
+      - name: Install Allure CLI
+        if: always()
+        run: npm install -g allure-commandline@2.43.0
+
+      - name: Generate Allure report
+        if: always()
+        run: allure generate allure-results --single-file --clean --output allure-report
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: allure-report
+          path: allure-report/index.html
+          if-no-files-found: error
+          retention-days: 7
