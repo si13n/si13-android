@@ -95,6 +95,7 @@ jobs:
           path: allure-report/index.html
           if-no-files-found: error
           retention-days: 7
+          archive: false
 
       - name: Publish Allure report link
         if: always() && steps.upload-allure-report.outputs.artifact-url != ''
