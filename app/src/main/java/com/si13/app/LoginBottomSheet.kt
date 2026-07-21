@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -24,6 +25,7 @@ class LoginBottomSheet : BottomSheetDialogFragment() {
 
         val signInButton = view.findViewById<View>(R.id.sign_in_with_google_button)
         val guestButton = view.findViewById<Button>(R.id.continue_as_guest_button)
+        val closeButton = view.findViewById<ImageButton>(R.id.close_login_bottom_sheet_button)
         val errorText = view.findViewById<TextView>(R.id.login_error_text)
 
         signInButton.setOnClickListener {
@@ -41,6 +43,10 @@ class LoginBottomSheet : BottomSheetDialogFragment() {
         }
 
         guestButton.setOnClickListener {
+            dismiss()
+        }
+
+        closeButton.setOnClickListener {
             dismiss()
         }
     }
