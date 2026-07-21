@@ -89,6 +89,52 @@ class HomeTaskTest {
     @Test
     fun showsLocalTaskImportDialogForAuthenticatedUserWithGuestTasks() {
         // Seed both sides of the condition: a saved authenticated user and pending guest tasks.
+        seedAuthenticatedUserWithGuestTasks()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForDialogStartup()
+
+            onView(withText(R.string.import_local_tasks_title))
+                .inRoot(isDialog())
+                .check(matches(isDisplayed()))
+            onView(withText(R.string.import_local_tasks_add))
+                .inRoot(isDialog())
+                .check(matches(isDisplayed()))
+            onView(withText(R.string.import_local_tasks_discard))
+                .inRoot(isDialog())
+                .check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun discardLocalTaskImportClosesDialog() {
+        seedAuthenticatedUserWithGuestTasks()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForDialogStartup()
+
+            onView(withText(R.string.import_local_tasks_discard))
+                .inRoot(isDialog())
+                .perform(click())
+
+            onView(withText(R.string.import_local_tasks_title)).check(doesNotExist())
+        }
+    }
+
+    private fun continueAsGuest() {
+        // Most Home tests run as a guest, so dismiss the launch sign-in prompt first.
+        onView(withId(R.id.continue_as_guest_button)).perform(click())
+    }
+
+    private fun clearState() {
+        // Keep every test independent from previous auth snapshots and Room rows.
+        AuthRepository(context).clear()
+        runBlocking {
+            TaskDatabase.getInstance(context).taskDao().deleteAll()
+        }
+    }
+
+    private fun seedAuthenticatedUserWithGuestTasks() {
         runBlocking {
             TaskDatabase.getInstance(context).taskDao().upsert(
                 TaskEntity(
@@ -106,33 +152,6 @@ class HomeTaskTest {
             email = "test@example.com",
             photoUrl = null
         )
-
-        ActivityScenario.launch(MainActivity::class.java).use {
-            waitForDialogStartup()
-
-            onView(withText(R.string.import_local_tasks_title))
-                .inRoot(isDialog())
-                .check(matches(isDisplayed()))
-            onView(withText(R.string.import_local_tasks_add))
-                .inRoot(isDialog())
-                .check(matches(isDisplayed()))
-            onView(withText(R.string.import_local_tasks_discard))
-                .inRoot(isDialog())
-                .check(matches(isDisplayed()))
-        }
-    }
-
-    private fun continueAsGuest() {
-        // Most Home tests run as a guest, so dismiss the launch sign-in prompt first.
-        onView(withId(R.id.continue_as_guest_button)).perform(click())
-    }
-
-    private fun clearState() {
-        // Keep every test independent from previous auth snapshots and Room rows.
-        AuthRepository(context).clear()
-        runBlocking {
-            TaskDatabase.getInstance(context).taskDao().deleteAll()
-        }
     }
 
     private fun waitForDialogStartup() {

@@ -142,6 +142,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             taskRepository = TaskRepository.create(requireContext())
             observeTasks()
         }
+
+        parentFragmentManager.setFragmentResultListener(
+            TaskImportDialogFragment.IMPORT_RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, _ ->
+            taskRepository = TaskRepository.create(requireContext())
+            observeTasks()
+        }
     }
 
     private fun observeTasks() {

@@ -80,6 +80,26 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun discardDeletesOnlyLocalTasks() = runTest {
+        val local = FakeTaskDataSource()
+        val remote = FakeTaskDataSource()
+        val localTask = Task("local-task", "Local task", false, 1L, 1L)
+        val remoteTask = Task("remote-task", "Remote task", false, 2L, 2L)
+        local.upsert(localTask)
+        remote.upsert(remoteTask)
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { remote },
+            currentUserIdProvider = { "user-1" }
+        )
+
+        repository.discardLocalTasks()
+
+        assertTrue(local.getTasks().isEmpty())
+        assertEquals(listOf(remoteTask), remote.getTasks())
+    }
+
+    @Test
     fun rejectsEmptyAndTooLongTasks() = runTest {
         val repository = TaskRepository(
             localTaskDataSource = FakeTaskDataSource(),

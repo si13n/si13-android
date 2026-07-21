@@ -35,7 +35,10 @@ class TaskImportDialogFragment : DialogFragment() {
 
                 when (taskRepository.importLocalTasksToRemote()) {
                     is TaskImportResult.Imported,
-                    TaskImportResult.NoLocalTasks -> dismiss()
+                    TaskImportResult.NoLocalTasks -> {
+                        publishImportResult()
+                        dismiss()
+                    }
 
                     is TaskImportResult.Failure -> {
                         Toast.makeText(
@@ -53,6 +56,7 @@ class TaskImportDialogFragment : DialogFragment() {
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
             lifecycleScope.launch {
                 taskRepository.discardLocalTasks()
+                publishImportResult()
                 dismiss()
             }
         }
@@ -60,6 +64,7 @@ class TaskImportDialogFragment : DialogFragment() {
 
     companion object {
         private const val TAG = "TaskImportDialog"
+        const val IMPORT_RESULT_KEY = "task_import_result"
 
         suspend fun showIfLocalTasks(context: Context, fragmentManager: FragmentManager) {
             if (fragmentManager.findFragmentByTag(TAG) != null) {
@@ -71,5 +76,9 @@ class TaskImportDialogFragment : DialogFragment() {
                 TaskImportDialogFragment().show(fragmentManager, TAG)
             }
         }
+    }
+
+    private fun publishImportResult() {
+        parentFragmentManager.setFragmentResult(IMPORT_RESULT_KEY, Bundle.EMPTY)
     }
 }
