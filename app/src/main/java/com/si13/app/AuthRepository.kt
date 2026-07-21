@@ -16,6 +16,7 @@ class AuthRepository(context: Context) {
         }
 
         return AuthUser(
+            uid = preferences.getString(KEY_UID, null),
             displayName = preferences.getString(KEY_DISPLAY_NAME, null),
             email = preferences.getString(KEY_EMAIL, null),
             photoUrl = preferences.getString(KEY_PHOTO_URL, null)
@@ -23,11 +24,26 @@ class AuthRepository(context: Context) {
     }
 
     fun saveAuthenticatedUser(user: FirebaseUser) {
+        saveAuthenticatedUser(
+            uid = user.uid,
+            displayName = user.displayName,
+            email = user.email,
+            photoUrl = user.photoUrl?.toString()
+        )
+    }
+
+    fun saveAuthenticatedUser(
+        uid: String,
+        displayName: String?,
+        email: String?,
+        photoUrl: String?
+    ) {
         preferences.edit()
             .putBoolean(KEY_IS_AUTHENTICATED, true)
-            .putString(KEY_DISPLAY_NAME, user.displayName)
-            .putString(KEY_EMAIL, user.email)
-            .putString(KEY_PHOTO_URL, user.photoUrl?.toString())
+            .putString(KEY_UID, uid)
+            .putString(KEY_DISPLAY_NAME, displayName)
+            .putString(KEY_EMAIL, email)
+            .putString(KEY_PHOTO_URL, photoUrl)
             .apply()
     }
 
@@ -38,6 +54,7 @@ class AuthRepository(context: Context) {
     companion object {
         private const val PREFERENCES_NAME = "auth_preferences"
         private const val KEY_IS_AUTHENTICATED = "is_authenticated"
+        private const val KEY_UID = "uid"
         private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_EMAIL = "email"
         private const val KEY_PHOTO_URL = "photo_url"
@@ -45,6 +62,7 @@ class AuthRepository(context: Context) {
 }
 
 data class AuthUser(
+    val uid: String?,
     val displayName: String?,
     val email: String?,
     val photoUrl: String?

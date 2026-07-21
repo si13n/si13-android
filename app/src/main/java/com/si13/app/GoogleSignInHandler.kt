@@ -14,7 +14,7 @@ class GoogleSignInHandler(
     suspend fun signIn(
         signInButton: View,
         errorText: TextView?,
-        onSuccess: () -> Unit,
+        onSuccess: suspend () -> Unit,
         onCancelled: () -> Unit = {},
         extraDisabledView: View? = null
     ) {

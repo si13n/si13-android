@@ -35,6 +35,10 @@ class LoginBottomSheet : BottomSheetDialogFragment() {
                     errorText = errorText,
                     extraDisabledView = guestButton,
                     onSuccess = {
+                        TaskImportDialogFragment.showIfLocalTasks(
+                            requireContext(),
+                            parentFragmentManager
+                        )
                         parentFragmentManager.setFragmentResult(LOGIN_RESULT_KEY, Bundle.EMPTY)
                         dismiss()
                     }

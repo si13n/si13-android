@@ -5,9 +5,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,8 +23,17 @@ class MainActivity : AppCompatActivity() {
         findViewById<BottomNavigationView>(R.id.bottom_navigation)
             .setupWithNavController(navController)
 
-        if (savedInstanceState == null && !AuthRepository(this).isAuthenticated()) {
-            LoginBottomSheet().show(supportFragmentManager, LoginBottomSheet.TAG)
+        if (savedInstanceState == null) {
+            if (AuthRepository(this).isAuthenticated()) {
+                lifecycleScope.launch {
+                    TaskImportDialogFragment.showIfLocalTasks(
+                        this@MainActivity,
+                        supportFragmentManager
+                    )
+                }
+            } else {
+                LoginBottomSheet().show(supportFragmentManager, LoginBottomSheet.TAG)
+            }
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->

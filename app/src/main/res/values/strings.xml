@@ -1,6 +1,22 @@
 <resources>
     <string name="app_name">si13</string>
     <string name="home">Home</string>
+    <string name="tasks_empty">No tasks yet.</string>
+    <string name="task_input_hint">Add a task</string>
+    <string name="add_task">Add</string>
+    <string name="show_completed">Show completed</string>
+    <string name="hide_completed">Hide completed</string>
+    <string name="task_character_counter">%1$d / %2$d</string>
+    <string name="task_completed">Task completed</string>
+    <string name="task_not_completed">Task not completed</string>
+    <string name="tasks_loading">Loading tasks...</string>
+    <string name="tasks_error">Could not update tasks. Please try again.</string>
+    <string name="task_too_long">Tasks can be at most 200 characters.</string>
+    <string name="import_local_tasks_title">Would you like to add your local tasks to your account?</string>
+    <string name="import_local_tasks_message">Your guest tasks can be merged with your account tasks.</string>
+    <string name="import_local_tasks_add">Add tasks</string>
+    <string name="import_local_tasks_discard">Discard</string>
+    <string name="import_local_tasks_failed">Could not import local tasks. They remain on this device.</string>
     <string name="login_bottom_sheet_title">Sign in</string>
     <string name="login_bottom_sheet_message">Sign in to access a personalized profile.</string>
     <string name="close_login_bottom_sheet">Close sign-in dialog</string>

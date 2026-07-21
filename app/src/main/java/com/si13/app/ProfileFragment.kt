@@ -40,6 +40,10 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                     signInButton = signInButton,
                     errorText = profileErrorText,
                     onSuccess = {
+                        TaskImportDialogFragment.showIfLocalTasks(
+                            requireContext(),
+                            parentFragmentManager
+                        )
                         renderProfile()
                     }
                 )
