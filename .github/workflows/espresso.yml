@@ -58,7 +58,7 @@ jobs:
             -no-snapshot-load
             -no-snapshot-save
             -no-metrics
-          script: ./gradlew :app:connectedDebugAndroidTest --console=plain
+          script: ./scripts/run-espresso-with-allure.sh
 
       # Show results in GitHub Actions
       - name: Publish test summary
@@ -70,6 +70,40 @@ jobs:
           detailed_summary: true
           include_passed: true
           include_time_in_summary: true
+
+      # Build a browsable Allure report from the files collected by the emulator run.
+      - name: Install Allure CLI
+        if: always()
+        run: npm install -g allure-commandline@2.43.0
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          if find allure-results -type f | grep -q .; then
+            allure generate allure-results --single-file --clean --output allure-report
+          else
+            echo "No Allure result files were collected from the emulator."
+            exit 1
+          fi
+
+      - name: Upload Allure report
+        id: upload-allure-report
+        if: always() && hashFiles('allure-report/index.html') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: allure-report
+          path: allure-report/index.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish Allure report link
+        if: always() && steps.upload-allure-report.outputs.artifact-url != ''
+        run: |
+          {
+            echo "### Allure Report"
+            echo ""
+            echo "[Download the Allure report artifact](${{ steps.upload-allure-report.outputs.artifact-url }})"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Save the full Android HTML report
       - name: Upload HTML report
