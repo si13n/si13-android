@@ -4,12 +4,12 @@
     android:id="@+id/task_cell"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="6dp"
-    android:layout_marginBottom="6dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
     android:foreground="?attr/selectableItemBackground"
     app:cardBackgroundColor="@color/surface"
-    app:cardCornerRadius="18dp"
-    app:cardElevation="2dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="1dp"
     app:strokeColor="@color/surface_stroke"
     app:strokeWidth="1dp">
 
@@ -17,12 +17,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:minHeight="68dp"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:paddingStart="12dp"
-        android:paddingTop="6dp"
+        android:paddingTop="4dp"
         android:paddingEnd="8dp"
-        android:paddingBottom="6dp">
+        android:paddingBottom="4dp">
 
         <CheckBox
             android:id="@+id/task_checkbox"
@@ -36,7 +36,7 @@
             android:minHeight="48dp"
             android:paddingEnd="8dp"
             android:textColor="@color/text_primary"
-            android:textSize="17sp" />
+            android:textSize="16sp" />
 
         <ImageButton
             android:id="@+id/task_priority_button"
@@ -44,7 +44,7 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/set_task_priority"
-            android:padding="12dp"
+            android:padding="14dp"
             android:src="@drawable/ic_priority_unset" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

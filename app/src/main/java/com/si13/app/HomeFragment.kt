@@ -1,5 +1,6 @@
 package com.si13.app
 
+import android.annotation.SuppressLint
 import android.graphics.Paint
 import android.os.Bundle
 import android.text.Editable
@@ -164,6 +165,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    @SuppressLint("RepeatOnLifecycleWrongUsage")
     private fun observeTasks() {
         taskObservationJob?.cancel()
         observedUserId = currentUserId()
