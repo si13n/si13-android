@@ -67,8 +67,9 @@
         android:paddingStart="20dp"
         android:paddingTop="4dp"
         android:paddingEnd="20dp"
-        android:paddingBottom="8dp"
+        android:paddingBottom="6dp"
         android:scrollbars="none"
+        android:layout_marginBottom="6dp"
         app:layout_constraintBottom_toTopOf="@id/task_input_panel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -114,12 +115,14 @@
             <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="56dp"
-                android:layout_weight="1">
+                android:layout_weight="1"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="match_parent"
                     android:hint="@string/task_input_hint"
                     app:boxBackgroundColor="@color/surface"
                     app:boxCornerRadiusBottomEnd="16dp"
@@ -132,7 +135,8 @@
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/task_input"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
                         android:imeOptions="actionDone"
                         android:inputType="textCapSentences"
                         android:maxLines="1"

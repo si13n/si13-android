@@ -20,10 +20,13 @@ import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isRoot
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
+import com.google.firebase.auth.FirebaseAuth
 import io.qameta.allure.android.runners.AllureAndroidJUnit4
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
 import org.hamcrest.Matcher
+import org.hamcrest.Matchers.allOf
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -100,6 +103,17 @@ class HomeTaskTest {
 
             onView(withId(R.id.task_list)).perform(scrollRecyclerToPosition(29))
             onView(withText("Guest task 1")).check(matches(isDisplayed()))
+            onView(withId(R.id.task_list)).check(taskIsCompletelyVisible("Guest task 1"))
+        }
+    }
+
+    @Test
+    fun bottomNavigationLabelsAreVisible() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+
+            onView(allOf(withText(R.string.home), isDisplayed())).check(matches(isDisplayed()))
+            onView(allOf(withText(R.string.profile), isDisplayed())).check(matches(isDisplayed()))
         }
     }
 
@@ -246,6 +260,7 @@ class HomeTaskTest {
 
     private fun clearState() {
         // Keep every test independent from previous auth snapshots and Room rows.
+        FirebaseAuth.getInstance().signOut()
         AuthRepository(context).clear()
         runBlocking {
             TaskDatabase.getInstance(context).taskDao().deleteAll()
@@ -361,6 +376,25 @@ class HomeTaskTest {
                 ?.text
                 ?.toString()
             assertEquals(expectedText, firstTaskText)
+        }
+    }
+
+    private fun taskIsCompletelyVisible(taskText: String): ViewAssertion {
+        return ViewAssertion { view, _ ->
+            val recyclerView = view as RecyclerView
+            for (index in 0 until recyclerView.childCount) {
+                val child = recyclerView.getChildAt(index)
+                val checkbox = child.findViewById<CheckBox>(R.id.task_checkbox)
+                if (checkbox.text == taskText) {
+                    assertTrue(
+                        "Task '$taskText' is clipped within the RecyclerView.",
+                        child.top >= 0 && child.bottom <= recyclerView.height
+                    )
+                    return@ViewAssertion
+                }
+            }
+
+            throw AssertionError("Could not find visible task '$taskText'.")
         }
     }
 

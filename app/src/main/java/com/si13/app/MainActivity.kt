@@ -20,8 +20,8 @@ class MainActivity : AppCompatActivity() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
-        findViewById<BottomNavigationView>(R.id.bottom_navigation)
-            .setupWithNavController(navController)
+        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+        bottomNavigationView.setupWithNavController(navController)
 
         if (savedInstanceState == null) {
             if (AuthRepository(this).isAuthenticated()) {
@@ -38,7 +38,13 @@ class MainActivity : AppCompatActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
+            bottomNavigationView.setPadding(
+                bottomNavigationView.paddingLeft,
+                bottomNavigationView.paddingTop,
+                bottomNavigationView.paddingRight,
+                systemBars.bottom
+            )
             insets
         }
     }
