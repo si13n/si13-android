@@ -9,7 +9,8 @@ data class TaskEntity(
     val text: String,
     val completed: Boolean,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val priority: String? = null
 ) {
     fun toTask(): Task {
         return Task(
@@ -17,7 +18,8 @@ data class TaskEntity(
             text = text,
             completed = completed,
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = updatedAt,
+            priority = TaskPriority.fromStorageValue(priority)
         )
     }
 }
@@ -28,6 +30,7 @@ fun Task.toEntity(): TaskEntity {
         text = text,
         completed = completed,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        priority = priority?.storageValue
     )
 }

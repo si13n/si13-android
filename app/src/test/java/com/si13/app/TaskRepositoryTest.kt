@@ -43,6 +43,57 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun addedTasksHaveNoPriorityByDefault() = runTest {
+        val local = FakeTaskDataSource()
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { FakeTaskDataSource() },
+            currentUserIdProvider = { null }
+        )
+
+        repository.addTask("Guest task")
+
+        assertEquals(null, local.getTasks().single().priority)
+    }
+
+    @Test
+    fun setTaskPriorityUpdatesTask() = runTest {
+        val local = FakeTaskDataSource()
+        val task = Task("task-1", "Guest task", false, 1L, 1L)
+        local.upsert(task)
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { FakeTaskDataSource() },
+            currentUserIdProvider = { null }
+        )
+
+        repository.setTaskPriority(task, TaskPriority.HIGH)
+
+        assertEquals(TaskPriority.HIGH, local.getTasks().single().priority)
+    }
+
+    @Test
+    fun observeTasksSortsByPriorityThenCreatedAt() = runTest {
+        val local = FakeTaskDataSource()
+        local.upsert(Task("unset-newest", "Unset", false, 4L, 4L))
+        local.upsert(Task("unset-oldest", "Unset oldest", false, 3L, 3L))
+        local.upsert(Task("high-oldest", "High oldest", false, 1L, 1L, TaskPriority.HIGH))
+        local.upsert(Task("high-newest", "High newest", false, 2L, 2L, TaskPriority.HIGH))
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { FakeTaskDataSource() },
+            currentUserIdProvider = { null }
+        )
+
+        val tasks = repository.observeTasks().first()
+
+        assertEquals(
+            listOf("high-newest", "high-oldest", "unset-newest", "unset-oldest"),
+            tasks.map { it.id }
+        )
+    }
+
+    @Test
     fun successfulImportUploadsLocalTasksAndClearsLocalStorage() = runTest {
         val local = FakeTaskDataSource()
         val remote = FakeTaskDataSource()
@@ -77,6 +128,66 @@ class TaskRepositoryTest {
 
         assertTrue(result is TaskImportResult.Failure)
         assertEquals(listOf(task), local.getTasks())
+    }
+
+    @Test
+    fun discardDeletesOnlyLocalTasks() = runTest {
+        val local = FakeTaskDataSource()
+        val remote = FakeTaskDataSource()
+        val localTask = Task("local-task", "Local task", false, 1L, 1L)
+        val remoteTask = Task("remote-task", "Remote task", false, 2L, 2L)
+        local.upsert(localTask)
+        remote.upsert(remoteTask)
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { remote },
+            currentUserIdProvider = { "user-1" }
+        )
+
+        repository.discardLocalTasks()
+
+        assertTrue(local.getTasks().isEmpty())
+        assertEquals(listOf(remoteTask), remote.getTasks())
+    }
+
+    @Test
+    fun deleteAllTasksClearsLocalStorageForGuestUser() = runTest {
+        val local = FakeTaskDataSource()
+        val remote = FakeTaskDataSource()
+        val localTask = Task("local-task", "Local task", false, 1L, 1L)
+        val remoteTask = Task("remote-task", "Remote task", false, 2L, 2L)
+        local.upsert(localTask)
+        remote.upsert(remoteTask)
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { remote },
+            currentUserIdProvider = { null }
+        )
+
+        repository.deleteAllTasks()
+
+        assertTrue(local.getTasks().isEmpty())
+        assertEquals(listOf(remoteTask), remote.getTasks())
+    }
+
+    @Test
+    fun deleteAllTasksClearsRemoteStorageForAuthenticatedUser() = runTest {
+        val local = FakeTaskDataSource()
+        val remote = FakeTaskDataSource()
+        val localTask = Task("local-task", "Local task", false, 1L, 1L)
+        val remoteTask = Task("remote-task", "Remote task", false, 2L, 2L)
+        local.upsert(localTask)
+        remote.upsert(remoteTask)
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { remote },
+            currentUserIdProvider = { "user-1" }
+        )
+
+        repository.deleteAllTasks()
+
+        assertEquals(listOf(localTask), local.getTasks())
+        assertTrue(remote.getTasks().isEmpty())
     }
 
     @Test

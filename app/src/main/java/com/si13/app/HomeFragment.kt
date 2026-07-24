@@ -10,9 +10,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -32,15 +36,19 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var taskInput: TextInputEditText
     private lateinit var addTaskButton: Button
-    private lateinit var showCompletedButton: Button
+    private lateinit var taskSettingsButton: ImageButton
     private lateinit var statusText: TextView
     private lateinit var emptyTasksText: TextView
     private lateinit var characterCounterText: TextView
+    private lateinit var taskList: RecyclerView
 
     private var allTasks: List<Task> = emptyList()
     private var showCompleted = false
     private var observedUserId: String? = null
     private var hasObservedSource = false
+    private var isAddingTask = false
+    private var shouldScrollToTopAfterRender = false
+    private var taskIdToScrollAfterRender: String? = null
     private var taskObservationJob: Job? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -49,22 +57,28 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         taskRepository = TaskRepository.create(requireContext())
         taskInput = view.findViewById(R.id.task_input)
         addTaskButton = view.findViewById(R.id.add_task_button)
-        showCompletedButton = view.findViewById(R.id.show_completed_button)
+        taskSettingsButton = view.findViewById(R.id.task_settings_button)
         statusText = view.findViewById(R.id.task_status_text)
         emptyTasksText = view.findViewById(R.id.empty_tasks_text)
         characterCounterText = view.findViewById(R.id.task_character_counter)
 
-        taskAdapter = TaskAdapter { task, completed ->
-            viewLifecycleOwner.lifecycleScope.launch {
-                try {
-                    taskRepository.setTaskCompleted(task, completed)
-                } catch (exception: Exception) {
-                    showError()
+        taskAdapter = TaskAdapter(
+            onCompletedChanged = { task, completed ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    try {
+                        taskRepository.setTaskCompleted(task, completed)
+                    } catch (exception: Exception) {
+                        showError()
+                    }
                 }
+            },
+            onPriorityClicked = { task ->
+                cycleTaskPriority(task)
             }
-        }
+        )
 
-        view.findViewById<RecyclerView>(R.id.task_list).apply {
+        taskList = view.findViewById(R.id.task_list)
+        taskList.apply {
             adapter = taskAdapter
             layoutManager = LinearLayoutManager(requireContext())
         }
@@ -126,10 +140,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             addTask()
         }
 
-        showCompletedButton.setOnClickListener {
-            showCompleted = !showCompleted
-            updateShowCompletedButton()
-            renderTasks()
+        taskSettingsButton.setOnClickListener {
+            showTaskSettings()
         }
     }
 
@@ -139,6 +151,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             viewLifecycleOwner
         ) { _, _ ->
             // Login can switch Home from guest Room data to authenticated Firestore data.
+            taskRepository = TaskRepository.create(requireContext())
+            observeTasks()
+        }
+
+        parentFragmentManager.setFragmentResultListener(
+            TaskImportDialogFragment.IMPORT_RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, _ ->
             taskRepository = TaskRepository.create(requireContext())
             observeTasks()
         }
@@ -168,16 +188,27 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun addTask() {
+        if (isAddingTask) {
+            return
+        }
+
         val taskText = taskInput.text?.toString().orEmpty()
+        isAddingTask = true
+        updateAddButtonState()
+
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 taskRepository.addTask(taskText)
+                shouldScrollToTopAfterRender = true
                 taskInput.text?.clear()
             } catch (exception: IllegalArgumentException) {
                 statusText.text = exception.message ?: getString(R.string.task_too_long)
                 statusText.isVisible = true
             } catch (exception: Exception) {
                 showError()
+            } finally {
+                isAddingTask = false
+                updateAddButtonState()
             }
         }
     }
@@ -188,6 +219,70 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         return true
     }
 
+    private fun showTaskSettings() {
+        val toggleCompletedText = getString(
+            if (showCompleted) R.string.hide_completed else R.string.show_completed
+        )
+        val actions = listOf(
+            TaskSettingsAction(
+                label = toggleCompletedText,
+                iconRes = if (showCompleted) R.drawable.ic_visibility_off else R.drawable.ic_visibility
+            ),
+            TaskSettingsAction(
+                label = getString(R.string.delete_all_tasks),
+                iconRes = R.drawable.ic_delete
+            )
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.task_settings)
+            .setAdapter(TaskSettingsActionAdapter(requireContext(), actions)) { _, which ->
+                when (which) {
+                    0 -> toggleCompletedTasks()
+                    1 -> confirmDeleteAllTasks()
+                }
+            }
+            .show()
+    }
+
+    private fun toggleCompletedTasks() {
+        showCompleted = !showCompleted
+        renderTasks()
+    }
+
+    private fun cycleTaskPriority(task: Task) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                taskIdToScrollAfterRender = task.id
+                taskRepository.setTaskPriority(task, TaskPriority.next(task.priority))
+            } catch (exception: Exception) {
+                taskIdToScrollAfterRender = null
+                showError()
+            }
+        }
+    }
+
+    private fun confirmDeleteAllTasks() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.delete_all_tasks_title)
+            .setMessage(R.string.delete_all_tasks_message)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                deleteAllTasks()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun deleteAllTasks() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                taskRepository.deleteAllTasks()
+            } catch (exception: Exception) {
+                showError()
+            }
+        }
+    }
+
     private fun renderTasks() {
         val visibleTasks = if (showCompleted) {
             allTasks
@@ -195,14 +290,26 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             allTasks.filterNot { it.completed }
         }
 
-        taskAdapter.submitList(visibleTasks)
+        taskAdapter.submitList(visibleTasks) {
+            if (shouldScrollToTopAfterRender && visibleTasks.isNotEmpty()) {
+                scrollTaskListToPosition(0)
+                shouldScrollToTopAfterRender = false
+            }
+            taskIdToScrollAfterRender?.let { taskId ->
+                val changedTaskPosition = visibleTasks.indexOfFirst { task -> task.id == taskId }
+                if (changedTaskPosition != -1) {
+                    scrollTaskListToPosition(changedTaskPosition)
+                }
+                taskIdToScrollAfterRender = null
+            }
+        }
         emptyTasksText.isVisible = visibleTasks.isEmpty()
     }
 
-    private fun updateShowCompletedButton() {
-        showCompletedButton.text = getString(
-            if (showCompleted) R.string.hide_completed else R.string.show_completed
-        )
+    private fun scrollTaskListToPosition(position: Int) {
+        (taskList.layoutManager as? LinearLayoutManager)
+            ?.scrollToPositionWithOffset(position, 0)
+            ?: taskList.scrollToPosition(position)
     }
 
     private fun updateCharacterCounter() {
@@ -215,7 +322,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun updateAddButtonState() {
-        addTaskButton.isEnabled = !taskInput.text?.toString().orEmpty().isBlank()
+        addTaskButton.isEnabled = !isAddingTask && !taskInput.text?.toString().orEmpty().isBlank()
     }
 
     private fun showError() {
@@ -229,14 +336,37 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 }
 
+private data class TaskSettingsAction(
+    val label: String,
+    val iconRes: Int
+)
+
+private class TaskSettingsActionAdapter(
+    context: android.content.Context,
+    actions: List<TaskSettingsAction>
+) : ArrayAdapter<TaskSettingsAction>(context, R.layout.item_task_settings_action, actions) {
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context)
+            .inflate(R.layout.item_task_settings_action, parent, false)
+        val action = getItem(position) ?: return view
+
+        view.findViewById<ImageView>(R.id.task_settings_action_icon)
+            .setImageResource(action.iconRes)
+        view.findViewById<TextView>(R.id.task_settings_action_text).text = action.label
+        return view
+    }
+}
+
 private class TaskAdapter(
-    private val onCompletedChanged: (Task, Boolean) -> Unit
+    private val onCompletedChanged: (Task, Boolean) -> Unit,
+    private val onPriorityClicked: (Task) -> Unit
 ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_task, parent, false)
-        return TaskViewHolder(view as CheckBox, onCompletedChanged)
+        return TaskViewHolder(view, onCompletedChanged, onPriorityClicked)
     }
 
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
@@ -244,26 +374,38 @@ private class TaskAdapter(
     }
 
     class TaskViewHolder(
-        private val checkbox: CheckBox,
-        private val onCompletedChanged: (Task, Boolean) -> Unit
-    ) : RecyclerView.ViewHolder(checkbox) {
+        private val cell: View,
+        private val onCompletedChanged: (Task, Boolean) -> Unit,
+        private val onPriorityClicked: (Task) -> Unit
+    ) : RecyclerView.ViewHolder(cell) {
+        private val checkbox: CheckBox = cell.findViewById(R.id.task_checkbox)
+        private val priorityButton: ImageButton = cell.findViewById(R.id.task_priority_button)
         private var boundTask: Task? = null
 
         init {
-            checkbox.setOnCheckedChangeListener { _, isChecked ->
-                val task = boundTask ?: return@setOnCheckedChangeListener
-                if (task.completed != isChecked) {
-                    onCompletedChanged(task, isChecked)
-                }
+            cell.setOnClickListener {
+                val task = boundTask ?: return@setOnClickListener
+                onCompletedChanged(task, !task.completed)
+            }
+            checkbox.setOnClickListener {
+                val task = boundTask ?: return@setOnClickListener
+                onCompletedChanged(task, !task.completed)
+            }
+            priorityButton.setOnClickListener {
+                val task = boundTask ?: return@setOnClickListener
+                onPriorityClicked(task)
             }
         }
 
         fun bind(task: Task) {
-            boundTask = null
             checkbox.text = task.text
             checkbox.isChecked = task.completed
             checkbox.contentDescription = checkbox.context.getString(
                 if (task.completed) R.string.task_completed else R.string.task_not_completed
+            )
+            priorityButton.setImageResource(priorityIconRes(task.priority))
+            priorityButton.contentDescription = priorityButton.context.getString(
+                priorityLabelRes(task.priority)
             )
             checkbox.paintFlags = if (task.completed) {
                 checkbox.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
@@ -271,6 +413,20 @@ private class TaskAdapter(
                 checkbox.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
             boundTask = task
+        }
+
+        private fun priorityIconRes(priority: TaskPriority?): Int {
+            return when (priority) {
+                TaskPriority.HIGH -> R.drawable.ic_priority_high
+                null -> R.drawable.ic_priority_unset
+            }
+        }
+
+        private fun priorityLabelRes(priority: TaskPriority?): Int {
+            return when (priority) {
+                TaskPriority.HIGH -> R.string.priority_high
+                null -> R.string.set_task_priority
+            }
         }
     }
 

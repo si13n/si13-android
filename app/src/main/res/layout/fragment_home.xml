@@ -29,12 +29,15 @@
             android:text="@string/home"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5" />
 
-        <Button
-            android:id="@+id/show_completed_button"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/show_completed" />
+        <ImageButton
+            android:id="@+id/task_settings_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/open_task_settings"
+            android:padding="12dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/purple_700" />
     </LinearLayout>
 
     <TextView
@@ -55,10 +58,12 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
+        android:fadeScrollbars="false"
         android:paddingStart="16dp"
         android:paddingTop="8dp"
         android:paddingEnd="16dp"
         android:paddingBottom="8dp"
+        android:scrollbars="vertical"
         app:layout_constraintBottom_toTopOf="@id/task_input_panel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

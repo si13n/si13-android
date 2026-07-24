@@ -73,12 +73,14 @@ class RemoteTaskDataSource(
     }
 
     private fun Task.toFirestoreMap(): Map<String, Any> {
-        return mapOf(
+        val values = mutableMapOf<String, Any>(
             "text" to text,
             "completed" to completed,
             "createdAt" to createdAt,
             "updatedAt" to updatedAt
         )
+        priority?.let { values["priority"] = it.storageValue }
+        return values
     }
 
     private fun Map<String, Any>.toTask(documentId: String): Task? {
@@ -92,7 +94,8 @@ class RemoteTaskDataSource(
             text = text,
             completed = completed,
             createdAt = createdAt.toLong(),
-            updatedAt = updatedAt.toLong()
+            updatedAt = updatedAt.toLong(),
+            priority = TaskPriority.fromStorageValue(this["priority"] as? String)
         )
     }
 }

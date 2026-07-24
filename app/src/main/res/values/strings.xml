@@ -6,6 +6,15 @@
     <string name="add_task">Add</string>
     <string name="show_completed">Show completed</string>
     <string name="hide_completed">Hide completed</string>
+    <string name="task_settings">Task settings</string>
+    <string name="open_task_settings">Open task settings</string>
+    <string name="delete_all_tasks">Delete all tasks</string>
+    <string name="delete_all_tasks_title">Delete all tasks?</string>
+    <string name="delete_all_tasks_message">This will permanently delete every task in the current list.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="set_task_priority">Set task priority</string>
+    <string name="priority_high">High priority</string>
     <string name="task_character_counter">%1$d / %2$d</string>
     <string name="task_completed">Task completed</string>
     <string name="task_not_completed">Task not completed</string>

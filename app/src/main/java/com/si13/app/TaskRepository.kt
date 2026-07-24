@@ -5,6 +5,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class TaskRepository(
     private val localTaskDataSource: TaskDataSource,
@@ -12,7 +13,7 @@ class TaskRepository(
     private val currentUserIdProvider: () -> String?
 ) {
     fun observeTasks(): Flow<List<Task>> {
-        return activeDataSource().observeTasks()
+        return activeDataSource().observeTasks().map { tasks -> tasks.sortedForDisplay() }
     }
 
     suspend fun addTask(text: String) {
@@ -27,7 +28,8 @@ class TaskRepository(
                 text = trimmedText,
                 completed = false,
                 createdAt = now,
-                updatedAt = now
+                updatedAt = now,
+                priority = null
             )
         )
     }
@@ -36,6 +38,15 @@ class TaskRepository(
         activeDataSource().upsert(
             task.copy(
                 completed = completed,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun setTaskPriority(task: Task, priority: TaskPriority?) {
+        activeDataSource().upsert(
+            task.copy(
+                priority = priority,
                 updatedAt = System.currentTimeMillis()
             )
         )
@@ -65,6 +76,17 @@ class TaskRepository(
 
     suspend fun discardLocalTasks() {
         localTaskDataSource.deleteAll()
+    }
+
+    suspend fun deleteAllTasks() {
+        activeDataSource().deleteAll()
+    }
+
+    private fun List<Task>.sortedForDisplay(): List<Task> {
+        return sortedWith(
+            compareByDescending<Task> { it.priority?.rank ?: 0 }
+                .thenByDescending { it.createdAt }
+        )
     }
 
     private fun activeDataSource(): TaskDataSource {
