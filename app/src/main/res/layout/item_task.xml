@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<CheckBox xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/task_checkbox"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/task_cell"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
     android:minHeight="48dp"
+    android:orientation="horizontal"
     android:paddingStart="8dp"
-    android:paddingEnd="8dp"
-    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+    android:paddingEnd="4dp">
+
+    <CheckBox
+        android:id="@+id/task_checkbox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@android:color/transparent"
+        android:minHeight="48dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+    <ImageButton
+        android:id="@+id/task_priority_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/set_task_priority"
+        android:padding="12dp"
+        android:src="@drawable/ic_priority_unset" />
+</LinearLayout>
