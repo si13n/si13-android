@@ -1,6 +1,11 @@
 <resources>
     <string name="app_name">si13</string>
     <string name="home">Home</string>
+    <string name="my_tasks">My tasks</string>
+    <plurals name="tasks_left">
+        <item quantity="one">%d task left</item>
+        <item quantity="other">%d tasks left</item>
+    </plurals>
     <string name="tasks_empty">No tasks yet.</string>
     <string name="task_input_hint">Add a task</string>
     <string name="add_task">Add</string>

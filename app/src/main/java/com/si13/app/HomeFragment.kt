@@ -177,7 +177,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 try {
                     taskRepository.observeTasks().collect { tasks ->
                         allTasks = tasks
-                        statusText.isVisible = false
                         renderTasks()
                     }
                 } catch (exception: Exception) {
@@ -303,6 +302,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 taskIdToScrollAfterRender = null
             }
         }
+        val activeTaskCount = allTasks.count { task -> !task.completed }
+        statusText.text = resources.getQuantityString(
+            R.plurals.tasks_left,
+            activeTaskCount,
+            activeTaskCount
+        )
+        statusText.isVisible = true
         emptyTasksText.isVisible = visibleTasks.isEmpty()
     }
 
@@ -412,6 +418,7 @@ private class TaskAdapter(
             } else {
                 checkbox.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
+            cell.alpha = if (task.completed) 0.55f else 1f
             boundTask = task
         }
 
