@@ -24,7 +24,10 @@ enum class TaskPriority(val rank: Int, val storageValue: String) {
         }
 
         fun next(priority: TaskPriority?): TaskPriority? {
-            return priority?.next() ?: HIGH
+            return when (priority) {
+                null -> HIGH
+                HIGH -> null
+            }
         }
     }
 }

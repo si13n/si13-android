@@ -254,7 +254,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 taskIdToScrollAfterRender = task.id
-                taskRepository.setTaskPriority(task, TaskPriority.next(task.priority))
+                taskRepository.toggleTaskPriority(task)
             } catch (exception: Exception) {
                 taskIdToScrollAfterRender = null
                 showError()

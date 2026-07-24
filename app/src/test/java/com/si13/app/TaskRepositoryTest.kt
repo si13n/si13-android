@@ -73,6 +73,38 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun toggleTaskPriorityUsesCurrentStoredPriority() = runTest {
+        val local = FakeTaskDataSource()
+        val staleDefaultTask = Task("task-1", "Guest task", false, 1L, 1L)
+        local.upsert(staleDefaultTask.copy(priority = TaskPriority.HIGH))
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { FakeTaskDataSource() },
+            currentUserIdProvider = { null }
+        )
+
+        repository.toggleTaskPriority(staleDefaultTask)
+
+        assertEquals(null, local.getTasks().single().priority)
+    }
+
+    @Test
+    fun toggleTaskPriorityTreatsStoredNullAsCurrentPriority() = runTest {
+        val local = FakeTaskDataSource()
+        val staleHighTask = Task("task-1", "Guest task", false, 1L, 1L, TaskPriority.HIGH)
+        local.upsert(staleHighTask.copy(priority = null))
+        val repository = TaskRepository(
+            localTaskDataSource = local,
+            remoteTaskDataSourceFactory = { FakeTaskDataSource() },
+            currentUserIdProvider = { null }
+        )
+
+        repository.toggleTaskPriority(staleHighTask)
+
+        assertEquals(TaskPriority.HIGH, local.getTasks().single().priority)
+    }
+
+    @Test
     fun observeTasksSortsByPriorityThenCreatedAt() = runTest {
         val local = FakeTaskDataSource()
         local.upsert(Task("unset-newest", "Unset", false, 4L, 4L))

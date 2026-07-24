@@ -52,6 +52,24 @@ class TaskRepository(
         )
     }
 
+    suspend fun toggleTaskPriority(task: Task) {
+        val dataSource = activeDataSource()
+        val currentTask = dataSource.getTasks()
+            .firstOrNull { currentTask -> currentTask.id == task.id }
+        val currentPriority = if (currentTask == null) {
+            task.priority
+        } else {
+            currentTask.priority
+        }
+
+        dataSource.upsert(
+            task.copy(
+                priority = TaskPriority.next(currentPriority),
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
     suspend fun hasLocalTasks(): Boolean {
         return localTaskDataSource.hasTasks()
     }
