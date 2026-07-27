@@ -10,6 +10,10 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
 import androidx.test.espresso.ViewAssertion
+import androidx.test.espresso.action.CoordinatesProvider
+import androidx.test.espresso.action.GeneralSwipeAction
+import androidx.test.espresso.action.Press
+import androidx.test.espresso.action.Swipe
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.pressImeActionButton
 import androidx.test.espresso.action.ViewActions.replaceText
@@ -211,6 +215,25 @@ class HomeTaskTest {
             onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", true))
 
             onView(withId(R.id.home_title_text)).perform(click())
+            onView(isRoot()).perform(waitFor(250))
+
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", false))
+            onView(withText("Guest task 1")).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun rightSwipeClosesRevealWithoutMovingRowOrDeletingTask() {
+        seedGuestTasks(1)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 1")).perform(swipeLeft())
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", true))
+
+            onView(withId(R.id.task_list)).perform(swipeTaskRight("Guest task 1"))
             onView(isRoot()).perform(waitFor(250))
 
             onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", false))
@@ -427,6 +450,31 @@ class HomeTaskTest {
         }
     }
 
+    private fun swipeTaskRight(taskText: String): ViewAction {
+        fun taskCoordinates(horizontalFraction: Float) = CoordinatesProvider { view ->
+            val recyclerView = view as RecyclerView
+            val child = (0 until recyclerView.childCount)
+                .map(recyclerView::getChildAt)
+                .firstOrNull { item ->
+                    item.findViewById<CheckBox>(R.id.task_checkbox).text == taskText
+                }
+                ?: throw AssertionError("Could not find visible task '$taskText'.")
+            val location = IntArray(2)
+            child.getLocationOnScreen(location)
+            floatArrayOf(
+                location[0] + child.width * horizontalFraction,
+                location[1] + child.height / 2f
+            )
+        }
+
+        return GeneralSwipeAction(
+            Swipe.FAST,
+            taskCoordinates(0.25f),
+            taskCoordinates(0.85f),
+            Press.FINGER
+        )
+    }
+
     private fun clickPriorityForTask(taskText: String): ViewAction {
         return object : ViewAction {
             override fun getConstraints(): Matcher<View> {
@@ -492,7 +540,14 @@ class HomeTaskTest {
                 val checkbox = child.findViewById<CheckBox>(R.id.task_checkbox)
                 if (checkbox.text == taskText) {
                     val foreground = child.findViewById<View>(R.id.task_foreground_container)
-                    assertEquals(expectedRevealed, foreground.translationX < 0f)
+                    val deleteAction = child.findViewById<View>(R.id.task_delete_action)
+                    val expectedTranslation = if (expectedRevealed) {
+                        -deleteAction.width.toFloat()
+                    } else {
+                        0f
+                    }
+                    assertEquals(0f, child.translationX, 0f)
+                    assertEquals(expectedTranslation, foreground.translationX, 1f)
                     return@ViewAssertion
                 }
             }

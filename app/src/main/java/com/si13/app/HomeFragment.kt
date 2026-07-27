@@ -611,7 +611,7 @@ private class TaskAdapter(
 
 private class TaskSwipeCallback(
     private val adapter: TaskAdapter
-) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
     private var swipeBaseOffset = 0f
     private var activeViewHolder: TaskAdapter.TaskViewHolder? = null
 
@@ -623,7 +623,8 @@ private class TaskSwipeCallback(
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
         val task = adapter.getTask(viewHolder.bindingAdapterPosition)
-        adapter.setRevealedTask(task?.id)
+        adapter.setRevealedTask(if (direction == ItemTouchHelper.LEFT) task?.id else null)
+        viewHolder.itemView.translationX = 0f
     }
 
     override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 2f
@@ -634,6 +635,7 @@ private class TaskSwipeCallback(
 
     override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
         if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && viewHolder is TaskAdapter.TaskViewHolder) {
+            viewHolder.itemView.translationX = 0f
             activeViewHolder = viewHolder
             viewHolder.showDeleteAction()
             val task = adapter.getTask(viewHolder.bindingAdapterPosition)
@@ -660,6 +662,7 @@ private class TaskSwipeCallback(
         isCurrentlyActive: Boolean
     ) {
         if (viewHolder is TaskAdapter.TaskViewHolder && actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+            viewHolder.itemView.translationX = 0f
             val foreground = viewHolder.foregroundView()
             if (!isCurrentlyActive) {
                 val task = adapter.getTask(viewHolder.bindingAdapterPosition)
@@ -670,8 +673,11 @@ private class TaskSwipeCallback(
                 }
                 return
             }
-            foreground.translationX = (swipeBaseOffset + dX)
-                .coerceIn(-deleteActionWidth(viewHolder.itemView), 0f)
+            foreground.translationX = TaskSwipeBounds.translation(
+                baseOffset = swipeBaseOffset,
+                gestureOffset = dX,
+                actionWidth = deleteActionWidth(viewHolder.itemView)
+            )
             return
         }
         super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
@@ -679,6 +685,7 @@ private class TaskSwipeCallback(
 
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
+        viewHolder.itemView.translationX = 0f
         if (viewHolder is TaskAdapter.TaskViewHolder) {
             val task = adapter.getTask(viewHolder.bindingAdapterPosition)
             viewHolder.updateRevealState(task?.id == adapter.revealedTaskId, animate = true)
