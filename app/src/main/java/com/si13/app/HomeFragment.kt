@@ -50,12 +50,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private var allTasks: List<Task> = emptyList()
     private var showCompleted = false
-    private var observedUserId: String? = null
-    private var hasObservedSource = false
+    private val taskSourceTracker = TaskSourceTracker()
     private var isAddingTask = false
     private var shouldScrollToTopAfterRender = false
     private var taskIdToScrollAfterRender: String? = null
     private var taskObservationJob: Job? = null
+    private val authStateListener = FirebaseAuth.AuthStateListener {
+        refreshTaskSourceIfNeeded()
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -146,14 +148,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     override fun onResume() {
         super.onResume()
-        val currentUserId = currentUserId()
-        if (hasObservedSource && observedUserId != currentUserId) {
-            taskRepository = TaskRepository.create(requireContext())
-            observeTasks()
-        }
+        refreshTaskSourceIfNeeded()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        FirebaseAuth.getInstance().addAuthStateListener(authStateListener)
     }
 
     override fun onStop() {
+        FirebaseAuth.getInstance().removeAuthStateListener(authStateListener)
         if (::taskAdapter.isInitialized) {
             taskAdapter.closeRevealedAction()
         }
@@ -221,29 +225,25 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun bindLoginResult() {
-        parentFragmentManager.setFragmentResultListener(
+        requireActivity().supportFragmentManager.setFragmentResultListener(
             LoginBottomSheet.LOGIN_RESULT_KEY,
             viewLifecycleOwner
         ) { _, _ ->
-            // Login can switch Home from guest Room data to authenticated Firestore data.
-            taskRepository = TaskRepository.create(requireContext())
-            observeTasks()
+            refreshTaskSourceIfNeeded()
         }
 
-        parentFragmentManager.setFragmentResultListener(
+        requireActivity().supportFragmentManager.setFragmentResultListener(
             TaskImportDialogFragment.IMPORT_RESULT_KEY,
             viewLifecycleOwner
         ) { _, _ ->
-            taskRepository = TaskRepository.create(requireContext())
-            observeTasks()
+            refreshTaskSourceIfNeeded()
         }
     }
 
     @SuppressLint("RepeatOnLifecycleWrongUsage")
     private fun observeTasks() {
         taskObservationJob?.cancel()
-        observedUserId = currentUserId()
-        hasObservedSource = true
+        taskSourceTracker.markObserved(currentUserId())
         taskObservationJob = viewLifecycleOwner.lifecycleScope.launch {
             // Recreate collection when the active auth source changes instead of mixing data sources.
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -262,6 +262,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 }
             }
         }
+    }
+
+    private fun refreshTaskSourceIfNeeded() {
+        if (!isAdded || !::taskRepository.isInitialized) return
+        val currentUserId = currentUserId()
+        if (!taskSourceTracker.hasSourceChanged(currentUserId)) return
+
+        taskRepository = TaskRepository.create(requireContext())
+        observeTasks()
     }
 
     private fun addTask() {
