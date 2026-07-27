@@ -2,6 +2,7 @@ package com.si13.app
 
 import android.annotation.SuppressLint
 import android.graphics.Paint
+import android.graphics.Rect
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
@@ -45,6 +46,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var emptyTasksText: TextView
     private lateinit var characterCounterText: TextView
     private lateinit var taskList: RecyclerView
+    private lateinit var swipeDismissLayout: SwipeDismissLayout
 
     private var allTasks: List<Task> = emptyList()
     private var showCompleted = false
@@ -65,6 +67,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         statusText = view.findViewById(R.id.task_status_text)
         emptyTasksText = view.findViewById(R.id.empty_tasks_text)
         characterCounterText = view.findViewById(R.id.task_character_counter)
+        swipeDismissLayout = view as SwipeDismissLayout
 
         taskAdapter = TaskAdapter(
             onCompletedChanged = { task, completed ->
@@ -94,45 +97,45 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         taskAdapter.closeRevealedAction()
                     }
                 }
+
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    if (dx != 0 || dy != 0) {
+                        taskAdapter.closeRevealedAction()
+                    }
+                }
             })
             addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+                private var pendingDeleteAction: View? = null
+
                 override fun onInterceptTouchEvent(recyclerView: RecyclerView, event: MotionEvent): Boolean {
-                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                        val child = recyclerView.findChildViewUnder(event.x, event.y)
-                        val task = child?.let { taskAdapter.getTask(recyclerView.getChildAdapterPosition(it)) }
-                        val isDeleteActionTap = child != null &&
-                            task?.id == taskAdapter.revealedTaskId &&
-                            event.x >= child.right - deleteActionWidth(child)
-                        if (!isDeleteActionTap) {
-                            taskAdapter.closeRevealedAction()
-                        }
+                    if (event.actionMasked != MotionEvent.ACTION_DOWN) {
+                        return pendingDeleteAction != null
                     }
-                    return false
+                    pendingDeleteAction = taskAdapter.findRevealedDeleteAction(
+                        recyclerView,
+                        event.rawX.toInt(),
+                        event.rawY.toInt()
+                    )
+                    return pendingDeleteAction != null
+                }
+
+                override fun onTouchEvent(recyclerView: RecyclerView, event: MotionEvent) {
+                    if (event.actionMasked == MotionEvent.ACTION_UP) {
+                        pendingDeleteAction?.performClick()
+                        pendingDeleteAction = null
+                    } else if (event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                        pendingDeleteAction = null
+                    }
                 }
             })
         }
         ItemTouchHelper(TaskSwipeCallback(taskAdapter)).attachToRecyclerView(taskList)
 
-        view.findViewById<View>(R.id.home_header).setOnClickListener {
-            taskAdapter.closeRevealedAction()
-        }
-        view.findViewById<View>(R.id.task_input_panel).setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+        swipeDismissLayout.onTouchDown = { event ->
+            val inside = isTouchInsideRevealedTask(event.rawX.toInt(), event.rawY.toInt())
+            if (!inside) {
                 taskAdapter.closeRevealedAction()
             }
-            false
-        }
-        taskInput.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                taskAdapter.closeRevealedAction()
-            }
-            false
-        }
-        view.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                taskAdapter.closeRevealedAction()
-            }
-            false
         }
 
         configureTaskInput()
@@ -155,6 +158,17 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             taskAdapter.closeRevealedAction()
         }
         super.onStop()
+    }
+
+    override fun onDestroyView() {
+        taskObservationJob?.cancel()
+        if (::swipeDismissLayout.isInitialized) {
+            swipeDismissLayout.onTouchDown = null
+        }
+        if (::taskList.isInitialized) {
+            taskList.adapter = null
+        }
+        super.onDestroyView()
     }
 
     private fun configureTaskInput() {
@@ -316,6 +330,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    private fun isTouchInsideRevealedTask(rawX: Int, rawY: Int): Boolean {
+        val taskId = taskAdapter.revealedTaskId ?: return false
+        val position = taskAdapter.positionOfTask(taskId)
+        if (position == RecyclerView.NO_POSITION) return false
+        val itemView = taskList.findViewHolderForAdapterPosition(position)?.itemView ?: return false
+        val bounds = Rect()
+        return itemView.getGlobalVisibleRect(bounds) && bounds.contains(rawX, rawY)
+    }
+
     private fun renderTasks() {
         val visibleTasks = if (showCompleted) {
             allTasks
@@ -381,9 +404,12 @@ private class TaskAdapter(
     private val onPriorityClicked: (Task) -> Unit,
     private val onDeleteClicked: (Task) -> Unit
 ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback) {
-    var revealedTaskId: String? = null
-        private set
-    private val deletingTaskIds = mutableSetOf<String>()
+    private val swipeController = TaskSwipeController { previousTaskId, openTaskId ->
+        previousTaskId?.let(::notifyTaskChanged)
+        openTaskId?.let(::notifyTaskChanged)
+    }
+    val revealedTaskId: String?
+        get() = swipeController.openTaskId
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -395,37 +421,50 @@ private class TaskAdapter(
         holder.bind(getItem(position))
     }
 
+    override fun onBindViewHolder(holder: TaskViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(RevealStatePayload)) {
+            holder.updateRevealState(getItem(position).id == revealedTaskId, animate = true)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     override fun onCurrentListChanged(previousList: MutableList<Task>, currentList: MutableList<Task>) {
         super.onCurrentListChanged(previousList, currentList)
-        deletingTaskIds.retainAll(currentList.mapTo(mutableSetOf()) { it.id })
+        swipeController.retainTasks(currentList.mapTo(mutableSetOf()) { it.id })
     }
 
     fun getTask(position: Int): Task? = getItemOrNull(position)
 
-    fun closeRevealedAction(): Boolean {
-        val previousId = revealedTaskId ?: return false
-        revealedTaskId = null
-        currentList.indexOfFirst { it.id == previousId }
-            .takeIf { it >= 0 }
-            ?.let(::notifyItemChanged)
-        return true
+    fun positionOfTask(taskId: String): Int = currentList.indexOfFirst { it.id == taskId }
+
+    fun findRevealedDeleteAction(recyclerView: RecyclerView, rawX: Int, rawY: Int): View? {
+        val taskId = revealedTaskId ?: return null
+        val position = positionOfTask(taskId)
+        if (position == RecyclerView.NO_POSITION) return null
+        val holder = recyclerView.findViewHolderForAdapterPosition(position) as? TaskViewHolder
+            ?: return null
+        return holder.deleteActionAt(rawX, rawY)
     }
+
+    fun closeRevealedAction(): Boolean = swipeController.close()
 
     fun setRevealedTask(taskId: String?) {
-        if (revealedTaskId == taskId) return
-        val previousId = revealedTaskId
-        revealedTaskId = taskId
-        listOfNotNull(previousId, taskId).forEach { id ->
-            currentList.indexOfFirst { it.id == id }
-                .takeIf { it >= 0 }
-                ?.let(::notifyItemChanged)
-        }
+        swipeController.open(taskId)
     }
 
-    fun requestDelete(task: Task): Boolean = deletingTaskIds.add(task.id)
+    fun requestDelete(task: Task): Boolean = swipeController.requestDelete(task.id) {
+        onDeleteClicked(task)
+    }
 
     fun allowDeleteRetry(taskId: String) {
-        deletingTaskIds.remove(taskId)
+        swipeController.allowDeleteRetry(taskId)
+    }
+
+    private fun notifyTaskChanged(taskId: String) {
+        positionOfTask(taskId)
+            .takeIf { it != RecyclerView.NO_POSITION }
+            ?.let { notifyItemChanged(it, RevealStatePayload) }
     }
 
     private fun getItemOrNull(position: Int): Task? =
@@ -441,20 +480,6 @@ private class TaskAdapter(
         private var boundTask: Task? = null
 
         init {
-            cell.setOnTouchListener { _, event ->
-                val task = boundTask
-                val isDeleteStripTap = task?.id == revealedTaskId &&
-                    event.x >= cell.width - deleteActionWidth(cell)
-                if (isDeleteStripTap) {
-                    if (event.actionMasked == MotionEvent.ACTION_UP) {
-                        task?.takeIf(::requestDelete)?.let(onDeleteClicked)
-                        setRevealedTask(null)
-                    }
-                    true
-                } else {
-                    false
-                }
-            }
             cell.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
                 closeRevealedAction()
@@ -471,8 +496,7 @@ private class TaskAdapter(
                 onPriorityClicked(task)
             }
             deleteAction.setOnClickListener {
-                boundTask?.takeIf(::requestDelete)?.let(onDeleteClicked)
-                setRevealedTask(null)
+                boundTask?.let(::requestDelete)
             }
         }
 
@@ -493,13 +517,7 @@ private class TaskAdapter(
             }
             cell.alpha = if (task.completed) 0.55f else 1f
             boundTask = task
-            foreground.translationX = if (task.id == revealedTaskId) {
-                -deleteActionWidth(cell)
-            } else {
-                0f
-            }
-            deleteAction.translationZ = if (task.id == revealedTaskId) 2f else 0f
-            priorityButton.isEnabled = task.id != revealedTaskId
+            updateRevealState(task.id == revealedTaskId, animate = false)
             ViewCompat.replaceAccessibilityAction(
                 cell,
                 AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_DISMISS,
@@ -511,6 +529,44 @@ private class TaskAdapter(
         }
 
         fun foregroundView(): View = foreground
+
+        fun updateRevealState(revealed: Boolean, animate: Boolean) {
+            foreground.animate().cancel()
+            if (revealed) {
+                showDeleteAction()
+            }
+            val targetTranslation = if (revealed) -deleteActionWidth(cell) else 0f
+            priorityButton.isEnabled = !revealed
+            if (animate) {
+                foreground.animate()
+                    .translationX(targetTranslation)
+                    .setDuration(REVEAL_ANIMATION_DURATION_MS)
+                    .withEndAction {
+                        if (!revealed) {
+                            deleteAction.isVisible = false
+                            deleteAction.translationZ = 0f
+                        }
+                    }
+                    .start()
+            } else {
+                foreground.translationX = targetTranslation
+                deleteAction.isVisible = revealed
+                deleteAction.translationZ = if (revealed) 2f else 0f
+            }
+        }
+
+        fun showDeleteAction() {
+            deleteAction.isVisible = true
+            deleteAction.translationZ = 2f
+        }
+
+        fun deleteActionAt(rawX: Int, rawY: Int): View? {
+            if (boundTask?.id != revealedTaskId || !deleteAction.isVisible) return null
+            val bounds = Rect()
+            return deleteAction.takeIf {
+                it.getGlobalVisibleRect(bounds) && bounds.contains(rawX, rawY)
+            }
+        }
 
         private fun priorityIconRes(priority: TaskPriority?): Int {
             return when (priority) {
@@ -536,12 +592,19 @@ private class TaskAdapter(
             return oldItem == newItem
         }
     }
+
+    private object RevealStatePayload
+
+    companion object {
+        private const val REVEAL_ANIMATION_DURATION_MS = 200L
+    }
 }
 
 private class TaskSwipeCallback(
     private val adapter: TaskAdapter
 ) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
     private var swipeBaseOffset = 0f
+    private var activeViewHolder: TaskAdapter.TaskViewHolder? = null
 
     override fun onMove(
         recyclerView: RecyclerView,
@@ -550,13 +613,20 @@ private class TaskSwipeCallback(
     ) = false
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-        adapter.closeRevealedAction()
+        val task = adapter.getTask(viewHolder.bindingAdapterPosition)
+        adapter.setRevealedTask(task?.id)
     }
 
     override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 2f
 
+    override fun getSwipeEscapeVelocity(defaultValue: Float): Float = Float.MAX_VALUE
+
+    override fun getSwipeVelocityThreshold(defaultValue: Float): Float = Float.MAX_VALUE
+
     override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
         if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && viewHolder is TaskAdapter.TaskViewHolder) {
+            activeViewHolder = viewHolder
+            viewHolder.showDeleteAction()
             val task = adapter.getTask(viewHolder.bindingAdapterPosition)
             swipeBaseOffset = if (task?.id == adapter.revealedTaskId) {
                 -deleteActionWidth(viewHolder.itemView)
@@ -564,6 +634,9 @@ private class TaskSwipeCallback(
                 adapter.closeRevealedAction()
                 0f
             }
+        } else if (actionState == ItemTouchHelper.ACTION_STATE_IDLE) {
+            activeViewHolder?.let(::settleRevealState)
+            activeViewHolder = null
         }
         super.onSelectedChanged(viewHolder, actionState)
     }
@@ -579,6 +652,15 @@ private class TaskSwipeCallback(
     ) {
         if (viewHolder is TaskAdapter.TaskViewHolder && actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
             val foreground = viewHolder.foregroundView()
+            if (!isCurrentlyActive) {
+                val task = adapter.getTask(viewHolder.bindingAdapterPosition)
+                foreground.translationX = if (task?.id == adapter.revealedTaskId) {
+                    -deleteActionWidth(viewHolder.itemView)
+                } else {
+                    0f
+                }
+                return
+            }
             foreground.translationX = (swipeBaseOffset + dX)
                 .coerceIn(-deleteActionWidth(viewHolder.itemView), 0f)
             return
@@ -589,17 +671,17 @@ private class TaskSwipeCallback(
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
         if (viewHolder is TaskAdapter.TaskViewHolder) {
-            val foreground = viewHolder.foregroundView()
-            val width = deleteActionWidth(viewHolder.itemView)
-            val shouldReveal = foreground.translationX <= -width * REVEAL_THRESHOLD
             val task = adapter.getTask(viewHolder.bindingAdapterPosition)
-            adapter.setRevealedTask(if (shouldReveal) task?.id else null)
-            foreground.animate()
-                .translationX(if (shouldReveal) -width else 0f)
-                .setDuration(200L)
-                .start()
+            viewHolder.updateRevealState(task?.id == adapter.revealedTaskId, animate = true)
         }
         swipeBaseOffset = 0f
+    }
+
+    private fun settleRevealState(viewHolder: TaskAdapter.TaskViewHolder) {
+        val width = deleteActionWidth(viewHolder.itemView)
+        val shouldReveal = viewHolder.foregroundView().translationX <= -width * REVEAL_THRESHOLD
+        val task = adapter.getTask(viewHolder.bindingAdapterPosition)
+        adapter.setRevealedTask(if (shouldReveal) task?.id else null)
     }
 
     companion object {
@@ -608,4 +690,8 @@ private class TaskSwipeCallback(
 }
 
 private fun deleteActionWidth(view: View): Float =
-    view.resources.getDimension(R.dimen.task_delete_action_width)
+    view.findViewById<View>(R.id.task_delete_action)
+        ?.width
+        ?.takeIf { it > 0 }
+        ?.toFloat()
+        ?: view.resources.getDimension(R.dimen.task_delete_action_width)

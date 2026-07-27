@@ -14,11 +14,14 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.pressImeActionButton
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.scrollTo
+import androidx.test.espresso.action.ViewActions.swipeLeft
+import androidx.test.espresso.action.ViewActions.swipeUp
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isRoot
+import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.google.firebase.auth.FirebaseAuth
@@ -136,7 +139,7 @@ class HomeTaskTest {
     }
 
     @Test
-    fun settingHighPriorityMovesTaskToTop() {
+    fun settingHighPriorityPreservesCreatedDateOrder() {
         seedGuestTasks(3)
 
         ActivityScenario.launch(MainActivity::class.java).use {
@@ -147,7 +150,7 @@ class HomeTaskTest {
             onView(withId(R.id.task_list)).perform(clickPriorityForTask("Guest task 1"))
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 1"))
+            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 3"))
 
             onView(withId(R.id.task_list)).perform(clickPriorityForTask("Guest task 1"))
             onView(isRoot()).perform(waitFor(500))
@@ -179,6 +182,95 @@ class HomeTaskTest {
     }
 
     @Test
+    fun revealedDeleteActionDeletesOnFirstTap() {
+        seedGuestTasks(1)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 1")).perform(swipeLeft())
+            onView(withText("Guest task 1")).check(matches(isDisplayed()))
+            onView(allOf(withContentDescription(R.string.delete_task), isDisplayed())).perform(click())
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 1")).check(doesNotExist())
+            assertTrue(runBlocking { TaskDatabase.getInstance(context).taskDao().getTasks() }.isEmpty())
+        }
+    }
+
+    @Test
+    fun outsideTapClosesRevealWithoutDeletingTask() {
+        seedGuestTasks(1)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 1")).perform(swipeLeft())
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", true))
+
+            onView(withId(R.id.home_title_text)).perform(click())
+            onView(isRoot()).perform(waitFor(250))
+
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", false))
+            onView(withText("Guest task 1")).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun openingSecondTaskClosesFirstReveal() {
+        seedGuestTasks(2)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 2")).perform(swipeLeft())
+            onView(withText("Guest task 1")).perform(swipeLeft())
+            onView(isRoot()).perform(waitFor(250))
+
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 2", false))
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", true))
+        }
+    }
+
+    @Test
+    fun tappingAnotherTaskClosesRevealAndPreservesTheTap() {
+        seedGuestTasks(2)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 2")).perform(swipeLeft())
+            onView(withText("Guest task 1")).perform(click())
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 2", false))
+            onView(withText("Guest task 1")).check(doesNotExist())
+        }
+    }
+
+    @Test
+    fun scrollingClosesRevealWithoutDeletingTask() {
+        seedGuestTasks(30)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 30")).perform(swipeLeft())
+            onView(withId(R.id.task_list)).perform(swipeUp())
+            onView(withId(R.id.task_list)).perform(scrollRecyclerToPosition(0))
+            onView(isRoot()).perform(waitFor(250))
+
+            onView(withId(R.id.task_list)).check(taskRevealState("Guest task 30", false))
+            assertEquals(30, runBlocking { TaskDatabase.getInstance(context).taskDao().getTasks() }.size)
+        }
+    }
+
+    @Test
     fun deleteAllTasksRequiresConfirmation() {
         seedGuestTasks(3)
 
@@ -195,7 +287,7 @@ class HomeTaskTest {
             onView(withText(R.string.cancel))
                 .inRoot(isDialog())
                 .perform(click())
-            onView(withText("Guest task 3")).check(matches(isDisplayed()))
+            assertEquals(3, runBlocking { TaskDatabase.getInstance(context).taskDao().getTasks() }.size)
 
             onView(withId(R.id.profile_delete_all_tasks_row)).perform(scrollTo(), click())
             onView(withText(R.string.delete))
@@ -203,6 +295,7 @@ class HomeTaskTest {
                 .perform(click())
             onView(isRoot()).perform(waitFor(500))
 
+            onView(withId(R.id.homeFragment)).perform(click())
             onView(withText(R.string.tasks_empty)).check(matches(isDisplayed()))
             val remainingTasks = runBlocking {
                 TaskDatabase.getInstance(context).taskDao().getTasks()
@@ -383,6 +476,23 @@ class HomeTaskTest {
                         "Task '$taskText' is clipped within the RecyclerView.",
                         child.top >= 0 && child.bottom <= recyclerView.height
                     )
+                    return@ViewAssertion
+                }
+            }
+
+            throw AssertionError("Could not find visible task '$taskText'.")
+        }
+    }
+
+    private fun taskRevealState(taskText: String, expectedRevealed: Boolean): ViewAssertion {
+        return ViewAssertion { view, _ ->
+            val recyclerView = view as RecyclerView
+            for (index in 0 until recyclerView.childCount) {
+                val child = recyclerView.getChildAt(index)
+                val checkbox = child.findViewById<CheckBox>(R.id.task_checkbox)
+                if (checkbox.text == taskText) {
+                    val foreground = child.findViewById<View>(R.id.task_foreground_container)
+                    assertEquals(expectedRevealed, foreground.translationX < 0f)
                     return@ViewAssertion
                 }
             }
