@@ -44,6 +44,7 @@
     <string name="continue_as_guest">Continue as guest</string>
     <string name="firebase_config_missing">Firebase is not configured yet. Add google-services.json and enable Google sign-in.</string>
     <string name="google_sign_in_failed">Google sign-in failed. Please try again.</string>
+    <string name="google_sign_in_offline">No internet connection. Connect and try again.</string>
     <string name="profile">Profile</string>
     <string name="guest_status">Guest</string>
     <string name="guest_profile_message">You are using the application without an account.</string>

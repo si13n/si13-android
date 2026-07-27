@@ -21,6 +21,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 class GoogleAuthClient {
     suspend fun signIn(activity: Activity): GoogleAuthResult {
+        val connectivity = AndroidConnectivityObserver(activity.applicationContext)
+        if (!connectivity.isOnline()) {
+            return GoogleAuthResult.Failure(activity.getString(R.string.google_sign_in_offline))
+        }
+
         val webClientId = getWebClientId(activity)
             ?: return GoogleAuthResult.Failure(activity.getString(R.string.firebase_config_missing))
 
@@ -39,7 +44,13 @@ class GoogleAuthClient {
             return GoogleAuthResult.Cancelled
         } catch (exception: GetCredentialException) {
             return GoogleAuthResult.Failure(
-                activity.getString(R.string.google_sign_in_failed)
+                activity.getString(
+                    if (connectivity.isOnline()) {
+                        R.string.google_sign_in_failed
+                    } else {
+                        R.string.google_sign_in_offline
+                    }
+                )
             )
         }
 
@@ -64,7 +75,13 @@ class GoogleAuthClient {
             GoogleAuthResult.Success(user)
         } catch (exception: Exception) {
             GoogleAuthResult.Failure(
-                activity.getString(R.string.google_sign_in_failed)
+                activity.getString(
+                    if (connectivity.isOnline()) {
+                        R.string.google_sign_in_failed
+                    } else {
+                        R.string.google_sign_in_offline
+                    }
+                )
             )
         }
     }

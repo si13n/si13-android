@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 
 /** Observes validated internet access without relying on deprecated network APIs. */
 interface ConnectivityObserver {
+    fun isOnline(): Boolean
     fun observeOnline(): Flow<Boolean>
 }
 
@@ -18,14 +19,14 @@ class AndroidConnectivityObserver(context: Context) : ConnectivityObserver {
     private val connectivityManager = context.applicationContext
         .getSystemService(ConnectivityManager::class.java)
 
-    override fun observeOnline(): Flow<Boolean> = callbackFlow {
-        fun isOnline(): Boolean {
-            val network = connectivityManager.activeNetwork ?: return false
-            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-            return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        }
+    override fun isOnline(): Boolean {
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
 
+    override fun observeOnline(): Flow<Boolean> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) = trySend(isOnline()).isSuccess.let { }
             override fun onLost(network: Network) = trySend(isOnline()).isSuccess.let { }
