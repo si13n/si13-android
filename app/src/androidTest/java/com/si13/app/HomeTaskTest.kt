@@ -550,6 +550,10 @@ class HomeTaskTest {
                             "The task foreground must remain mostly visible.",
                             deleteAction.width < foreground.width / 2
                         )
+                        assertTrue(
+                            "The delete action must draw above the task foreground.",
+                            deleteAction.z > foreground.z
+                        )
                         assertEquals(0f, deleteAction.translationX, 1f)
                     }
                     assertEquals(0f, child.translationX, 0f)

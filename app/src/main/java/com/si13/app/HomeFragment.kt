@@ -560,7 +560,7 @@ private class TaskAdapter(
             } else {
                 deleteAction.translationX = targetTranslation
                 deleteAction.isVisible = revealed
-                deleteAction.translationZ = if (revealed) 2f else 0f
+                deleteAction.translationZ = if (revealed) overlayTranslationZ() else 0f
             }
         }
 
@@ -574,8 +574,10 @@ private class TaskAdapter(
 
         fun showDeleteAction() {
             deleteAction.isVisible = true
-            deleteAction.translationZ = 2f
+            deleteAction.translationZ = overlayTranslationZ()
         }
+
+        private fun overlayTranslationZ(): Float = foreground.elevation + 1f
 
         fun deleteActionAt(rawX: Int, rawY: Int): View? {
             if (boundTask?.id != revealedTaskId || !deleteAction.isVisible) return null
