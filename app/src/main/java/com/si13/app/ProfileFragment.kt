@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private val users = MutableStateFlow<AuthUser?>(null)
     private lateinit var authRepository: AuthRepository
+    private lateinit var taskRepository: TaskRepository
     private lateinit var viewModel: ProfileViewModel
     private lateinit var profilePicture: ImageView
     private lateinit var avatarInitial: TextView
@@ -52,6 +53,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         super.onViewCreated(view, savedInstanceState)
         authRepository = AuthRepository(requireContext())
         val appContext = requireContext().applicationContext
+        taskRepository = TaskRepository.create(appContext)
         users.value = authRepository.getCurrentUser()
         viewModel = ViewModelProvider(this, ProfileViewModel.Factory(
             users = users,
@@ -67,6 +69,9 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         bindViews(view)
         signInButton.setOnClickListener { signIn() }
         signOutButton.setOnClickListener { confirmSignOut() }
+        view.findViewById<View>(R.id.profile_delete_all_tasks_row).setOnClickListener {
+            confirmDeleteAllTasks()
+        }
         view.findViewById<View>(R.id.profile_content).addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             val vertical = resources.configuration.screenWidthDp < 360
             metricsVertical.isVisible = vertical
@@ -181,6 +186,27 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             .setMessage(R.string.sign_out_confirmation_message)
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.sign_out) { _, _ -> viewModel.signOut() }
+            .show()
+    }
+
+    private fun confirmDeleteAllTasks() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_all_tasks_title)
+            .setMessage(R.string.delete_all_tasks_message)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    try {
+                        taskRepository.deleteAllTasks()
+                    } catch (exception: Exception) {
+                        if (!isAdded) return@launch
+                        MaterialAlertDialogBuilder(requireContext())
+                            .setMessage(R.string.tasks_error)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
+                    }
+                }
+            }
             .show()
     }
 

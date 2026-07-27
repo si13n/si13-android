@@ -17,7 +17,6 @@ import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -142,7 +141,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
 
         taskSettingsButton.setOnClickListener {
-            showTaskSettings()
+            toggleCompletedTasks()
         }
     }
 
@@ -220,34 +219,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         return true
     }
 
-    private fun showTaskSettings() {
-        val toggleCompletedText = getString(
-            if (showCompleted) R.string.hide_completed else R.string.show_completed
-        )
-        val actions = listOf(
-            TaskSettingsAction(
-                label = toggleCompletedText,
-                iconRes = if (showCompleted) R.drawable.ic_visibility_off else R.drawable.ic_visibility
-            ),
-            TaskSettingsAction(
-                label = getString(R.string.delete_all_tasks),
-                iconRes = R.drawable.ic_delete
-            )
-        )
-
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.task_settings)
-            .setAdapter(TaskSettingsActionAdapter(requireContext(), actions)) { _, which ->
-                when (which) {
-                    0 -> toggleCompletedTasks()
-                    1 -> confirmDeleteAllTasks()
-                }
-            }
-            .show()
-    }
-
     private fun toggleCompletedTasks() {
         showCompleted = !showCompleted
+        taskSettingsButton.setImageResource(
+            if (showCompleted) R.drawable.ic_visibility_off else R.drawable.ic_visibility
+        )
+        taskSettingsButton.contentDescription = getString(
+            if (showCompleted) R.string.hide_completed_tasks else R.string.show_completed_tasks
+        )
         renderTasks()
     }
 
@@ -258,27 +237,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 taskRepository.toggleTaskPriority(task)
             } catch (exception: Exception) {
                 taskIdToScrollAfterRender = null
-                showError()
-            }
-        }
-    }
-
-    private fun confirmDeleteAllTasks() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.delete_all_tasks_title)
-            .setMessage(R.string.delete_all_tasks_message)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                deleteAllTasks()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
-    private fun deleteAllTasks() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                taskRepository.deleteAllTasks()
-            } catch (exception: Exception) {
                 showError()
             }
         }
