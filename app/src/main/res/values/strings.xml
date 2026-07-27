@@ -15,6 +15,7 @@
     <string name="open_task_settings">Open task settings</string>
     <string name="show_completed_tasks">Show completed tasks</string>
     <string name="hide_completed_tasks">Hide completed tasks</string>
+    <string name="sort_tasks_coming_soon">Sort tasks (coming soon)</string>
     <string name="delete_all_tasks">Delete all tasks</string>
     <string name="delete_all_tasks_profile_summary">Permanently remove all tasks</string>
     <string name="delete_all_tasks_title">Delete all tasks?</string>

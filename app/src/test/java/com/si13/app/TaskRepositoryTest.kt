@@ -105,12 +105,13 @@ class TaskRepositoryTest {
     }
 
     @Test
-    fun observeTasksSortsByPriorityThenCreatedAt() = runTest {
+    fun observeTasksSortsIncompleteBeforeCompletedThenByCreatedAt() = runTest {
         val local = FakeTaskDataSource()
         local.upsert(Task("unset-newest", "Unset", false, 4L, 4L))
         local.upsert(Task("unset-oldest", "Unset oldest", false, 3L, 3L))
         local.upsert(Task("high-oldest", "High oldest", false, 1L, 1L, TaskPriority.HIGH))
         local.upsert(Task("high-newest", "High newest", false, 2L, 2L, TaskPriority.HIGH))
+        local.upsert(Task("completed-newest", "Completed", true, 5L, 5L))
         val repository = TaskRepository(
             localTaskDataSource = local,
             remoteTaskDataSourceFactory = { FakeTaskDataSource() },
@@ -120,7 +121,7 @@ class TaskRepositoryTest {
         val tasks = repository.observeTasks().first()
 
         assertEquals(
-            listOf("high-newest", "high-oldest", "unset-newest", "unset-oldest"),
+            listOf("unset-newest", "unset-oldest", "high-newest", "high-oldest", "completed-newest"),
             tasks.map { it.id }
         )
     }

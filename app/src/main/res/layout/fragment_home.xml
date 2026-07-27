@@ -40,6 +40,17 @@
             android:padding="12dp"
             android:src="@drawable/ic_visibility"
             app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/task_sort_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_button"
+            android:contentDescription="@string/sort_tasks_coming_soon"
+            android:enabled="false"
+            android:padding="12dp"
+            android:src="@drawable/ic_sort"
+            app:tint="@color/profile_secondary" />
     </LinearLayout>
 
     <TextView

@@ -102,7 +102,7 @@ class TaskRepository(
 
     private fun List<Task>.sortedForDisplay(): List<Task> {
         return sortedWith(
-            compareByDescending<Task> { it.priority?.rank ?: 0 }
+            compareBy<Task> { it.completed }
                 .thenByDescending { it.createdAt }
         )
     }
