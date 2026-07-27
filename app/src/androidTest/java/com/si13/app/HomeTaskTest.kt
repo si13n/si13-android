@@ -546,6 +546,16 @@ class HomeTaskTest {
                     } else {
                         0f
                     }
+                    if (expectedRevealed) {
+                        assertEquals(
+                            child.resources.getDimensionPixelSize(R.dimen.task_delete_action_width),
+                            deleteAction.width
+                        )
+                        assertTrue(
+                            "The task foreground must remain mostly visible.",
+                            deleteAction.width < foreground.width / 2
+                        )
+                    }
                     assertEquals(0f, child.translationX, 0f)
                     assertEquals(expectedTranslation, foreground.translationX, 1f)
                     return@ViewAssertion

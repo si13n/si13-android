@@ -695,13 +695,12 @@ private class TaskSwipeCallback(
 
     private fun settleRevealState(viewHolder: TaskAdapter.TaskViewHolder) {
         val width = deleteActionWidth(viewHolder.itemView)
-        val shouldReveal = viewHolder.foregroundView().translationX <= -width * REVEAL_THRESHOLD
+        val target = TaskSwipeBounds.settleTarget(
+            translation = viewHolder.foregroundView().translationX,
+            actionWidth = width
+        )
         val task = adapter.getTask(viewHolder.bindingAdapterPosition)
-        adapter.setRevealedTask(if (shouldReveal) task?.id else null)
-    }
-
-    companion object {
-        private const val REVEAL_THRESHOLD = 0.38f
+        adapter.setRevealedTask(if (target < 0f) task?.id else null)
     }
 }
 
