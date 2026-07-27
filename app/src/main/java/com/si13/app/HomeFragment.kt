@@ -97,11 +97,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             })
             addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
                 override fun onInterceptTouchEvent(recyclerView: RecyclerView, event: MotionEvent): Boolean {
-                    if (
-                        event.actionMasked == MotionEvent.ACTION_DOWN &&
-                        recyclerView.findChildViewUnder(event.x, event.y) == null
-                    ) {
-                        taskAdapter.closeRevealedAction()
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        val child = recyclerView.findChildViewUnder(event.x, event.y)
+                        val task = child?.let { taskAdapter.getTask(recyclerView.getChildAdapterPosition(it)) }
+                        val isDeleteActionTap = child != null &&
+                            task?.id == taskAdapter.revealedTaskId &&
+                            event.x >= child.right - deleteActionWidth(child)
+                        if (!isDeleteActionTap) {
+                            taskAdapter.closeRevealedAction()
+                        }
                     }
                     return false
                 }
@@ -113,6 +117,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             taskAdapter.closeRevealedAction()
         }
         view.findViewById<View>(R.id.task_input_panel).setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                taskAdapter.closeRevealedAction()
+            }
+            false
+        }
+        taskInput.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 taskAdapter.closeRevealedAction()
             }
@@ -431,6 +441,20 @@ private class TaskAdapter(
         private var boundTask: Task? = null
 
         init {
+            cell.setOnTouchListener { _, event ->
+                val task = boundTask
+                val isDeleteStripTap = task?.id == revealedTaskId &&
+                    event.x >= cell.width - deleteActionWidth(cell)
+                if (isDeleteStripTap) {
+                    if (event.actionMasked == MotionEvent.ACTION_UP) {
+                        task?.takeIf(::requestDelete)?.let(onDeleteClicked)
+                        setRevealedTask(null)
+                    }
+                    true
+                } else {
+                    false
+                }
+            }
             cell.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
                 closeRevealedAction()
@@ -475,6 +499,7 @@ private class TaskAdapter(
                 0f
             }
             deleteAction.translationZ = if (task.id == revealedTaskId) 2f else 0f
+            priorityButton.isEnabled = task.id != revealedTaskId
             ViewCompat.replaceAccessibilityAction(
                 cell,
                 AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_DISMISS,
