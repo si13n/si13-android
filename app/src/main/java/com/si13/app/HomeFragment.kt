@@ -8,6 +8,7 @@ import android.text.InputFilter
 import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -94,8 +95,29 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     }
                 }
             })
+            addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+                override fun onInterceptTouchEvent(recyclerView: RecyclerView, event: MotionEvent): Boolean {
+                    if (
+                        event.actionMasked == MotionEvent.ACTION_DOWN &&
+                        recyclerView.findChildViewUnder(event.x, event.y) == null
+                    ) {
+                        taskAdapter.closeRevealedAction()
+                    }
+                    return false
+                }
+            })
         }
         ItemTouchHelper(TaskSwipeCallback(taskAdapter)).attachToRecyclerView(taskList)
+
+        view.findViewById<View>(R.id.home_header).setOnClickListener {
+            taskAdapter.closeRevealedAction()
+        }
+        view.findViewById<View>(R.id.task_input_panel).setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                taskAdapter.closeRevealedAction()
+            }
+            false
+        }
 
         configureTaskInput()
         bindActions()
@@ -110,6 +132,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             taskRepository = TaskRepository.create(requireContext())
             observeTasks()
         }
+    }
+
+    override fun onStop() {
+        if (::taskAdapter.isInitialized) {
+            taskAdapter.closeRevealedAction()
+        }
+        super.onStop()
     }
 
     private fun configureTaskInput() {
