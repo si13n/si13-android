@@ -33,7 +33,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
@@ -673,9 +672,11 @@ private class TaskAdapter(
         private val cell: View,
     ) : RecyclerView.ViewHolder(cell) {
         private val checkbox: CheckBox = cell.findViewById(R.id.task_checkbox)
+        private val taskTitle: TextView = cell.findViewById(R.id.task_title)
         private val priorityButton: View = cell.findViewById(R.id.task_priority_button)
         private val priorityDot: View = cell.findViewById(R.id.task_priority_dot)
-        private val foreground: MaterialCardView = cell.findViewById(R.id.task_foreground_container)
+        private val foreground: View = cell.findViewById(R.id.task_foreground_container)
+        private val divider: View = cell.findViewById(R.id.task_divider)
         private val deleteAction: View = cell.findViewById(R.id.task_delete_action)
         private var boundTask: Task? = null
 
@@ -686,6 +687,11 @@ private class TaskAdapter(
                 onCompletedChanged(task, !task.completed)
             }
             checkbox.setOnClickListener {
+                val task = boundTask ?: return@setOnClickListener
+                closeRevealedAction()
+                onCompletedChanged(task, !task.completed)
+            }
+            taskTitle.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
                 closeRevealedAction()
                 onCompletedChanged(task, !task.completed)
@@ -702,7 +708,8 @@ private class TaskAdapter(
 
         fun bind(item: TaskListItem.Row) {
             val task = item.task
-            checkbox.text = task.text
+            taskTitle.text = task.text
+            taskTitle.isActivated = task.completed
             checkbox.isChecked = task.completed
             checkbox.contentDescription = checkbox.context.getString(
                 if (task.completed) R.string.task_completed else R.string.task_not_completed
@@ -712,10 +719,10 @@ private class TaskAdapter(
                 priorityLabelRes(task.priority)
             )
             priorityDot.alpha = if (task.completed) COMPLETED_PRIORITY_ALPHA else 1f
-            checkbox.paintFlags = if (task.completed) {
-                checkbox.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+            taskTitle.paintFlags = if (task.completed) {
+                taskTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             } else {
-                checkbox.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                taskTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
             cell.alpha = 1f
             boundTask = task
@@ -789,19 +796,17 @@ private class TaskAdapter(
         }
 
         private fun updateGroupShape(position: TaskGroupPosition) {
-            val radius = cell.resources.getDimension(R.dimen.task_group_corner_radius)
-            val topRadius = if (
-                position == TaskGroupPosition.SINGLE || position == TaskGroupPosition.FIRST
-            ) radius else 0f
-            val bottomRadius = if (
-                position == TaskGroupPosition.SINGLE || position == TaskGroupPosition.LAST
-            ) radius else 0f
-            foreground.shapeAppearanceModel = foreground.shapeAppearanceModel.toBuilder()
-                .setTopLeftCornerSize(topRadius)
-                .setTopRightCornerSize(topRadius)
-                .setBottomLeftCornerSize(bottomRadius)
-                .setBottomRightCornerSize(bottomRadius)
-                .build()
+            foreground.setBackgroundResource(
+                when (position) {
+                    TaskGroupPosition.SINGLE -> R.drawable.bg_task_group_single
+                    TaskGroupPosition.FIRST -> R.drawable.bg_task_group_first
+                    TaskGroupPosition.MIDDLE -> R.drawable.bg_task_group_middle
+                    TaskGroupPosition.LAST -> R.drawable.bg_task_group_last
+                }
+            )
+            foreground.invalidateOutline()
+            divider.isVisible = position == TaskGroupPosition.FIRST ||
+                position == TaskGroupPosition.MIDDLE
             deleteAction.setBackgroundResource(
                 when (position) {
                     TaskGroupPosition.SINGLE -> R.drawable.bg_task_delete_action

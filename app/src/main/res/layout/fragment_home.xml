@@ -28,81 +28,92 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <TextView
-                android:id="@+id/home_title_text"
+            <LinearLayout
+                android:id="@+id/home_title_column"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:fontFamily="sans-serif-medium"
-                android:maxLines="1"
-                android:text="@string/today"
-                android:textColor="@color/home_text_primary"
-                android:textSize="28sp"
-                app:layout_constraintEnd_toStartOf="@id/task_status_text"
+                android:orientation="vertical"
+                app:layout_constraintEnd_toStartOf="@id/home_header_actions"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent">
 
-            <TextView
-                android:id="@+id/task_status_text"
+                <TextView
+                    android:id="@+id/home_title_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text="@string/today"
+                    android:textColor="@color/home_text_primary"
+                    android:textSize="27sp" />
+
+                <TextView
+                    android:id="@+id/home_date_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/home_text_secondary"
+                    android:textSize="14sp"
+                    tools:text="Tuesday, July 27" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/home_header_actions"
                 android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/bg_home_status_chip"
-                android:ellipsize="end"
-                android:fontFamily="sans-serif-medium"
-                android:gravity="center"
-                android:maxLines="1"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="@string/tasks_loading"
-                android:textColor="@color/home_text_primary"
-                android:textSize="11sp"
-                app:layout_constraintBottom_toBottomOf="@id/home_title_text"
-                app:layout_constraintEnd_toStartOf="@id/task_sort_button"
-                app:layout_constraintTop_toTopOf="@id/home_title_text"
-                tools:text="3 active · 2 done" />
-
-            <ImageButton
-                android:id="@+id/task_sort_button"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/bg_home_icon_button"
-                android:contentDescription="@string/sort_tasks"
-                android:padding="12dp"
-                android:src="@drawable/ic_sort"
-                app:layout_constraintBottom_toBottomOf="@id/home_title_text"
-                app:layout_constraintEnd_toStartOf="@id/task_settings_button"
-                app:layout_constraintTop_toTopOf="@id/home_title_text"
-                app:tint="@color/home_text_secondary" />
-
-            <ImageButton
-                android:id="@+id/task_settings_button"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/bg_home_icon_button"
-                android:contentDescription="@string/show_completed_tasks"
-                android:padding="12dp"
-                android:src="@drawable/ic_visibility_off"
-                app:layout_constraintBottom_toBottomOf="@id/home_title_text"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/home_title_text"
-                app:tint="@color/home_text_secondary" />
-
-            <TextView
-                android:id="@+id/home_date_text"
-                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/home_text_secondary"
-                android:textSize="14sp"
+                android:layout_marginStart="8dp"
+                android:baselineAligned="false"
+                android:gravity="center_vertical|end"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="@id/home_title_column"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/home_title_text"
-                tools:text="Tuesday, July 27" />
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:id="@+id/task_status_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxWidth="80dp"
+                    android:minHeight="32dp"
+                    android:background="@drawable/bg_home_status_chip"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:paddingStart="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="4dp"
+                    android:text="@string/tasks_loading"
+                    android:textColor="@color/home_text_primary"
+                    android:textSize="11sp"
+                    tools:text="3 active · 2 done" />
+
+                <ImageButton
+                    android:id="@+id/task_sort_button"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_home_icon_button"
+                    android:contentDescription="@string/sort_tasks"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_sort"
+                    app:tint="@color/home_text_secondary" />
+
+                <ImageButton
+                    android:id="@+id/task_settings_button"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_home_icon_button"
+                    android:contentDescription="@string/show_completed_tasks"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_visibility_off"
+                    app:tint="@color/home_text_secondary" />
+            </LinearLayout>
 
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/task_progress_indicator"
@@ -113,7 +124,7 @@
                 app:indicatorColor="@color/home_accent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/home_date_text"
+                app:layout_constraintTop_toBottomOf="@id/home_title_column"
                 app:trackColor="@color/home_border"
                 app:trackCornerRadius="2dp"
                 app:trackThickness="4dp" />
@@ -134,19 +145,22 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/task_list"
             android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
+            android:clipToOutline="true"
             android:clipToPadding="false"
             android:fadeScrollbars="false"
             android:overScrollMode="never"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
-            android:paddingBottom="12dp"
+            android:paddingBottom="0dp"
             android:scrollbars="none"
             app:layout_constraintBottom_toTopOf="@id/task_input_panel"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/home_header"
+            app:layout_constraintVertical_bias="0"
+            app:layout_constrainedHeight="true"
             tools:listitem="@layout/item_task" />
 
         <LinearLayout
@@ -156,10 +170,10 @@
             android:gravity="center"
             android:orientation="vertical"
             android:padding="24dp"
-            app:layout_constraintBottom_toBottomOf="@id/task_list"
-            app:layout_constraintEnd_toEndOf="@id/task_list"
-            app:layout_constraintStart_toStartOf="@id/task_list"
-            app:layout_constraintTop_toTopOf="@id/task_list">
+            app:layout_constraintBottom_toTopOf="@id/task_input_panel"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/home_header">
 
             <TextView
                 android:id="@+id/empty_tasks_text"

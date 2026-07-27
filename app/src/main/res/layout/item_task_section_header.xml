@@ -5,9 +5,9 @@
     android:layout_height="wrap_content"
     android:fontFamily="sans-serif-medium"
     android:paddingStart="2dp"
-    android:paddingTop="22dp"
+    android:paddingTop="24dp"
     android:paddingEnd="2dp"
-    android:paddingBottom="10dp"
+    android:paddingBottom="12dp"
     android:text="@string/completed"
     android:textColor="@color/home_text_secondary"
     android:textSize="15sp" />
