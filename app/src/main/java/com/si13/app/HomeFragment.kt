@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -180,6 +181,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         allTasks = tasks
                         renderTasks()
                     }
+                } catch (exception: CancellationException) {
+                    throw exception
                 } catch (exception: Exception) {
                     showError()
                 }
