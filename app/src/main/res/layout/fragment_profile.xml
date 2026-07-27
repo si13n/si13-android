@@ -110,6 +110,7 @@
                     </LinearLayout>
 
                     <LinearLayout
+                        android:id="@+id/profile_sync_status"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
                         android:layout_marginTop="14dp"
@@ -120,8 +121,8 @@
                         android:paddingTop="6dp"
                         android:paddingEnd="12dp"
                         android:paddingBottom="6dp">
-                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:src="@drawable/ic_cloud_done" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:fontFamily="sans-serif-medium" android:text="@string/cloud_sync_on" android:textColor="@color/profile_success" android:textSize="13sp" />
+                        <ImageView android:id="@+id/profile_sync_icon" android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:src="@drawable/ic_cloud_done" />
+                        <TextView android:id="@+id/profile_sync_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:fontFamily="sans-serif-medium" android:text="@string/cloud_sync_on" android:textColor="@color/profile_success" android:textSize="13sp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

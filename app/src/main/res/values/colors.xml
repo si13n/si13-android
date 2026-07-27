@@ -21,4 +21,6 @@
     <color name="profile_secondary">#FF74747D</color>
     <color name="profile_success">#FF146C3B</color>
     <color name="profile_success_container">#FFDDF7E7</color>
+    <color name="profile_offline">#FF5F6368</color>
+    <color name="profile_offline_container">#FFE8EAED</color>
 </resources>

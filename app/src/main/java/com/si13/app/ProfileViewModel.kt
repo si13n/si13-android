@@ -17,7 +17,7 @@ data class ProfileUiState(
     val activeTaskCount: Int = 0,
     val completionRate: Int = 0
 ) {
-    val showProfileCard: Boolean get() = user != null && isOnline
+    val showProfileCard: Boolean get() = user != null
     val showSignOut: Boolean get() = user != null
 }
 

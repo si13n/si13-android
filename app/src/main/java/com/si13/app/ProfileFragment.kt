@@ -1,10 +1,12 @@
 package com.si13.app
 
 import android.os.Bundle
+import android.content.res.ColorStateList
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -40,6 +42,9 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private lateinit var metricsHorizontal: View
     private lateinit var metricsVertical: View
     private lateinit var errorText: TextView
+    private lateinit var syncStatus: View
+    private lateinit var syncIcon: ImageView
+    private lateinit var syncText: TextView
 
     private val authStateListener = FirebaseAuth.AuthStateListener { refreshUser() }
 
@@ -105,6 +110,9 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         metricsHorizontal = view.findViewById(R.id.profile_metrics_horizontal)
         metricsVertical = view.findViewById(R.id.profile_metrics_vertical)
         errorText = view.findViewById(R.id.profile_error_text)
+        syncStatus = view.findViewById(R.id.profile_sync_status)
+        syncIcon = view.findViewById(R.id.profile_sync_icon)
+        syncText = view.findViewById(R.id.profile_sync_text)
     }
 
     private fun render(state: ProfileUiState) {
@@ -112,6 +120,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         signOutButton.isVisible = state.showSignOut
         guestContainer.isVisible = state.user == null
         setProgress(state)
+        renderSyncStatus(state.isOnline)
         state.user?.let(::renderUser)
     }
 
@@ -136,6 +145,21 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         activeValueVertical.text = state.activeTaskCount.toString()
         rateValueVertical.text = rate
         progress.progress = state.completionRate
+    }
+
+    private fun renderSyncStatus(isOnline: Boolean) {
+        val textRes = if (isOnline) R.string.cloud_sync_on else R.string.cloud_sync_off
+        val backgroundRes = if (isOnline) {
+            R.drawable.bg_profile_sync_status
+        } else {
+            R.drawable.bg_profile_sync_off
+        }
+        val colorRes = if (isOnline) R.color.profile_success else R.color.profile_offline
+        val color = ContextCompat.getColor(syncStatus.context, colorRes)
+        syncStatus.setBackgroundResource(backgroundRes)
+        syncText.setText(textRes)
+        syncText.setTextColor(color)
+        syncIcon.imageTintList = ColorStateList.valueOf(color)
     }
 
     private fun signIn() {

@@ -49,6 +49,7 @@
     <string name="your_account">Your account</string>
     <string name="profile_avatar_fallback">Account avatar</string>
     <string name="cloud_sync_on">Cloud sync on</string>
+    <string name="cloud_sync_off">Cloud sync off</string>
     <string name="your_progress">Your progress</string>
     <string name="completed">Completed</string>
     <string name="active">Active</string>

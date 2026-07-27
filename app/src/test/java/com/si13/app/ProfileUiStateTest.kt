@@ -9,9 +9,9 @@ class ProfileUiStateTest {
     private val user = AuthUser("user-1", "Ada", "ada@example.com", null)
 
     @Test
-    fun profileCardRequiresSignedInUserAndInternet() {
+    fun profileCardRequiresSignedInUser() {
         assertTrue(ProfileUiState(user = user, isOnline = true).showProfileCard)
-        assertFalse(ProfileUiState(user = user, isOnline = false).showProfileCard)
+        assertTrue(ProfileUiState(user = user, isOnline = false).showProfileCard)
         assertFalse(ProfileUiState(user = null, isOnline = true).showProfileCard)
     }
 
