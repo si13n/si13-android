@@ -46,11 +46,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         authRepository = AuthRepository(requireContext())
+        val appContext = requireContext().applicationContext
         users.value = authRepository.getCurrentUser()
         viewModel = ViewModelProvider(this, ProfileViewModel.Factory(
             users = users,
-            connectivity = AndroidConnectivityObserver(requireContext()).observeOnline(),
-            taskRepositoryFactory = { TaskRepository.create(requireContext()) },
+            connectivity = AndroidConnectivityObserver(appContext).observeOnline(),
+            taskRepositoryFactory = { TaskRepository.create(appContext) },
             signOutAction = {
                 FirebaseAuth.getInstance().signOut()
                 authRepository.clear()
