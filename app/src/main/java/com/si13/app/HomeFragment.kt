@@ -118,6 +118,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
             false
         }
+        view.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                taskAdapter.closeRevealedAction()
+            }
+            false
+        }
 
         configureTaskInput()
         bindActions()
@@ -180,10 +186,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private fun bindActions() {
         addTaskButton.setOnClickListener {
+            taskAdapter.closeRevealedAction()
             addTask()
         }
 
         taskSettingsButton.setOnClickListener {
+            taskAdapter.closeRevealedAction()
             toggleCompletedTasks()
         }
     }
@@ -292,6 +300,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             try {
                 taskRepository.deleteTask(task.id)
             } catch (exception: Exception) {
+                taskAdapter.allowDeleteRetry(task.id)
                 showError()
             }
         }
@@ -364,6 +373,7 @@ private class TaskAdapter(
 ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback) {
     var revealedTaskId: String? = null
         private set
+    private val deletingTaskIds = mutableSetOf<String>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -373,6 +383,11 @@ private class TaskAdapter(
 
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
         holder.bind(getItem(position))
+    }
+
+    override fun onCurrentListChanged(previousList: MutableList<Task>, currentList: MutableList<Task>) {
+        super.onCurrentListChanged(previousList, currentList)
+        deletingTaskIds.retainAll(currentList.mapTo(mutableSetOf()) { it.id })
     }
 
     fun getTask(position: Int): Task? = getItemOrNull(position)
@@ -397,6 +412,12 @@ private class TaskAdapter(
         }
     }
 
+    fun requestDelete(task: Task): Boolean = deletingTaskIds.add(task.id)
+
+    fun allowDeleteRetry(taskId: String) {
+        deletingTaskIds.remove(taskId)
+    }
+
     private fun getItemOrNull(position: Int): Task? =
         if (position in 0 until itemCount) getItem(position) else null
 
@@ -412,21 +433,21 @@ private class TaskAdapter(
         init {
             cell.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
-                if (closeRevealedAction()) return@setOnClickListener
+                closeRevealedAction()
                 onCompletedChanged(task, !task.completed)
             }
             checkbox.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
-                if (closeRevealedAction()) return@setOnClickListener
+                closeRevealedAction()
                 onCompletedChanged(task, !task.completed)
             }
             priorityButton.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
-                if (closeRevealedAction()) return@setOnClickListener
+                closeRevealedAction()
                 onPriorityClicked(task)
             }
             deleteAction.setOnClickListener {
-                boundTask?.let(onDeleteClicked)
+                boundTask?.takeIf(::requestDelete)?.let(onDeleteClicked)
                 setRevealedTask(null)
             }
         }
@@ -453,12 +474,13 @@ private class TaskAdapter(
             } else {
                 0f
             }
+            deleteAction.translationZ = if (task.id == revealedTaskId) 2f else 0f
             ViewCompat.replaceAccessibilityAction(
                 cell,
                 AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_DISMISS,
                 cell.context.getString(R.string.delete_task_accessibility, task.text)
             ) { _, _ ->
-                onDeleteClicked(task)
+                task.takeIf(::requestDelete)?.let(onDeleteClicked)
                 true
             }
         }
