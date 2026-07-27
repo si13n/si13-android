@@ -46,6 +46,19 @@ class LocalTaskDataSourceTest {
         assertTrue(dataSource.getTasks().isEmpty())
         assertFalse(dataSource.hasTasks())
     }
+
+    @Test
+    fun deleteRemovesOnlyTheRequestedTask() = runTest {
+        val dataSource = LocalTaskDataSource(FakeTaskDao())
+        val first = Task("first", "First", false, 1L, 1L)
+        val second = Task("second", "Second", true, 2L, 2L)
+        dataSource.upsert(first)
+        dataSource.upsert(second)
+
+        dataSource.delete(second.id)
+
+        assertEquals(listOf(first), dataSource.getTasks())
+    }
 }
 
 private class FakeTaskDao : TaskDao {
@@ -69,6 +82,11 @@ private class FakeTaskDao : TaskDao {
 
     override suspend fun upsertAll(tasks: List<TaskEntity>) {
         tasks.forEach { task -> this.tasks[task.id] = task }
+        publish()
+    }
+
+    override suspend fun delete(taskId: String) {
+        tasks.remove(taskId)
         publish()
     }
 

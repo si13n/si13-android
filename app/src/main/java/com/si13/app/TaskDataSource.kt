@@ -13,5 +13,7 @@ interface TaskDataSource {
 
     suspend fun upsertAll(tasks: List<Task>)
 
+    suspend fun delete(taskId: String)
+
     suspend fun deleteAll()
 }

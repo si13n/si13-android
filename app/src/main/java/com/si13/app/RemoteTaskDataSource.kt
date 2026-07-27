@@ -61,6 +61,10 @@ class RemoteTaskDataSource(
         batch.commit().await()
     }
 
+    override suspend fun delete(taskId: String) {
+        tasksCollection.document(taskId).delete().await()
+    }
+
     override suspend fun deleteAll() {
         val documents = tasksCollection.get().await().documents
         if (documents.isEmpty()) {

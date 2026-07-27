@@ -204,6 +204,47 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun deleteTaskRemovesOnlyTheSelectedTaskFromGuestStorage() = runTest {
+        val local = FakeTaskDataSource()
+        val first = Task("first", "First", false, 1L, 1L)
+        val second = Task("second", "Second", true, 2L, 2L)
+        local.upsert(first)
+        local.upsert(second)
+        val repository = TaskRepository(local, { FakeTaskDataSource() }, { null })
+
+        repository.deleteTask(second.id)
+
+        assertEquals(listOf(first), local.getTasks())
+    }
+
+    @Test
+    fun deleteTaskUsesAuthenticatedStorage() = runTest {
+        val local = FakeTaskDataSource()
+        val remote = FakeTaskDataSource()
+        val task = Task("remote", "Remote", false, 1L, 1L)
+        remote.upsert(task)
+        val repository = TaskRepository(local, { remote }, { "user-1" })
+
+        repository.deleteTask(task.id)
+
+        assertTrue(local.getTasks().isEmpty())
+        assertTrue(remote.getTasks().isEmpty())
+    }
+
+    @Test
+    fun deletingCompletedTaskUpdatesProgressFromTheActiveTaskList() = runTest {
+        val local = FakeTaskDataSource()
+        val completed = Task("completed", "Completed", true, 2L, 2L)
+        local.upsert(Task("active", "Active", false, 1L, 1L))
+        local.upsert(completed)
+        val repository = TaskRepository(local, { FakeTaskDataSource() }, { null })
+
+        repository.deleteTask(completed.id)
+
+        assertEquals(ProfileProgress(0, 1, 0), ProfileProgress.from(local.getTasks()))
+    }
+
+    @Test
     fun deleteAllTasksClearsRemoteStorageForAuthenticatedUser() = runTest {
         val local = FakeTaskDataSource()
         val remote = FakeTaskDataSource()
@@ -262,6 +303,11 @@ private class FakeTaskDataSource(
             throw IllegalStateException("Upload failed")
         }
         tasks.forEach { task -> this.tasks[task.id] = task }
+        publish()
+    }
+
+    override suspend fun delete(taskId: String) {
+        tasks.remove(taskId)
         publish()
     }
 

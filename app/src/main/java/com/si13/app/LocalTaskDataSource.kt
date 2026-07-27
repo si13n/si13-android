@@ -26,6 +26,10 @@ class LocalTaskDataSource(
         taskDao.upsertAll(tasks.map { it.toEntity() })
     }
 
+    override suspend fun delete(taskId: String) {
+        taskDao.delete(taskId)
+    }
+
     override suspend fun deleteAll() {
         taskDao.deleteAll()
     }

@@ -96,6 +96,10 @@ class TaskRepository(
         localTaskDataSource.deleteAll()
     }
 
+    suspend fun deleteTask(taskId: String) {
+        activeDataSource().delete(taskId)
+    }
+
     suspend fun deleteAllTasks() {
         activeDataSource().deleteAll()
     }

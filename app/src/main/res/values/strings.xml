@@ -21,6 +21,8 @@
     <string name="delete_all_tasks_title">Delete all tasks?</string>
     <string name="delete_all_tasks_message">This will permanently delete every task in the current list.</string>
     <string name="delete">Delete</string>
+    <string name="delete_task">Delete task</string>
+    <string name="delete_task_accessibility">Delete %1$s</string>
     <string name="cancel">Cancel</string>
     <string name="set_task_priority">Set task priority</string>
     <string name="priority_high">High priority</string>
