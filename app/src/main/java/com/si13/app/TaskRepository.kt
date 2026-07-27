@@ -100,6 +100,10 @@ class TaskRepository(
         activeDataSource().delete(taskId)
     }
 
+    suspend fun restoreTask(task: Task) {
+        activeDataSource().upsert(task)
+    }
+
     suspend fun deleteAllTasks() {
         activeDataSource().deleteAll()
     }

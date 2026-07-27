@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="4dp"
-    android:layout_marginBottom="4dp">
+    android:layout_marginBottom="6dp">
 
     <LinearLayout
         android:id="@+id/task_delete_action"
         android:layout_width="@dimen/task_delete_action_width"
-        android:layout_height="0dp"
+        android:layout_height="64dp"
         android:background="@drawable/bg_task_delete_action"
         android:clickable="true"
         android:contentDescription="@string/delete_task"
@@ -25,56 +25,66 @@
             android:layout_height="24dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_delete"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/task_foreground_container"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:foreground="?attr/selectableItemBackground"
-        app:cardBackgroundColor="@color/surface"
+        app:cardBackgroundColor="@color/home_surface"
         app:cardCornerRadius="14dp"
-        app:cardElevation="1dp"
-        app:strokeColor="@color/surface_stroke"
+        app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:strokeColor="@color/home_border"
         app:strokeWidth="1dp">
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:minHeight="56dp"
-            android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="4dp">
+            android:layout_height="match_parent">
 
             <CheckBox
                 android:id="@+id/task_checkbox"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_height="0dp"
                 android:background="@android:color/transparent"
-                android:buttonTint="@color/task_checkbox_tint"
+                android:button="@drawable/task_checkbox_button"
                 android:fontFamily="sans"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
+                android:paddingStart="12dp"
                 android:paddingEnd="8dp"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp" />
+                android:textColor="@color/home_task_text"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/task_priority_button"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="Review launch checklist" />
 
-            <ImageButton
+            <FrameLayout
                 android:id="@+id/task_priority_button"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
                 android:contentDescription="@string/set_task_priority"
-                android:padding="14dp"
-                android:src="@drawable/ic_priority_unset" />
-        </LinearLayout>
+                android:focusable="true"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <View
+                    android:id="@+id/task_priority_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_task_priority_dot"
+                    android:importantForAccessibility="no"
+                    tools:visibility="visible" />
+            </FrameLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

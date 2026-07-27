@@ -244,6 +244,32 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun restoreTaskUsesGuestStorage() = runTest {
+        val local = FakeTaskDataSource()
+        val remote = FakeTaskDataSource()
+        val task = Task("guest", "Guest", false, 1L, 1L)
+        val repository = TaskRepository(local, { remote }, { null })
+
+        repository.restoreTask(task)
+
+        assertEquals(listOf(task), local.getTasks())
+        assertTrue(remote.getTasks().isEmpty())
+    }
+
+    @Test
+    fun restoreTaskUsesAuthenticatedStorage() = runTest {
+        val local = FakeTaskDataSource()
+        val remote = FakeTaskDataSource()
+        val task = Task("remote", "Remote", true, 1L, 2L, TaskPriority.HIGH)
+        val repository = TaskRepository(local, { remote }, { "user-1" })
+
+        repository.restoreTask(task)
+
+        assertTrue(local.getTasks().isEmpty())
+        assertEquals(listOf(task), remote.getTasks())
+    }
+
+    @Test
     fun deletingCompletedTaskUpdatesProgressFromTheActiveTaskList() = runTest {
         val local = FakeTaskDataSource()
         val completed = Task("completed", "Completed", true, 2L, 2L)

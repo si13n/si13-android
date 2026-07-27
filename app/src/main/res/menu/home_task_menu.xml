@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_sort_priority"
+        android:checkable="true"
+        android:checked="true"
+        android:title="@string/sort_priority_then_newest" />
+    <item
+        android:id="@+id/action_toggle_completed"
+        android:title="@string/show_completed_tasks" />
+</menu>

@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/app_background"
+    android:background="@color/home_background"
     tools:context=".MainActivity">
 
     <androidx.fragment.app.FragmentContainerView
@@ -25,11 +25,12 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:minHeight="64dp"
-        android:background="@color/surface"
-        android:elevation="12dp"
+        android:background="@color/home_surface"
+        android:elevation="0dp"
+        app:itemActiveIndicatorStyle="@style/Widget.Si13.BottomNavigation.ActiveIndicator"
         app:itemIconSize="24dp"
         app:itemIconTint="@color/bottom_nav_item_color"
-        app:itemRippleColor="@color/surface_variant"
+        app:itemRippleColor="@color/home_accent_container"
         app:itemTextAppearanceActive="@style/TextAppearance.Si13.BottomNavigation"
         app:itemTextAppearanceInactive="@style/TextAppearance.Si13.BottomNavigation"
         app:itemTextColor="@color/bottom_nav_item_color"
