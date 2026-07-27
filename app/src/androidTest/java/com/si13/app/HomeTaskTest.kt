@@ -13,6 +13,7 @@ import androidx.test.espresso.ViewAssertion
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.pressImeActionButton
 import androidx.test.espresso.action.ViewActions.replaceText
+import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
@@ -173,9 +174,6 @@ class HomeTaskTest {
             onView(withText("Finish checklist")).check(doesNotExist())
 
             onView(withId(R.id.task_settings_button)).perform(click())
-            onView(withText(R.string.show_completed))
-                .inRoot(isDialog())
-                .perform(click())
             onView(withText("Finish checklist")).check(matches(isDisplayed()))
         }
     }
@@ -188,10 +186,8 @@ class HomeTaskTest {
             continueAsGuest()
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withId(R.id.task_settings_button)).perform(click())
-            onView(withText(R.string.delete_all_tasks))
-                .inRoot(isDialog())
-                .perform(click())
+            onView(withId(R.id.profileFragment)).perform(click())
+            onView(withId(R.id.profile_delete_all_tasks_row)).perform(scrollTo(), click())
             onView(withText(R.string.delete_all_tasks_title))
                 .inRoot(isDialog())
                 .check(matches(isDisplayed()))
@@ -201,10 +197,7 @@ class HomeTaskTest {
                 .perform(click())
             onView(withText("Guest task 3")).check(matches(isDisplayed()))
 
-            onView(withId(R.id.task_settings_button)).perform(click())
-            onView(withText(R.string.delete_all_tasks))
-                .inRoot(isDialog())
-                .perform(click())
+            onView(withId(R.id.profile_delete_all_tasks_row)).perform(scrollTo(), click())
             onView(withText(R.string.delete))
                 .inRoot(isDialog())
                 .perform(click())

@@ -36,9 +36,9 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:background="@drawable/bg_icon_button"
-            android:contentDescription="@string/open_task_settings"
+            android:contentDescription="@string/show_completed_tasks"
             android:padding="12dp"
-            android:src="@drawable/ic_settings"
+            android:src="@drawable/ic_visibility"
             app:tint="@color/text_primary" />
     </LinearLayout>
 
