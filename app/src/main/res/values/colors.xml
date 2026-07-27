@@ -16,4 +16,9 @@
     <color name="text_secondary">#FF74747D</color>
     <color name="navigation_inactive">#FF777680</color>
     <color name="priority_high">#FFFF5B5B</color>
+    <color name="profile_surface">#FFFFFFFF</color>
+    <color name="profile_divider">#FFE8E6ED</color>
+    <color name="profile_secondary">#FF74747D</color>
+    <color name="profile_success">#FF146C3B</color>
+    <color name="profile_success_container">#FFDDF7E7</color>
 </resources>

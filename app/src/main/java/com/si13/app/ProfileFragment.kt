@@ -61,8 +61,8 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         bindViews(view)
         signInButton.setOnClickListener { signIn() }
         signOutButton.setOnClickListener { confirmSignOut() }
-        view.findViewById<View>(R.id.profile_content).addOnLayoutChangeListener { _, _, _, right, _, _, _, _, _ ->
-            val vertical = right < resources.displayMetrics.density * 420
+        view.findViewById<View>(R.id.profile_content).addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            val vertical = resources.configuration.screenWidthDp < 360
             metricsVertical.isVisible = vertical
             metricsHorizontal.isVisible = !vertical
         }

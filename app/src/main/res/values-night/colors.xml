@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_background">#FF121216</color>
+    <color name="surface">#FF1B1B20</color>
+    <color name="surface_variant">#FF303039</color>
+    <color name="surface_stroke">#FF44444F</color>
+    <color name="text_primary">#FFE5E1E9</color>
+    <color name="text_secondary">#FFC9C4D0</color>
+    <color name="profile_surface">#FF1E1E24</color>
+    <color name="profile_divider">#FF44444F</color>
+    <color name="profile_secondary">#FFC9C4D0</color>
+    <color name="profile_success">#FF79D79B</color>
+    <color name="profile_success_container">#FF123D27</color>
+</resources>
