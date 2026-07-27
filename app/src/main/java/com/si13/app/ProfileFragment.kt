@@ -67,6 +67,8 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         ))[ProfileViewModel::class.java]
 
         bindViews(view)
+        // Avoid showing the default guest state while the combined flow initializes.
+        render(ProfileUiState(user = users.value))
         signInButton.setOnClickListener { signIn() }
         signOutButton.setOnClickListener { confirmSignOut() }
         view.findViewById<View>(R.id.profile_delete_all_tasks_row).setOnClickListener {
