@@ -94,5 +94,6 @@ app/google-services.json
 
 Google sign-in requires a valid `default_web_client_id` generated from the Firebase configuration.
 
-<img width="500" alt="image" src="https://github.com/user-attachments/assets/bfa3bca9-c388-4ccf-8393-4267ef75beca" />
+<img width="450" alt="image" src="https://github.com/user-attachments/assets/3b8b7704-c66b-46c9-80b1-53670a3dfcae" />
+
 
