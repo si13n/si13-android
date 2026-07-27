@@ -132,23 +132,62 @@ class HomeTaskTest {
     }
 
     @Test
-    fun bottomNavigationLabelsAreVisible() {
+    fun bottomNavigationShowsLabelOnlyForSelectedDestination() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(allOf(withText(R.string.home), isDisplayed())).check(matches(isDisplayed()))
-            onView(allOf(withText(R.string.profile), isDisplayed())).check(matches(isDisplayed()))
+            onView(withId(R.id.homeFragment)).check(matches(withText(R.string.home)))
+            onView(withId(R.id.profileFragment)).check(matches(withText("")))
+
+            onView(withId(R.id.profileFragment)).perform(click())
+            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.profile)))
+            onView(withId(R.id.homeFragment)).check(matches(withText("")))
         }
     }
 
     @Test
-    fun overflowContainsTheDefaultPrioritySort() {
+    fun sortMenuContainsTheDefaultPrioritySort() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
             onView(withId(R.id.task_sort_button)).perform(click())
 
-            onView(withText(R.string.sort_priority_then_newest)).check(matches(isDisplayed()))
+            onView(withText(R.string.sort_priority_first)).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun headerAndProgressUseLiveTaskCounts() {
+        seedGuestTasks(3)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+
+            onView(withText(R.string.today)).check(matches(isDisplayed()))
+            onView(withId(R.id.home_date_text)).check(matches(isDisplayed()))
+            onView(withText("3 active · 0 done")).check(matches(isDisplayed()))
+            onView(withText("0 of 3 completed")).check(matches(isDisplayed()))
+
+            onView(withText("Guest task 3")).perform(click())
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("2 active · 1 done")).check(matches(isDisplayed()))
+            onView(withText("1 of 3 completed")).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun alphabeticalSortChangesTheActiveTaskOrder() {
+        seedGuestTasks(3)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 3"))
+
+            onView(withId(R.id.task_sort_button)).perform(click())
+            onView(withText(R.string.sort_alphabetical)).perform(click())
+
+            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 1"))
         }
     }
 

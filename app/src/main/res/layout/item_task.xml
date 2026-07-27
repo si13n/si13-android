@@ -3,22 +3,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="6dp">
+    android:layout_height="64dp">
 
     <LinearLayout
         android:id="@+id/task_delete_action"
         android:layout_width="@dimen/task_delete_action_width"
-        android:layout_height="64dp"
+        android:layout_height="0dp"
         android:background="@drawable/bg_task_delete_action"
         android:clickable="true"
         android:contentDescription="@string/delete_task"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         android:gravity="center"
-        app:layout_constraintBottom_toBottomOf="@id/task_foreground_container"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/task_foreground_container">
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:layout_width="24dp"
@@ -31,11 +31,11 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/task_foreground_container"
         android:layout_width="0dp"
-        android:layout_height="64dp"
+        android:layout_height="0dp"
         android:foreground="?attr/selectableItemBackground"
-        app:cardBackgroundColor="@color/home_surface"
-        app:cardCornerRadius="14dp"
+        app:cardBackgroundColor="@color/home_group_surface"
         app:cardElevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -52,12 +52,15 @@
                 android:layout_height="0dp"
                 android:background="@android:color/transparent"
                 android:button="@drawable/task_checkbox_button"
+                android:buttonTint="@color/task_checkbox_tint"
+                android:ellipsize="end"
                 android:fontFamily="sans"
                 android:gravity="center_vertical"
-                android:paddingStart="12dp"
-                android:paddingEnd="8dp"
+                android:maxLines="1"
+                android:paddingStart="14dp"
+                android:paddingEnd="6dp"
                 android:textColor="@color/home_task_text"
-                android:textSize="16sp"
+                android:textSize="18sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/task_priority_button"
                 app:layout_constraintStart_toStartOf="parent"
@@ -70,7 +73,7 @@
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
-                android:contentDescription="@string/set_task_priority"
+                android:contentDescription="@string/mark_as_priority"
                 android:focusable="true"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -78,8 +81,8 @@
 
                 <View
                     android:id="@+id/task_priority_dot"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
+                    android:layout_width="9dp"
+                    android:layout_height="9dp"
                     android:layout_gravity="center"
                     android:background="@drawable/bg_task_priority_dot"
                     android:importantForAccessibility="no"

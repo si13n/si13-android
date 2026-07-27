@@ -23,4 +23,6 @@
     <color name="home_accent_container">#FF2D254D</color>
     <color name="home_priority_high">#FFFF5B61</color>
     <color name="home_delete">#FFFF3B43</color>
+    <color name="home_group_surface">#181B1B22</color>
+    <color name="home_disabled">#FF55525E</color>
 </resources>

@@ -20,24 +20,68 @@
         app:layout_constraintTop_toTopOf="parent"
         app:navGraph="@navigation/nav_graph" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <FrameLayout
         android:id="@+id/bottom_navigation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:minHeight="64dp"
         android:background="@color/home_surface"
-        android:elevation="0dp"
-        app:itemActiveIndicatorStyle="@style/Widget.Si13.BottomNavigation.ActiveIndicator"
-        app:itemIconSize="24dp"
-        app:itemIconTint="@color/bottom_nav_item_color"
-        app:itemRippleColor="@color/home_accent_container"
-        app:itemTextAppearanceActive="@style/TextAppearance.Si13.BottomNavigation"
-        app:itemTextAppearanceInactive="@style/TextAppearance.Si13.BottomNavigation"
-        app:itemTextColor="@color/bottom_nav_item_color"
-        app:labelVisibilityMode="labeled"
+        android:minHeight="68dp"
+        android:paddingStart="20dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/bottom_nav_menu" />
+        app:layout_constraintStart_toStartOf="parent">
 
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/homeFragment"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:contentDescription="@string/home"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
+                android:text="@string/home"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                app:backgroundTint="@color/home_accent"
+                app:cornerRadius="24dp"
+                app:icon="@drawable/ic_home"
+                app:iconPadding="8dp"
+                app:iconSize="22dp"
+                app:iconTint="@color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/profileFragment"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="12dp"
+                android:contentDescription="@string/profile"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
+                android:text=""
+                android:textAllCaps="false"
+                android:textSize="14sp"
+                app:backgroundTint="@android:color/transparent"
+                app:cornerRadius="24dp"
+                app:icon="@drawable/ic_profile"
+                app:iconPadding="8dp"
+                app:iconSize="22dp"
+                app:iconTint="@color/home_text_secondary" />
+        </LinearLayout>
+    </FrameLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
