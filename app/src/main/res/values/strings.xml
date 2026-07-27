@@ -46,4 +46,21 @@
     <string name="sign_out">Sign out</string>
     <string name="unknown_email">No email available</string>
     <string name="unknown_name">Google user</string>
+    <string name="your_account">Your account</string>
+    <string name="profile_avatar_fallback">Account avatar</string>
+    <string name="cloud_sync_on">Cloud sync on</string>
+    <string name="your_progress">Your progress</string>
+    <string name="completed">Completed</string>
+    <string name="active">Active</string>
+    <string name="completion_rate">Completion rate</string>
+    <string name="percentage_format">%1$d%%</string>
+    <string name="settings">Settings</string>
+    <string name="appearance">Appearance</string>
+    <string name="system_default">System default</string>
+    <string name="reminders">Reminders</string>
+    <string name="not_configured">Not configured</string>
+    <string name="completed_tasks">Completed tasks</string>
+    <string name="keep_forever">Keep forever</string>
+    <string name="sign_out_confirmation_title">Sign out?</string>
+    <string name="sign_out_confirmation_message">You can sign in again at any time.</string>
 </resources>
