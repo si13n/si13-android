@@ -540,14 +540,14 @@ private class TaskAdapter(
         fun foregroundView(): View = foreground
 
         fun updateRevealState(revealed: Boolean, animate: Boolean) {
-            foreground.animate().cancel()
-            if (revealed) {
-                showDeleteAction()
-            }
-            val targetTranslation = if (revealed) -deleteActionWidth(cell) else 0f
+            foreground.translationX = 0f
+            deleteAction.animate().cancel()
+            showDeleteAction()
+            val width = deleteActionWidth(cell)
+            val targetTranslation = if (revealed) 0f else width
             priorityButton.isEnabled = !revealed
             if (animate) {
-                foreground.animate()
+                deleteAction.animate()
                     .translationX(targetTranslation)
                     .setDuration(REVEAL_ANIMATION_DURATION_MS)
                     .withEndAction {
@@ -558,10 +558,18 @@ private class TaskAdapter(
                     }
                     .start()
             } else {
-                foreground.translationX = targetTranslation
+                deleteAction.translationX = targetTranslation
                 deleteAction.isVisible = revealed
                 deleteAction.translationZ = if (revealed) 2f else 0f
             }
+        }
+
+        fun updateSwipeReveal(swipeOffset: Float) {
+            foreground.translationX = 0f
+            deleteAction.animate().cancel()
+            showDeleteAction()
+            val width = deleteActionWidth(cell)
+            deleteAction.translationX = TaskSwipeBounds.overlayTranslation(swipeOffset, width)
         }
 
         fun showDeleteAction() {
@@ -613,6 +621,7 @@ private class TaskSwipeCallback(
     private val adapter: TaskAdapter
 ) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
     private var swipeBaseOffset = 0f
+    private var currentSwipeOffset = 0f
     private var activeViewHolder: TaskAdapter.TaskViewHolder? = null
 
     override fun onMove(
@@ -645,6 +654,8 @@ private class TaskSwipeCallback(
                 adapter.closeRevealedAction()
                 0f
             }
+            currentSwipeOffset = swipeBaseOffset
+            viewHolder.updateSwipeReveal(currentSwipeOffset)
         } else if (actionState == ItemTouchHelper.ACTION_STATE_IDLE) {
             activeViewHolder?.let(::settleRevealState)
             activeViewHolder = null
@@ -663,21 +674,23 @@ private class TaskSwipeCallback(
     ) {
         if (viewHolder is TaskAdapter.TaskViewHolder && actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
             viewHolder.itemView.translationX = 0f
-            val foreground = viewHolder.foregroundView()
+            viewHolder.foregroundView().translationX = 0f
             if (!isCurrentlyActive) {
                 val task = adapter.getTask(viewHolder.bindingAdapterPosition)
-                foreground.translationX = if (task?.id == adapter.revealedTaskId) {
+                currentSwipeOffset = if (task?.id == adapter.revealedTaskId) {
                     -deleteActionWidth(viewHolder.itemView)
                 } else {
                     0f
                 }
+                viewHolder.updateSwipeReveal(currentSwipeOffset)
                 return
             }
-            foreground.translationX = TaskSwipeBounds.translation(
+            currentSwipeOffset = TaskSwipeBounds.swipeOffset(
                 baseOffset = swipeBaseOffset,
                 gestureOffset = dX,
                 actionWidth = deleteActionWidth(viewHolder.itemView)
             )
+            viewHolder.updateSwipeReveal(currentSwipeOffset)
             return
         }
         super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
@@ -691,12 +704,13 @@ private class TaskSwipeCallback(
             viewHolder.updateRevealState(task?.id == adapter.revealedTaskId, animate = true)
         }
         swipeBaseOffset = 0f
+        currentSwipeOffset = 0f
     }
 
     private fun settleRevealState(viewHolder: TaskAdapter.TaskViewHolder) {
         val width = deleteActionWidth(viewHolder.itemView)
         val target = TaskSwipeBounds.settleTarget(
-            translation = viewHolder.foregroundView().translationX,
+            swipeOffset = currentSwipeOffset,
             actionWidth = width
         )
         val task = adapter.getTask(viewHolder.bindingAdapterPosition)

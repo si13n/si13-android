@@ -541,11 +541,6 @@ class HomeTaskTest {
                 if (checkbox.text == taskText) {
                     val foreground = child.findViewById<View>(R.id.task_foreground_container)
                     val deleteAction = child.findViewById<View>(R.id.task_delete_action)
-                    val expectedTranslation = if (expectedRevealed) {
-                        -deleteAction.width.toFloat()
-                    } else {
-                        0f
-                    }
                     if (expectedRevealed) {
                         assertEquals(
                             child.resources.getDimensionPixelSize(R.dimen.task_delete_action_width),
@@ -555,9 +550,10 @@ class HomeTaskTest {
                             "The task foreground must remain mostly visible.",
                             deleteAction.width < foreground.width / 2
                         )
+                        assertEquals(0f, deleteAction.translationX, 1f)
                     }
                     assertEquals(0f, child.translationX, 0f)
-                    assertEquals(expectedTranslation, foreground.translationX, 1f)
+                    assertEquals(0f, foreground.translationX, 0f)
                     return@ViewAssertion
                 }
             }
