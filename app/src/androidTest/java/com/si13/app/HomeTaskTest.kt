@@ -143,7 +143,7 @@ class HomeTaskTest {
     }
 
     @Test
-    fun settingHighPriorityPreservesCreatedDateOrder() {
+    fun settingHighPriorityMovesTaskAboveNewerDefaultPriorityTasks() {
         seedGuestTasks(3)
 
         ActivityScenario.launch(MainActivity::class.java).use {
@@ -154,10 +154,12 @@ class HomeTaskTest {
             onView(withId(R.id.task_list)).perform(clickPriorityForTask("Guest task 1"))
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 3"))
+            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 1"))
 
             onView(withId(R.id.task_list)).perform(clickPriorityForTask("Guest task 1"))
             onView(isRoot()).perform(waitFor(500))
+
+            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 3"))
 
             val updatedTask = runBlocking {
                 TaskDatabase.getInstance(context).taskDao().getTasks()
