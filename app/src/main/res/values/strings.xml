@@ -1,13 +1,17 @@
 <resources>
     <string name="app_name">si13</string>
     <string name="home">Home</string>
+    <string name="today">Today</string>
     <string name="my_tasks">My tasks</string>
     <plurals name="tasks_left">
         <item quantity="one">%d task left</item>
         <item quantity="other">%d tasks left</item>
     </plurals>
-    <string name="tasks_empty">No tasks yet.</string>
-    <string name="task_input_hint">Add a task</string>
+    <string name="tasks_empty">Nothing on your mind yet</string>
+    <string name="tasks_empty_hint">Add your first task</string>
+    <string name="no_active_tasks">No active tasks</string>
+    <string name="show_completed_hint">Open Completed to review finished tasks</string>
+    <string name="task_input_hint">Add a task…</string>
     <string name="add_task">Add</string>
     <string name="show_completed">Show completed</string>
     <string name="hide_completed">Hide completed</string>
@@ -16,6 +20,19 @@
     <string name="show_completed_tasks">Show completed tasks</string>
     <string name="hide_completed_tasks">Hide completed tasks</string>
     <string name="sort_tasks_coming_soon">Sort tasks (coming soon)</string>
+    <string name="task_overflow_menu">Task options</string>
+    <string name="sort_priority_then_newest">High priority, then newest</string>
+    <string name="sort_tasks">Sort tasks</string>
+    <string name="sort_newest_first">Newest first</string>
+    <string name="sort_oldest_first">Oldest first</string>
+    <string name="sort_priority_first">Priority first</string>
+    <string name="sort_alphabetical">Alphabetical</string>
+    <string name="active_filter">Active</string>
+    <string name="completed_filter">Completed</string>
+    <string name="home_task_status">%1$d active</string>
+    <string name="home_progress_summary">%1$d of %2$d completed</string>
+    <string name="task_deleted">Task deleted</string>
+    <string name="undo">Undo</string>
     <string name="delete_all_tasks">Delete all tasks</string>
     <string name="delete_all_tasks_profile_summary">Permanently remove all tasks</string>
     <string name="delete_all_tasks_title">Delete all tasks?</string>
@@ -26,6 +43,8 @@
     <string name="cancel">Cancel</string>
     <string name="set_task_priority">Set task priority</string>
     <string name="priority_high">High priority</string>
+    <string name="priority_task">Priority task</string>
+    <string name="mark_as_priority">Mark as priority</string>
     <string name="task_character_counter">%1$d / %2$d</string>
     <string name="task_completed">Task completed</string>
     <string name="task_not_completed">Task not completed</string>

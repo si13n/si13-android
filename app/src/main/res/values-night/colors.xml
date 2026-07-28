@@ -14,4 +14,15 @@
     <color name="profile_offline">#FFC7C9CE</color>
     <color name="profile_offline_container">#FF34363C</color>
     <color name="task_delete_background">#FFFF5449</color>
+    <color name="home_background">#FF111116</color>
+    <color name="home_surface">#FF1B1B22</color>
+    <color name="home_border">#FF343441</color>
+    <color name="home_text_primary">#FFF2F0F8</color>
+    <color name="home_text_secondary">#FFAAA7B5</color>
+    <color name="home_accent">#FF7C5CFC</color>
+    <color name="home_accent_container">#FF2D254D</color>
+    <color name="home_priority_high">#FFFF5B61</color>
+    <color name="home_delete">#FFFF3B43</color>
+    <color name="home_group_surface">#181B1B22</color>
+    <color name="home_disabled">#FF55525E</color>
 </resources>

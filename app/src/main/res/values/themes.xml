@@ -9,14 +9,34 @@
         <item name="android:colorAccent">@color/purple_500</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:windowBackground">@color/app_background</item>
-        <item name="android:statusBarColor">@color/app_background</item>
-        <item name="android:navigationBarColor">@color/surface</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        <item name="android:statusBarColor">@color/home_background</item>
+        <item name="android:navigationBarColor">@color/home_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
     </style>
 
     <style name="TextAppearance.Si13.BottomNavigation" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textSize">12sp</item>
         <item name="fontFamily">sans-serif</item>
+    </style>
+
+    <style name="ShapeAppearance.Si13.BottomNavigation.ActiveIndicator" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <style name="Widget.Si13.BottomNavigation.ActiveIndicator" parent="">
+        <item name="android:color">@color/home_accent_container</item>
+        <item name="android:width">64dp</item>
+        <item name="android:height">32dp</item>
+        <item name="marginHorizontal">4dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Si13.BottomNavigation.ActiveIndicator</item>
+    </style>
+
+    <style name="ThemeOverlay.Si13.HomePopup" parent="ThemeOverlay.MaterialComponents.Dark">
+        <item name="colorSurface">@color/home_surface</item>
+        <item name="android:colorBackground">@color/home_surface</item>
+        <item name="android:textColorPrimary">@color/home_text_primary</item>
+        <item name="android:textColorSecondary">@color/home_text_secondary</item>
     </style>
 </resources>

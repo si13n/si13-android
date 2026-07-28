@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/action_sort_newest"
+            android:checkable="true"
+            android:title="@string/sort_newest_first" />
+        <item
+            android:id="@+id/action_sort_oldest"
+            android:checkable="true"
+            android:title="@string/sort_oldest_first" />
+        <item
+            android:id="@+id/action_sort_priority"
+            android:checkable="true"
+            android:checked="true"
+            android:title="@string/sort_priority_first" />
+        <item
+            android:id="@+id/action_sort_alphabetical"
+            android:checkable="true"
+            android:title="@string/sort_alphabetical" />
+    </group>
+</menu>

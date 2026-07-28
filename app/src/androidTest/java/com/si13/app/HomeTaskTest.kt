@@ -1,8 +1,9 @@
 package com.si13.app
 
 import android.content.Context
+import android.graphics.Rect
 import android.view.View
-import android.widget.CheckBox
+import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -25,7 +26,9 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isRoot
+import androidx.test.espresso.matcher.ViewMatchers.Visibility.GONE
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
+import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.google.firebase.auth.FirebaseAuth
@@ -65,7 +68,7 @@ class HomeTaskTest {
             onView(isRoot()).perform(waitFor(500))
 
             onView(withText("Buy milk")).check(matches(isDisplayed()))
-            onView(withText("0 / 200")).check(matches(isDisplayed()))
+            onView(withId(R.id.task_character_counter)).check(matches(withEffectiveVisibility(GONE)))
         }
     }
 
@@ -97,7 +100,20 @@ class HomeTaskTest {
             onView(isRoot()).perform(waitFor(500))
 
             onView(withText("Submit with enter")).check(matches(isDisplayed()))
-            onView(withText("0 / 200")).check(matches(isDisplayed()))
+            onView(withId(R.id.task_character_counter)).check(matches(withEffectiveVisibility(GONE)))
+        }
+    }
+
+    @Test
+    fun characterCounterAppearsAtOneHundredSeventyCharacters() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+
+            onView(withId(R.id.task_input)).perform(replaceText("x".repeat(169)))
+            onView(withId(R.id.task_character_counter)).check(matches(withEffectiveVisibility(GONE)))
+
+            onView(withId(R.id.task_input)).perform(replaceText("x".repeat(170)))
+            onView(withText("170 / 200")).check(matches(isDisplayed()))
         }
     }
 
@@ -116,12 +132,99 @@ class HomeTaskTest {
     }
 
     @Test
-    fun bottomNavigationLabelsAreVisible() {
+    fun headerControlsFitWithoutOverlappingTitle() {
+        seedGuestTasks(3)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withId(R.id.home_header)).check(headerControlsFit())
+        }
+    }
+
+    @Test
+    fun oneTaskListWrapsExactlyOneCompactRow() {
+        seedGuestTasks(1)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withId(R.id.task_list)).check(singleTaskListIsCompact())
+        }
+    }
+
+    @Test
+    fun maximumLengthTaskIsInsetAndDoesNotOverlapActions() {
+        val longTitle = "A".repeat(200)
+        seedGuestTask("long-task", longTitle)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withId(R.id.task_list)).check(taskContentIsAligned(longTitle))
+        }
+    }
+
+    @Test
+    fun bottomNavigationShowsLabelOnlyForSelectedDestination() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(allOf(withText(R.string.home), isDisplayed())).check(matches(isDisplayed()))
-            onView(allOf(withText(R.string.profile), isDisplayed())).check(matches(isDisplayed()))
+            onView(withId(R.id.homeFragment)).check(matches(withText(R.string.home)))
+            onView(withId(R.id.profileFragment)).check(matches(withText("")))
+
+            onView(withId(R.id.profileFragment)).perform(click())
+            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.profile)))
+            onView(withId(R.id.homeFragment)).check(matches(withText("")))
+        }
+    }
+
+    @Test
+    fun sortMenuContainsTheDefaultPrioritySort() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+
+            onView(withId(R.id.task_sort_button)).perform(click())
+
+            onView(withText(R.string.sort_priority_first)).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun headerAndProgressUseLiveTaskCounts() {
+        seedGuestTasks(3)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+
+            onView(withText(R.string.today)).check(matches(isDisplayed()))
+            onView(withId(R.id.home_date_text)).check(matches(isDisplayed()))
+            onView(withText("3 active")).check(matches(isDisplayed()))
+            onView(withText("0 of 3 completed")).check(matches(isDisplayed()))
+
+            onView(withId(R.id.task_list)).perform(clickCheckboxForTask("Guest task 3"))
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("2 active")).check(matches(isDisplayed()))
+            onView(withText("1 of 3 completed")).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun alphabeticalSortChangesTheActiveTaskOrder() {
+        seedGuestTasks(3)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 3"))
+
+            onView(withId(R.id.task_sort_button)).perform(click())
+            onView(withText(R.string.sort_alphabetical)).perform(click())
+
+            onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 1"))
         }
     }
 
@@ -155,6 +258,7 @@ class HomeTaskTest {
             onView(isRoot()).perform(waitFor(500))
 
             onView(withId(R.id.task_list)).check(firstTaskTextIs("Guest task 1"))
+            onView(withId(R.id.task_list)).check(priorityDotIsEndAligned("Guest task 1"))
 
             onView(withId(R.id.task_list)).perform(clickPriorityForTask("Guest task 1"))
             onView(isRoot()).perform(waitFor(500))
@@ -178,12 +282,13 @@ class HomeTaskTest {
             onView(withId(R.id.add_task_button)).perform(click())
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withText("Finish checklist")).perform(click())
+            onView(withId(R.id.task_list)).perform(clickCheckboxForTask("Finish checklist"))
             onView(isRoot()).perform(waitFor(500))
             onView(withText("Finish checklist")).check(doesNotExist())
 
             onView(withId(R.id.task_settings_button)).perform(click())
             onView(withText("Finish checklist")).check(matches(isDisplayed()))
+            onView(withId(R.id.task_section_title)).check(matches(isDisplayed()))
         }
     }
 
@@ -202,6 +307,24 @@ class HomeTaskTest {
 
             onView(withText("Guest task 1")).check(doesNotExist())
             assertTrue(runBlocking { TaskDatabase.getInstance(context).taskDao().getTasks() }.isEmpty())
+        }
+    }
+
+    @Test
+    fun undoRestoresDeletedTask() {
+        seedGuestTasks(1)
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 1")).perform(swipeLeft())
+            onView(allOf(withContentDescription(R.string.delete_task), isDisplayed())).perform(click())
+            onView(withText(R.string.undo)).perform(click())
+            onView(isRoot()).perform(waitFor(500))
+
+            onView(withText("Guest task 1")).check(matches(isDisplayed()))
+            assertEquals(1, runBlocking { TaskDatabase.getInstance(context).taskDao().getTasks() }.size)
         }
     }
 
@@ -261,7 +384,7 @@ class HomeTaskTest {
     }
 
     @Test
-    fun tappingAnotherTaskClosesRevealAndPreservesTheTap() {
+    fun tappingAnotherTaskClosesRevealWithoutCompletingIt() {
         seedGuestTasks(2)
 
         ActivityScenario.launch(MainActivity::class.java).use {
@@ -273,7 +396,7 @@ class HomeTaskTest {
             onView(isRoot()).perform(waitFor(500))
 
             onView(withId(R.id.task_list)).check(taskRevealState("Guest task 2", false))
-            onView(withText("Guest task 1")).check(doesNotExist())
+            onView(withText("Guest task 1")).check(matches(isDisplayed()))
         }
     }
 
@@ -414,6 +537,20 @@ class HomeTaskTest {
         }
     }
 
+    private fun seedGuestTask(id: String, text: String) {
+        runBlocking {
+            TaskDatabase.getInstance(context).taskDao().upsert(
+                TaskEntity(
+                    id = id,
+                    text = text,
+                    completed = false,
+                    createdAt = 1L,
+                    updatedAt = 1L
+                )
+            )
+        }
+    }
+
     private fun waitForDialogStartup() {
         // The import check runs from an Activity coroutine; avoid touching the base root while dialog focus changes.
         Thread.sleep(500)
@@ -452,13 +589,64 @@ class HomeTaskTest {
         }
     }
 
+    private fun headerControlsFit(): ViewAssertion {
+        return ViewAssertion { view, _ ->
+            val titleColumn = view.findViewById<View>(R.id.home_title_column)
+            val actions = view.findViewById<View>(R.id.home_header_actions)
+            val sort = view.findViewById<View>(R.id.task_sort_button)
+            val visibility = view.findViewById<View>(R.id.task_settings_button)
+            val expectedTouchTarget = (48f * view.resources.displayMetrics.density).toInt()
+
+            assertTrue("Header title and actions overlap.", titleColumn.right <= actions.left)
+            assertTrue("Header actions are clipped at the end.", actions.right <= view.width)
+            assertEquals(expectedTouchTarget, sort.width)
+            assertEquals(expectedTouchTarget, sort.height)
+            assertEquals(expectedTouchTarget, visibility.width)
+            assertEquals(expectedTouchTarget, visibility.height)
+        }
+    }
+
+    private fun singleTaskListIsCompact(): ViewAssertion {
+        return ViewAssertion { view, _ ->
+            val recyclerView = view as RecyclerView
+            val expectedRowHeight = view.resources.getDimensionPixelSize(R.dimen.task_row_height)
+
+            assertEquals(1, recyclerView.childCount)
+            assertEquals(expectedRowHeight, recyclerView.getChildAt(0).height)
+            assertEquals(expectedRowHeight, recyclerView.height)
+        }
+    }
+
+    private fun taskContentIsAligned(taskText: String): ViewAssertion {
+        return ViewAssertion { view, _ ->
+            val recyclerView = view as RecyclerView
+            val row = (0 until recyclerView.childCount)
+                .map(recyclerView::getChildAt)
+                .firstOrNull { child ->
+                    child.findViewById<TextView>(R.id.task_title)?.text == taskText
+                }
+                ?: throw AssertionError("Could not find visible task '$taskText'.")
+            val foreground = row.findViewById<View>(R.id.task_foreground_container)
+            val checkbox = row.findViewById<View>(R.id.task_checkbox)
+            val title = row.findViewById<TextView>(R.id.task_title)
+            val priority = row.findViewById<View>(R.id.task_priority_button)
+            val inset = (4f * row.resources.displayMetrics.density).toInt()
+
+            assertTrue("Checkbox touch target intersects the group outline.", checkbox.left >= foreground.left + inset)
+            assertTrue("Task title overlaps the checkbox.", title.left >= checkbox.right)
+            assertTrue("Task title overlaps the priority action.", title.right <= priority.left)
+            assertEquals(1, title.lineCount)
+            assertTrue("Maximum-length task title is not ellipsized.", title.layout.getEllipsisCount(0) > 0)
+        }
+    }
+
     private fun swipeTaskRight(taskText: String): ViewAction {
         fun taskCoordinates(horizontalFraction: Float) = CoordinatesProvider { view ->
             val recyclerView = view as RecyclerView
             val child = (0 until recyclerView.childCount)
                 .map(recyclerView::getChildAt)
                 .firstOrNull { item ->
-                    item.findViewById<CheckBox>(R.id.task_checkbox).text == taskText
+                    item.findViewById<TextView>(R.id.task_title)?.text == taskText
                 }
                 ?: throw AssertionError("Could not find visible task '$taskText'.")
             val location = IntArray(2)
@@ -491,9 +679,32 @@ class HomeTaskTest {
                 val recyclerView = view as RecyclerView
                 for (index in 0 until recyclerView.childCount) {
                     val child = recyclerView.getChildAt(index)
-                    val checkbox = child.findViewById<CheckBox>(R.id.task_checkbox)
-                    if (checkbox.text == taskText) {
+                    val title = child.findViewById<TextView>(R.id.task_title)
+                    if (title?.text == taskText) {
                         child.findViewById<View>(R.id.task_priority_button).performClick()
+                        uiController.loopMainThreadUntilIdle()
+                        return
+                    }
+                }
+
+                throw AssertionError("Could not find visible task '$taskText'.")
+            }
+        }
+    }
+
+    private fun clickCheckboxForTask(taskText: String): ViewAction {
+        return object : ViewAction {
+            override fun getConstraints(): Matcher<View> = isDisplayed()
+
+            override fun getDescription(): String = "Click checkbox for task '$taskText'."
+
+            override fun perform(uiController: UiController, view: View) {
+                val recyclerView = view as RecyclerView
+                for (index in 0 until recyclerView.childCount) {
+                    val child = recyclerView.getChildAt(index)
+                    val title = child.findViewById<TextView>(R.id.task_title)
+                    if (title?.text == taskText) {
+                        child.findViewById<View>(R.id.task_checkbox).performClick()
                         uiController.loopMainThreadUntilIdle()
                         return
                     }
@@ -508,7 +719,7 @@ class HomeTaskTest {
         return ViewAssertion { view, _ ->
             val recyclerView = view as RecyclerView
             val firstTaskText = recyclerView.getChildAt(0)
-                ?.findViewById<CheckBox>(R.id.task_checkbox)
+                ?.findViewById<TextView>(R.id.task_title)
                 ?.text
                 ?.toString()
             assertEquals(expectedText, firstTaskText)
@@ -520,12 +731,35 @@ class HomeTaskTest {
             val recyclerView = view as RecyclerView
             for (index in 0 until recyclerView.childCount) {
                 val child = recyclerView.getChildAt(index)
-                val checkbox = child.findViewById<CheckBox>(R.id.task_checkbox)
-                if (checkbox.text == taskText) {
+                val title = child.findViewById<TextView>(R.id.task_title)
+                if (title?.text == taskText) {
                     assertTrue(
                         "Task '$taskText' is clipped within the RecyclerView.",
                         child.top >= 0 && child.bottom <= recyclerView.height
                     )
+                    return@ViewAssertion
+                }
+            }
+
+            throw AssertionError("Could not find visible task '$taskText'.")
+        }
+    }
+
+    private fun priorityDotIsEndAligned(taskText: String): ViewAssertion {
+        return ViewAssertion { view, _ ->
+            val recyclerView = view as RecyclerView
+            for (index in 0 until recyclerView.childCount) {
+                val child = recyclerView.getChildAt(index)
+                val title = child.findViewById<TextView>(R.id.task_title)
+                if (title?.text == taskText) {
+                    val dot = child.findViewById<View>(R.id.task_priority_dot)
+                    val rowBounds = Rect()
+                    val dotBounds = Rect()
+                    assertTrue(dot.isShown)
+                    assertTrue(child.getGlobalVisibleRect(rowBounds))
+                    assertTrue(dot.getGlobalVisibleRect(dotBounds))
+                    val maximumEndOffset = 28f * child.resources.displayMetrics.density
+                    assertTrue(rowBounds.right - dotBounds.exactCenterX() <= maximumEndOffset)
                     return@ViewAssertion
                 }
             }
@@ -539,8 +773,8 @@ class HomeTaskTest {
             val recyclerView = view as RecyclerView
             for (index in 0 until recyclerView.childCount) {
                 val child = recyclerView.getChildAt(index)
-                val checkbox = child.findViewById<CheckBox>(R.id.task_checkbox)
-                if (checkbox.text == taskText) {
+                val title = child.findViewById<TextView>(R.id.task_title)
+                if (title?.text == taskText) {
                     val foreground = child.findViewById<View>(R.id.task_foreground_container)
                     val deleteAction = child.findViewById<View>(R.id.task_delete_action)
                     if (expectedRevealed) {
