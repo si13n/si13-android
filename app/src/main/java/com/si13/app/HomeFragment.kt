@@ -44,6 +44,8 @@ import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var taskRepository: TaskRepository
@@ -72,6 +74,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private var shouldScrollToTopAfterRender = false
     private var taskIdToScrollAfterRender: String? = null
     private var taskObservationJob: Job? = null
+    private val taskDetailsUpdateMutex = Mutex()
     private val authStateListener = FirebaseAuth.AuthStateListener {
         refreshTaskSourceIfNeeded()
     }
@@ -396,12 +399,36 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    fun updateTaskFromDetails(task: Task, text: String = task.text, priority: TaskPriority = task.priority, dueDate: String? = task.dueDate, completed: Boolean = task.completed) {
+    fun updateTaskFromDetails(
+        task: Task,
+        text: String = task.text,
+        priority: TaskPriority = task.priority,
+        dueDate: String? = task.dueDate,
+        completed: Boolean = task.completed
+    ) {
+        val updatedTask = task.copy(
+            text = text.trim().ifEmpty { task.text },
+            completed = completed,
+            priority = priority,
+            dueDate = dueDate
+        )
+        allTasks = allTasks.map { currentTask ->
+            if (currentTask.id == updatedTask.id) updatedTask else currentTask
+        }
+        renderTasks()
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                taskRepository.updateTask(task.copy(completed = completed), text, priority, dueDate)
-            } catch (exception: Exception) { showError() }
+                taskDetailsUpdateMutex.withLock {
+                    taskRepository.updateTask(updatedTask)
+                }
+            } catch (exception: Exception) {
+                showError()
+            }
         }
+    }
+
+    fun refreshTasksAfterDetails() {
+        renderTasks()
     }
 
     fun deleteTaskFromDetails(task: Task) = deleteTask(task)

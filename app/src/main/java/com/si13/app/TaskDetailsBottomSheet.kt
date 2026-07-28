@@ -108,7 +108,8 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         sheet.findViewById<MaterialButton>(R.id.task_details_complete).apply {
             setText(if (task.completed) R.string.mark_as_active else R.string.mark_as_complete)
             setOnClickListener {
-                (parentFragment as? HomeFragment)?.updateTaskFromDetails(task, completed = !task.completed)
+                task = task.copy(completed = !task.completed)
+                (parentFragment as? HomeFragment)?.updateTaskFromDetails(task)
                 dismiss()
             }
         }
@@ -181,16 +182,17 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
 
     private fun save() {
         val value = title.text?.toString()?.trim().orEmpty()
-        (parentFragment as? HomeFragment)?.updateTaskFromDetails(
-            task,
-            if (value.isEmpty()) task.text else value,
-            priority,
-            dueDate
+        task = task.copy(
+            text = if (value.isEmpty()) task.text else value,
+            priority = priority,
+            dueDate = dueDate
         )
+        (parentFragment as? HomeFragment)?.updateTaskFromDetails(task)
     }
 
     override fun onDismiss(dialog: android.content.DialogInterface) {
         if (::title.isInitialized) save()
+        (parentFragment as? HomeFragment)?.refreshTasksAfterDetails()
         super.onDismiss(dialog)
     }
 
