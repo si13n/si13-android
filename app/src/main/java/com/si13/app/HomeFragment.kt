@@ -115,7 +115,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 deleteTask(task)
             },
             onTaskClicked = { task ->
-                TaskDetailsBottomSheet.show(parentFragmentManager, task)
+                TaskDetailsBottomSheet.show(childFragmentManager, task)
             }
         )
 
