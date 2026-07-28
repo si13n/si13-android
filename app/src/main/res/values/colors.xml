@@ -25,15 +25,24 @@
     <color name="profile_offline">#FF5F6368</color>
     <color name="profile_offline_container">#FFE8EAED</color>
 
-    <color name="home_background">#FF111116</color>
-    <color name="home_surface">#FF1B1B22</color>
-    <color name="home_border">#FF343441</color>
-    <color name="home_text_primary">#FFF2F0F8</color>
-    <color name="home_text_secondary">#FFAAA7B5</color>
-    <color name="home_accent">#FF7C5CFC</color>
-    <color name="home_accent_container">#FF2D254D</color>
-    <color name="home_priority_high">#FFFF5B61</color>
-    <color name="home_delete">#FFFF3B43</color>
-    <color name="home_group_surface">#181B1B22</color>
-    <color name="home_disabled">#FF55525E</color>
+    <color name="home_background">#FFF7F7FA</color>
+    <color name="home_surface">#FFFFFFFF</color>
+    <color name="home_border">#FFE8E6ED</color>
+    <color name="home_text_primary">#FF1B1B1F</color>
+    <color name="home_text_secondary">#FF74747D</color>
+    <color name="home_accent">#FF6D4AFF</color>
+    <color name="home_accent_container">#FFF0EDFF</color>
+    <color name="home_priority_high">#FFD32F2F</color>
+    <color name="home_delete">#FFC62828</color>
+    <color name="home_group_surface">#FFFFFFFF</color>
+    <color name="home_disabled">#FFAAA7B5</color>
+    <color name="google_button_surface">#FFFFFFFF</color>
+    <color name="google_button_pressed">#FFF8F9FA</color>
+    <color name="google_button_disabled">#FFF1F3F4</color>
+    <color name="google_button_outline">#FF747775</color>
+    <color name="google_button_disabled_outline">#FFDADCE0</color>
+    <color name="google_blue">#FF4285F4</color>
+    <color name="google_green">#FF34A853</color>
+    <color name="google_yellow">#FFFBBC05</color>
+    <color name="google_red">#FFEA4335</color>
 </resources>
