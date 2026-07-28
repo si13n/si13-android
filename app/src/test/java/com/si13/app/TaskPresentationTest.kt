@@ -24,10 +24,14 @@ class TaskPresentationTest {
     }
 
     @Test
-    fun `every priority has a distinct presentation`() {
+    fun `none and high priorities have distinct presentations`() {
         assertEquals(R.drawable.bg_task_property_chip, priorityPresentation(TaskPriority.NONE).backgroundRes)
-        assertEquals(R.drawable.bg_task_property_chip_low, priorityPresentation(TaskPriority.LOW).backgroundRes)
-        assertEquals(R.drawable.bg_task_property_chip_medium, priorityPresentation(TaskPriority.MEDIUM).backgroundRes)
         assertEquals(R.drawable.bg_task_property_chip_high, priorityPresentation(TaskPriority.HIGH).backgroundRes)
+    }
+
+    @Test
+    fun `legacy stored priorities map to high`() {
+        assertEquals(TaskPriority.HIGH, TaskPriority.fromStorageValue("low"))
+        assertEquals(TaskPriority.HIGH, TaskPriority.fromStorageValue("medium"))
     }
 }

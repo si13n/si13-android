@@ -808,16 +808,12 @@ private class TaskAdapter(
         private fun priorityLabelRes(priority: TaskPriority): Int {
             return when (priority) {
                 TaskPriority.NONE -> R.string.no_priority
-                TaskPriority.LOW -> R.string.low_priority
-                TaskPriority.MEDIUM -> R.string.medium_priority
                 TaskPriority.HIGH -> R.string.high_priority
             }
         }
 
         private fun priorityDotColor(priority: TaskPriority): Int = when (priority) {
             TaskPriority.NONE -> R.color.home_text_secondary
-            TaskPriority.LOW -> R.color.home_priority_low
-            TaskPriority.MEDIUM -> R.color.home_priority_medium
             TaskPriority.HIGH -> R.color.home_priority_high
         }
 

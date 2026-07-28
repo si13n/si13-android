@@ -22,10 +22,6 @@
     <color name="home_accent">#FF7C5CFC</color>
     <color name="home_accent_container">#FF2D254D</color>
     <color name="home_priority_high">#FFFF5B61</color>
-    <color name="home_priority_low">#FF7DD8DA</color>
-    <color name="home_priority_medium">#FFFFC66D</color>
-    <color name="task_priority_low_container">#FF16464A</color>
-    <color name="task_priority_medium_container">#FF513B14</color>
     <color name="task_priority_high_container">#FF5B2028</color>
     <color name="home_delete">#FFFF3B43</color>
     <color name="home_group_surface">#181B1B22</color>

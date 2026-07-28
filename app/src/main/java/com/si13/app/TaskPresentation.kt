@@ -11,8 +11,6 @@ internal data class PriorityPresentation(
 
 internal fun priorityPresentation(priority: TaskPriority): PriorityPresentation = when (priority) {
     TaskPriority.NONE -> PriorityPresentation(R.color.text_secondary, R.drawable.bg_task_property_chip)
-    TaskPriority.LOW -> PriorityPresentation(R.color.home_priority_low, R.drawable.bg_task_property_chip_low)
-    TaskPriority.MEDIUM -> PriorityPresentation(R.color.home_priority_medium, R.drawable.bg_task_property_chip_medium)
     TaskPriority.HIGH -> PriorityPresentation(R.color.home_priority_high, R.drawable.bg_task_property_chip_high)
 }
 

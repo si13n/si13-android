@@ -89,12 +89,8 @@
     <string name="properties">Properties</string>
     <string name="priority">Priority</string>
     <string name="priority_none">None</string>
-    <string name="priority_low">Low</string>
-    <string name="priority_medium">Medium</string>
     <string name="priority_high_label">High</string>
     <string name="no_priority">No priority</string>
-    <string name="low_priority">Low priority</string>
-    <string name="medium_priority">Medium priority</string>
     <string name="high_priority">High priority</string>
     <string name="due_date">Due date</string>
     <string name="no_due_date">No due date</string>

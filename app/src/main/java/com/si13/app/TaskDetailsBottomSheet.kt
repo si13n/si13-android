@@ -21,7 +21,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import java.text.DateFormat
 import java.time.Instant
@@ -85,7 +84,11 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
 
         priorityValue = sheet.findViewById(R.id.task_details_priority_value)
         priorityIcon = sheet.findViewById(R.id.task_details_priority_icon)
-        sheet.findViewById<View>(R.id.task_details_priority).setOnClickListener { showPriorityDialog() }
+        sheet.findViewById<View>(R.id.task_details_priority).setOnClickListener {
+            priority = if (priority == TaskPriority.NONE) TaskPriority.HIGH else TaskPriority.NONE
+            renderPriority()
+            save()
+        }
 
         dueValue = sheet.findViewById(R.id.task_details_due_value)
         duePill = sheet.findViewById(R.id.task_details_due_pill)
@@ -115,18 +118,6 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         }
         renderPriority()
         renderDueDate()
-    }
-
-    private fun showPriorityDialog() {
-        val values = TaskPriority.entries.toTypedArray()
-        MaterialAlertDialogBuilder(requireContext())
-            .setSingleChoiceItems(values.map(::priorityLabel).toTypedArray(), values.indexOf(priority)) { dialog, which ->
-                priority = values[which]
-                renderPriority()
-                save()
-                dialog.dismiss()
-            }
-            .show()
     }
 
     private fun renderPriority() {
@@ -184,8 +175,6 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
     private fun priorityLabel(value: TaskPriority): String = getString(
         when (value) {
             TaskPriority.NONE -> R.string.priority_none
-            TaskPriority.LOW -> R.string.priority_low
-            TaskPriority.MEDIUM -> R.string.priority_medium
             TaskPriority.HIGH -> R.string.priority_high_label
         }
     )

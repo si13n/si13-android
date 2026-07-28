@@ -101,7 +101,7 @@ class TaskRepositoryTest {
 
         repository.toggleTaskPriority(staleHighTask)
 
-        assertEquals(TaskPriority.LOW, local.getTasks().single().priority)
+        assertEquals(TaskPriority.HIGH, local.getTasks().single().priority)
     }
 
     @Test

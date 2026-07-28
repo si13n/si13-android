@@ -11,20 +11,21 @@ data class Task(
 )
 
 enum class TaskPriority(val rank: Int, val storageValue: String) {
-    NONE(0, "none"), LOW(1, "low"), MEDIUM(2, "medium"), HIGH(3, "high");
+    NONE(0, "none"), HIGH(1, "high");
 
     fun next(): TaskPriority {
         return when (this) {
-            NONE -> LOW
-            LOW -> MEDIUM
-            MEDIUM -> HIGH
+            NONE -> HIGH
             HIGH -> NONE
         }
     }
 
     companion object {
         fun fromStorageValue(value: String?): TaskPriority {
-            return entries.firstOrNull { it.storageValue == value } ?: NONE
+            return when (value) {
+                "high", "low", "medium" -> HIGH
+                else -> NONE
+            }
         }
 
         fun next(priority: TaskPriority): TaskPriority = priority.next()
