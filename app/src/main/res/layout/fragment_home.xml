@@ -90,7 +90,7 @@
                     android:text="@string/tasks_loading"
                     android:textColor="@color/home_text_primary"
                     android:textSize="11sp"
-                    tools:text="3 active · 2 done" />
+                    tools:text="3 active" />
 
                 <ImageButton
                     android:id="@+id/task_sort_button"

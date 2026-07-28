@@ -29,7 +29,7 @@
     <string name="sort_alphabetical">Alphabetical</string>
     <string name="active_filter">Active</string>
     <string name="completed_filter">Completed</string>
-    <string name="home_task_status">%1$d active · %2$d done</string>
+    <string name="home_task_status">%1$d active</string>
     <string name="home_progress_summary">%1$d of %2$d completed</string>
     <string name="task_deleted">Task deleted</string>
     <string name="undo">Undo</string>

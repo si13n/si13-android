@@ -437,8 +437,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val completedTaskCount = allTasks.size - activeTaskCount
         statusText.text = getString(
             R.string.home_task_status,
-            activeTaskCount,
-            completedTaskCount
+            activeTaskCount
         )
         statusText.isVisible = true
         taskProgressText.text = getString(
@@ -682,16 +681,9 @@ private class TaskAdapter(
 
         init {
             cell.setOnClickListener {
-                val task = boundTask ?: return@setOnClickListener
                 closeRevealedAction()
-                onCompletedChanged(task, !task.completed)
             }
             checkbox.setOnClickListener {
-                val task = boundTask ?: return@setOnClickListener
-                closeRevealedAction()
-                onCompletedChanged(task, !task.completed)
-            }
-            taskTitle.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
                 closeRevealedAction()
                 onCompletedChanged(task, !task.completed)

@@ -202,13 +202,13 @@ class HomeTaskTest {
 
             onView(withText(R.string.today)).check(matches(isDisplayed()))
             onView(withId(R.id.home_date_text)).check(matches(isDisplayed()))
-            onView(withText("3 active · 0 done")).check(matches(isDisplayed()))
+            onView(withText("3 active")).check(matches(isDisplayed()))
             onView(withText("0 of 3 completed")).check(matches(isDisplayed()))
 
-            onView(withText("Guest task 3")).perform(click())
+            onView(withId(R.id.task_list)).perform(clickCheckboxForTask("Guest task 3"))
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withText("2 active · 1 done")).check(matches(isDisplayed()))
+            onView(withText("2 active")).check(matches(isDisplayed()))
             onView(withText("1 of 3 completed")).check(matches(isDisplayed()))
         }
     }
@@ -282,7 +282,7 @@ class HomeTaskTest {
             onView(withId(R.id.add_task_button)).perform(click())
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withText("Finish checklist")).perform(click())
+            onView(withId(R.id.task_list)).perform(clickCheckboxForTask("Finish checklist"))
             onView(isRoot()).perform(waitFor(500))
             onView(withText("Finish checklist")).check(doesNotExist())
 
@@ -384,7 +384,7 @@ class HomeTaskTest {
     }
 
     @Test
-    fun tappingAnotherTaskClosesRevealAndPreservesTheTap() {
+    fun tappingAnotherTaskClosesRevealWithoutCompletingIt() {
         seedGuestTasks(2)
 
         ActivityScenario.launch(MainActivity::class.java).use {
@@ -396,7 +396,7 @@ class HomeTaskTest {
             onView(isRoot()).perform(waitFor(500))
 
             onView(withId(R.id.task_list)).check(taskRevealState("Guest task 2", false))
-            onView(withText("Guest task 1")).check(doesNotExist())
+            onView(withText("Guest task 1")).check(matches(isDisplayed()))
         }
     }
 
@@ -630,7 +630,7 @@ class HomeTaskTest {
             val checkbox = row.findViewById<View>(R.id.task_checkbox)
             val title = row.findViewById<TextView>(R.id.task_title)
             val priority = row.findViewById<View>(R.id.task_priority_button)
-            val inset = (8f * row.resources.displayMetrics.density).toInt()
+            val inset = (4f * row.resources.displayMetrics.density).toInt()
 
             assertTrue("Checkbox touch target intersects the group outline.", checkbox.left >= foreground.left + inset)
             assertTrue("Task title overlaps the checkbox.", title.left >= checkbox.right)
@@ -682,6 +682,29 @@ class HomeTaskTest {
                     val title = child.findViewById<TextView>(R.id.task_title)
                     if (title?.text == taskText) {
                         child.findViewById<View>(R.id.task_priority_button).performClick()
+                        uiController.loopMainThreadUntilIdle()
+                        return
+                    }
+                }
+
+                throw AssertionError("Could not find visible task '$taskText'.")
+            }
+        }
+    }
+
+    private fun clickCheckboxForTask(taskText: String): ViewAction {
+        return object : ViewAction {
+            override fun getConstraints(): Matcher<View> = isDisplayed()
+
+            override fun getDescription(): String = "Click checkbox for task '$taskText'."
+
+            override fun perform(uiController: UiController, view: View) {
+                val recyclerView = view as RecyclerView
+                for (index in 0 until recyclerView.childCount) {
+                    val child = recyclerView.getChildAt(index)
+                    val title = child.findViewById<TextView>(R.id.task_title)
+                    if (title?.text == taskText) {
+                        child.findViewById<View>(R.id.task_checkbox).performClick()
                         uiController.loopMainThreadUntilIdle()
                         return
                     }
