@@ -83,14 +83,15 @@ class RemoteTaskDataSource(
             "createdAt" to createdAt,
             "updatedAt" to updatedAt
         )
-        priority?.let { values["priority"] = it.storageValue }
+        values["priority"] = priority.storageValue
+        dueDate?.let { values["dueDate"] = it }
         return values
     }
 
     private fun Map<String, Any>.toTask(documentId: String): Task? {
         val text = this["text"] as? String ?: return null
         val completed = this["completed"] as? Boolean ?: false
-        val createdAt = this["createdAt"] as? Number ?: return null
+        val createdAt = this["createdAt"] as? Number ?: System.currentTimeMillis()
         val updatedAt = this["updatedAt"] as? Number ?: createdAt
 
         return Task(
@@ -99,7 +100,8 @@ class RemoteTaskDataSource(
             completed = completed,
             createdAt = createdAt.toLong(),
             updatedAt = updatedAt.toLong(),
-            priority = TaskPriority.fromStorageValue(this["priority"] as? String)
+            priority = TaskPriority.fromStorageValue(this["priority"] as? String),
+            dueDate = this["dueDate"] as? String
         )
     }
 }

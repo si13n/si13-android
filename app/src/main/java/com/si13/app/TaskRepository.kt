@@ -29,7 +29,7 @@ class TaskRepository(
                 completed = false,
                 createdAt = now,
                 updatedAt = now,
-                priority = null
+                priority = TaskPriority.NONE
             )
         )
     }
@@ -43,7 +43,7 @@ class TaskRepository(
         )
     }
 
-    suspend fun setTaskPriority(task: Task, priority: TaskPriority?) {
+    suspend fun setTaskPriority(task: Task, priority: TaskPriority) {
         activeDataSource().upsert(
             task.copy(
                 priority = priority,
@@ -56,11 +56,7 @@ class TaskRepository(
         val dataSource = activeDataSource()
         val currentTask = dataSource.getTasks()
             .firstOrNull { currentTask -> currentTask.id == task.id }
-        val currentPriority = if (currentTask == null) {
-            task.priority
-        } else {
-            currentTask.priority
-        }
+        val currentPriority = currentTask?.priority ?: task.priority
 
         dataSource.upsert(
             task.copy(
@@ -68,6 +64,13 @@ class TaskRepository(
                 updatedAt = System.currentTimeMillis()
             )
         )
+    }
+
+    suspend fun updateTask(task: Task, text: String = task.text, priority: TaskPriority = task.priority, dueDate: String? = task.dueDate) {
+        val trimmed = text.trim()
+        require(trimmed.isNotEmpty()) { "Task text cannot be empty." }
+        require(trimmed.length <= MAX_TASK_LENGTH) { "Task text cannot exceed $MAX_TASK_LENGTH characters." }
+        activeDataSource().upsert(task.copy(text = trimmed, priority = priority, dueDate = dueDate, updatedAt = System.currentTimeMillis()))
     }
 
     suspend fun hasLocalTasks(): Boolean {
@@ -111,7 +114,7 @@ class TaskRepository(
     private fun List<Task>.sortedForDisplay(): List<Task> {
         return sortedWith(
             compareBy<Task> { it.completed }
-                .thenByDescending { it.priority?.rank ?: 0 }
+                .thenByDescending { it.priority.rank }
                 .thenByDescending { it.createdAt }
         )
     }
@@ -126,7 +129,7 @@ class TaskRepository(
     }
 
     companion object {
-        const val MAX_TASK_LENGTH = 200
+        const val MAX_TASK_LENGTH = 100
 
         fun create(context: Context): TaskRepository {
             val appContext = context.applicationContext

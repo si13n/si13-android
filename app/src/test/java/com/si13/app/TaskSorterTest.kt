@@ -46,7 +46,7 @@ class TaskSorterTest {
         id: String,
         text: String,
         createdAt: Long,
-        priority: TaskPriority? = null
+        priority: TaskPriority = TaskPriority.NONE
     ) = Task(
         id = id,
         text = text,
