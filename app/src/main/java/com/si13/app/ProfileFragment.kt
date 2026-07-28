@@ -46,6 +46,8 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private lateinit var syncStatus: View
     private lateinit var syncIcon: ImageView
     private lateinit var syncText: TextView
+    private lateinit var appearancePreferences: AppearancePreferences
+    private lateinit var appearanceValue: TextView
 
     private val authStateListener = FirebaseAuth.AuthStateListener { refreshUser() }
 
@@ -54,6 +56,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         authRepository = AuthRepository(requireContext())
         val appContext = requireContext().applicationContext
         taskRepository = TaskRepository.create(appContext)
+        appearancePreferences = AppearancePreferences.create(appContext)
         users.value = authRepository.getCurrentUser()
         viewModel = ViewModelProvider(this, ProfileViewModel.Factory(
             users = users,
@@ -71,6 +74,9 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         render(ProfileUiState(user = users.value))
         signInButton.setOnClickListener { signIn() }
         signOutButton.setOnClickListener { confirmSignOut() }
+        view.findViewById<View>(R.id.profile_appearance_row).setOnClickListener {
+            showAppearanceDialog()
+        }
         view.findViewById<View>(R.id.profile_delete_all_tasks_row).setOnClickListener {
             confirmDeleteAllTasks()
         }
@@ -120,6 +126,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         syncStatus = view.findViewById(R.id.profile_sync_status)
         syncIcon = view.findViewById(R.id.profile_sync_icon)
         syncText = view.findViewById(R.id.profile_sync_text)
+        appearanceValue = view.findViewById(R.id.profile_appearance_value)
     }
 
     private fun render(state: ProfileUiState) {
@@ -128,7 +135,21 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         guestContainer.isVisible = state.user == null
         setProgress(state)
         renderSyncStatus(state.isOnline)
+        appearanceValue.setText(appearancePreferences.mode.labelRes)
         state.user?.let(::renderUser)
+    }
+
+    private fun showAppearanceDialog() {
+        val modes = AppearanceMode.entries.toTypedArray()
+        val labels = modes.map { getString(it.labelRes) }.toTypedArray()
+        val selectedIndex = modes.indexOf(appearancePreferences.mode)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.appearance)
+            .setSingleChoiceItems(labels, selectedIndex) { dialog, which ->
+                appearancePreferences.setMode(modes[which])
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun renderUser(user: AuthUser) {

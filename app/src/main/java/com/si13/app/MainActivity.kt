@@ -7,7 +7,6 @@ import android.view.View
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
@@ -15,14 +14,15 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
         )
         setContentView(R.layout.activity_main)
 
@@ -88,22 +88,23 @@ class MainActivity : AppCompatActivity() {
         button.text = if (selected) getString(labelRes) else ""
         button.contentDescription = getString(labelRes)
         button.backgroundTintList = ColorStateList.valueOf(
-            ContextCompat.getColor(
-                this,
-                if (selected) R.color.home_accent else android.R.color.transparent
-            )
+            if (selected) {
+                MaterialColors.getColor(button, androidx.appcompat.R.attr.colorPrimary)
+            } else {
+                Color.TRANSPARENT
+            }
+        )
+        val contentColor = MaterialColors.getColor(
+            button,
+            if (selected) {
+                com.google.android.material.R.attr.colorOnPrimary
+            } else {
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            }
         )
         button.iconTint = ColorStateList.valueOf(
-            ContextCompat.getColor(
-                this,
-                if (selected) R.color.white else R.color.home_text_secondary
-            )
+            contentColor
         )
-        button.setTextColor(
-            ContextCompat.getColor(
-                this,
-                if (selected) R.color.white else R.color.home_text_secondary
-            )
-        )
+        button.setTextColor(contentColor)
     }
 }

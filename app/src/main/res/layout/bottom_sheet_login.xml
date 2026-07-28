@@ -68,7 +68,7 @@
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:text="@string/sign_in_with_google"
-            android:textColor="#1F1F1F"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
     </LinearLayout>
 

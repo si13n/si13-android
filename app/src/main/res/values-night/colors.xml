@@ -25,4 +25,9 @@
     <color name="home_delete">#FFFF3B43</color>
     <color name="home_group_surface">#181B1B22</color>
     <color name="home_disabled">#FF55525E</color>
+    <color name="google_button_surface">#FF24242B</color>
+    <color name="google_button_pressed">#FF303039</color>
+    <color name="google_button_disabled">#FF1B1B20</color>
+    <color name="google_button_outline">#FFAAA7B5</color>
+    <color name="google_button_disabled_outline">#FF44444F</color>
 </resources>
