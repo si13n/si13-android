@@ -43,7 +43,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/homeFragment"
-                style="@style/Widget.MaterialComponents.Button"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:contentDescription="@string/home"
@@ -58,7 +58,7 @@
                 app:backgroundTint="@color/home_accent"
                 app:cornerRadius="24dp"
                 app:icon="@drawable/ic_home"
-                app:iconPadding="8dp"
+                app:iconPadding="12dp"
                 app:iconSize="22dp"
                 app:iconTint="@color/white" />
 
@@ -79,7 +79,7 @@
                 app:backgroundTint="@android:color/transparent"
                 app:cornerRadius="24dp"
                 app:icon="@drawable/ic_profile"
-                app:iconPadding="8dp"
+                app:iconPadding="12dp"
                 app:iconSize="22dp"
                 app:iconTint="@color/home_text_secondary" />
         </LinearLayout>
