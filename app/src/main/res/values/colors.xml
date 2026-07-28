@@ -33,6 +33,11 @@
     <color name="home_accent">#FF6D4AFF</color>
     <color name="home_accent_container">#FFF0EDFF</color>
     <color name="home_priority_high">#FFD32F2F</color>
+    <color name="home_priority_low">#FF167C80</color>
+    <color name="home_priority_medium">#FFB66000</color>
+    <color name="task_priority_low_container">#FFD9F0F1</color>
+    <color name="task_priority_medium_container">#FFFFE8C2</color>
+    <color name="task_priority_high_container">#FFFFE0E0</color>
     <color name="home_delete">#FFC62828</color>
     <color name="home_group_surface">#FFFFFFFF</color>
     <color name="home_disabled">#FFAAA7B5</color>

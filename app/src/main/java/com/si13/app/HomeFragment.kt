@@ -40,6 +40,7 @@ import java.text.Collator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -686,6 +687,7 @@ private class TaskAdapter(
     ) : RecyclerView.ViewHolder(cell) {
         private val checkbox: CheckBox = cell.findViewById(R.id.task_checkbox)
         private val taskTitle: TextView = cell.findViewById(R.id.task_title)
+        private val taskDueDate: TextView = cell.findViewById(R.id.task_due_date)
         private val priorityButton: View = cell.findViewById(R.id.task_priority_button)
         private val priorityDot: View = cell.findViewById(R.id.task_priority_dot)
         private val foreground: View = cell.findViewById(R.id.task_foreground_container)
@@ -721,13 +723,17 @@ private class TaskAdapter(
             val task = item.task
             taskTitle.text = task.text
             taskTitle.isActivated = task.completed
+            bindDueDate(task)
             checkbox.isChecked = task.completed
             checkbox.contentDescription = checkbox.context.getString(
                 if (task.completed) R.string.task_completed else R.string.task_not_completed
             )
-            priorityDot.isVisible = task.priority == TaskPriority.HIGH
+            priorityDot.isVisible = task.priority != TaskPriority.NONE
             priorityButton.contentDescription = priorityButton.context.getString(
                 priorityLabelRes(task.priority)
+            )
+            priorityDot.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                priorityButton.context.getColor(priorityDotColor(task.priority))
             )
             priorityDot.alpha = if (task.completed) COMPLETED_PRIORITY_ALPHA else 1f
             taskTitle.paintFlags = if (task.completed) {
@@ -801,9 +807,46 @@ private class TaskAdapter(
 
         private fun priorityLabelRes(priority: TaskPriority): Int {
             return when (priority) {
-                TaskPriority.HIGH -> R.string.priority_task
-                else -> R.string.mark_as_priority
+                TaskPriority.NONE -> R.string.no_priority
+                TaskPriority.LOW -> R.string.low_priority
+                TaskPriority.MEDIUM -> R.string.medium_priority
+                TaskPriority.HIGH -> R.string.high_priority
             }
+        }
+
+        private fun priorityDotColor(priority: TaskPriority): Int = when (priority) {
+            TaskPriority.NONE -> R.color.home_text_secondary
+            TaskPriority.LOW -> R.color.home_priority_low
+            TaskPriority.MEDIUM -> R.color.home_priority_medium
+            TaskPriority.HIGH -> R.color.home_priority_high
+        }
+
+        private fun bindDueDate(task: Task) {
+            val dueDate = task.dueDate?.let(LocalDate::parse)
+            if (dueDate == null) {
+                taskDueDate.visibility = View.GONE
+                taskDueDate.text = null
+                taskDueDate.compoundDrawablesRelative[0]?.setTintList(null)
+                return
+            }
+            val today = LocalDate.now()
+            val overdue = TaskDatePresentation.isOverdue(dueDate, today)
+            val color = if (overdue && !task.completed) R.color.home_delete else R.color.home_text_secondary
+            taskDueDate.visibility = View.VISIBLE
+            taskDueDate.text = when (dueDate) {
+                today -> taskDueDate.context.getString(R.string.due_today)
+                today.plusDays(1) -> taskDueDate.context.getString(R.string.due_tomorrow)
+                else -> taskDueDate.context.getString(
+                    R.string.due_date_format,
+                    TaskDatePresentation.formatDate(
+                        dueDate,
+                        today,
+                        taskDueDate.resources.configuration.locales[0] ?: Locale.getDefault()
+                    )
+                )
+            }
+            taskDueDate.setTextColor(taskDueDate.context.getColor(color))
+            taskDueDate.compoundDrawablesRelative[0]?.setTint(taskDueDate.context.getColor(color))
         }
 
         private fun updateGroupShape(position: TaskGroupPosition) {

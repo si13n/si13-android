@@ -27,6 +27,15 @@
         <item name="fontFamily">sans-serif</item>
     </style>
 
+    <style name="TextAppearance.Si13.TaskDetails.Counter" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="TextAppearance.Si13.TaskDetails.Hint" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">12sp</item>
+    </style>
+
     <style name="ShapeAppearance.Si13.BottomNavigation.ActiveIndicator" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>
