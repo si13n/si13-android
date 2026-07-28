@@ -6,28 +6,27 @@ data class Task(
     val completed: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
-    val priority: TaskPriority? = null
+    val priority: TaskPriority = TaskPriority.NONE,
+    val dueDate: String? = null
 )
 
 enum class TaskPriority(val rank: Int, val storageValue: String) {
-    HIGH(1, "high");
+    NONE(0, "none"), LOW(1, "low"), MEDIUM(2, "medium"), HIGH(3, "high");
 
-    fun next(): TaskPriority? {
+    fun next(): TaskPriority {
         return when (this) {
-            HIGH -> null
+            NONE -> LOW
+            LOW -> MEDIUM
+            MEDIUM -> HIGH
+            HIGH -> NONE
         }
     }
 
     companion object {
-        fun fromStorageValue(value: String?): TaskPriority? {
-            return values().firstOrNull { it.storageValue == value }
+        fun fromStorageValue(value: String?): TaskPriority {
+            return entries.firstOrNull { it.storageValue == value } ?: NONE
         }
 
-        fun next(priority: TaskPriority?): TaskPriority? {
-            return when (priority) {
-                null -> HIGH
-                HIGH -> null
-            }
-        }
+        fun next(priority: TaskPriority): TaskPriority = priority.next()
     }
 }

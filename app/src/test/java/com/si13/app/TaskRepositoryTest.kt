@@ -53,7 +53,7 @@ class TaskRepositoryTest {
 
         repository.addTask("Guest task")
 
-        assertEquals(null, local.getTasks().single().priority)
+        assertEquals(TaskPriority.NONE, local.getTasks().single().priority)
     }
 
     @Test
@@ -85,14 +85,14 @@ class TaskRepositoryTest {
 
         repository.toggleTaskPriority(staleDefaultTask)
 
-        assertEquals(null, local.getTasks().single().priority)
+        assertEquals(TaskPriority.NONE, local.getTasks().single().priority)
     }
 
     @Test
     fun toggleTaskPriorityTreatsStoredNullAsCurrentPriority() = runTest {
         val local = FakeTaskDataSource()
         val staleHighTask = Task("task-1", "Guest task", false, 1L, 1L, TaskPriority.HIGH)
-        local.upsert(staleHighTask.copy(priority = null))
+        local.upsert(staleHighTask.copy(priority = TaskPriority.NONE))
         val repository = TaskRepository(
             localTaskDataSource = local,
             remoteTaskDataSourceFactory = { FakeTaskDataSource() },
@@ -101,7 +101,7 @@ class TaskRepositoryTest {
 
         repository.toggleTaskPriority(staleHighTask)
 
-        assertEquals(TaskPriority.HIGH, local.getTasks().single().priority)
+        assertEquals(TaskPriority.LOW, local.getTasks().single().priority)
     }
 
     @Test

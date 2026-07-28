@@ -109,6 +109,9 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             },
             onDeleteClicked = { task ->
                 deleteTask(task)
+            },
+            onTaskClicked = { task ->
+                TaskDetailsBottomSheet.show(parentFragmentManager, task)
             }
         )
 
@@ -392,6 +395,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    fun updateTaskFromDetails(task: Task, text: String = task.text, priority: TaskPriority = task.priority, dueDate: String? = task.dueDate, completed: Boolean = task.completed) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                taskRepository.updateTask(task.copy(completed = completed), text, priority, dueDate)
+            } catch (exception: Exception) { showError() }
+        }
+    }
+
+    fun deleteTaskFromDetails(task: Task) = deleteTask(task)
+
     private fun restoreTask(task: Task) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -551,7 +564,8 @@ private sealed class TaskListItem {
 private class TaskAdapter(
     private val onCompletedChanged: (Task, Boolean) -> Unit,
     private val onPriorityClicked: (Task) -> Unit,
-    private val onDeleteClicked: (Task) -> Unit
+    private val onDeleteClicked: (Task) -> Unit,
+    private val onTaskClicked: (Task) -> Unit
 ) : ListAdapter<TaskListItem, RecyclerView.ViewHolder>(DiffCallback) {
     private val swipeController = TaskSwipeController { previousTaskId, openTaskId ->
         previousTaskId?.let(::notifyTaskChanged)
@@ -681,7 +695,12 @@ private class TaskAdapter(
 
         init {
             cell.setOnClickListener {
-                closeRevealedAction()
+                val task = boundTask ?: return@setOnClickListener
+                if (revealedTaskId != null) {
+                    closeRevealedAction()
+                } else {
+                    onTaskClicked(task)
+                }
             }
             checkbox.setOnClickListener {
                 val task = boundTask ?: return@setOnClickListener
@@ -780,10 +799,10 @@ private class TaskAdapter(
             }
         }
 
-        private fun priorityLabelRes(priority: TaskPriority?): Int {
+        private fun priorityLabelRes(priority: TaskPriority): Int {
             return when (priority) {
                 TaskPriority.HIGH -> R.string.priority_task
-                null -> R.string.mark_as_priority
+                else -> R.string.mark_as_priority
             }
         }
 
