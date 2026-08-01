@@ -1,9 +1,7 @@
 package com.si13.app
 
 import android.os.Bundle
-import android.Manifest
 import android.content.Intent
-import android.os.Build
 import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.util.TypedValue
@@ -12,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -25,7 +22,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -60,14 +56,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private lateinit var syncText: TextView
     private lateinit var appearancePreferences: AppearancePreferences
     private lateinit var appearanceValue: TextView
-    private lateinit var preferences: ForgettyPreferences
     private lateinit var weeklyActivity: WeeklyActivityView
-
-    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (!granted && isAdded) MaterialAlertDialogBuilder(requireContext())
-            .setMessage(R.string.notification_permission_denied)
-            .setPositiveButton(android.R.string.ok, null).show()
-    }
 
     private val authStateListener = FirebaseAuth.AuthStateListener { refreshUser() }
 
@@ -77,7 +66,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         val appContext = requireContext().applicationContext
         taskRepository = TaskRepository.create(appContext)
         appearancePreferences = AppearancePreferences.create(appContext)
-        preferences = ForgettyPreferences.create(appContext)
         users.value = authRepository.getCurrentUser()
         viewModel = ViewModelProvider(this, ProfileViewModel.Factory(
             users = users,
@@ -91,6 +79,13 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         ))[ProfileViewModel::class.java]
 
         bindViews(view)
+        view.findViewById<TextView>(R.id.profile_version_label).text = getString(
+            R.string.version_label,
+            requireContext().packageManager
+                .getPackageInfo(requireContext().packageName, 0)
+                .versionName
+                .orEmpty()
+        )
         weeklyActivity = view.findViewById(R.id.profile_weekly_activity)
         // Avoid showing the default guest state while the combined flow initializes.
         render(ProfileUiState(user = users.value))
@@ -102,8 +97,17 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         view.findViewById<View>(R.id.profile_manage_lists_row).setOnClickListener {
             ListManagerBottomSheet.show(parentFragmentManager)
         }
-        view.findViewById<View>(R.id.profile_delete_all_tasks_row).setOnClickListener {
-            confirmDeleteAllTasks()
+        view.findViewById<View>(R.id.profile_notifications_row).setOnClickListener {
+            NotificationSettingsBottomSheet.show(parentFragmentManager)
+        }
+        view.findViewById<View>(R.id.profile_task_preferences_row).setOnClickListener {
+            TaskPreferencesBottomSheet.show(parentFragmentManager)
+        }
+        view.findViewById<View>(R.id.profile_completed_tasks_row).setOnClickListener {
+            confirmDeleteCompleted()
+        }
+        view.findViewById<View>(R.id.profile_data_sync_row).setOnClickListener {
+            DataSyncBottomSheet.show(parentFragmentManager)
         }
         view.findViewById<View>(R.id.profile_content).addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             val vertical = resources.configuration.screenWidthDp < 360
@@ -206,43 +210,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
     private fun buildExtendedSettings(container: LinearLayout) {
         container.removeAllViews()
-        container.addSettingsGroup(R.string.task_preferences, R.id.profile_task_preferences_card) {
-            addRow(R.string.default_filter, preferences.defaultFilter) { showDefaultFilterDialog() }
-            addRow(R.string.default_list, preferences.defaultList) { showDefaultListDialog() }
-            addRow(R.string.default_reminder_time, formatMinutes(preferences.defaultReminderMinutes)) { showReminderTimeDialog() }
-            addRow(R.string.start_of_week, preferences.startOfWeek.name.lowercase().replaceFirstChar(Char::titlecase)) { showStartWeekDialog() }
-            addSwitch(R.string.show_completed_tasks, preferences.showCompleted) { preferences.showCompleted = it }
-            addSwitch(R.string.confirm_before_deleting, preferences.confirmBeforeDeleting) { preferences.confirmBeforeDeleting = it }
-        }
-
-        val notification = preferences.notificationPreferences
-        container.addSettingsGroup(R.string.notifications, R.id.profile_notifications_card) {
-            addSwitch(R.string.task_reminders, notification.taskReminders) { enabled ->
-                preferences.setTaskReminders(enabled); if (enabled) requestNotificationPermission()
-            }
-            addSwitch(R.string.overdue_reminders, notification.overdueReminders) { preferences.setOverdueReminders(it) }
-            addSwitch(R.string.daily_summary, notification.dailySummary) { enabled ->
-                preferences.setDailySummary(enabled); if (enabled) requestNotificationPermission()
-            }
-            addSwitch(R.string.shared_list_updates, notification.sharedListUpdates) { preferences.setSharedListUpdates(it) }
-        }
-
-        container.addSettingsGroup(R.string.data_and_sync, R.id.profile_data_sync_card) {
-            addRow(R.string.export_tasks, getString(R.string.export_tasks_summary)) { exportTasks() }
-            addRow(R.string.delete_completed_tasks, getString(R.string.delete_completed_tasks_summary)) { confirmDeleteCompleted() }
-        }
-
-        container.addSettingsGroup(R.string.lists_and_collaboration, R.id.profile_lists_collaboration_card) {
-            addRow(R.string.manage_lists, getString(R.string.manage_lists_summary)) { ListManagerBottomSheet.show(parentFragmentManager) }
-            addRow(R.string.shared_lists, getString(R.string.shared_lists_summary)) { showBackendRequirement() }
-            addRow(R.string.pending_invitations, getString(R.string.no_pending_invitations)) { showBackendRequirement() }
-        }
-
-        val version = runCatching {
-            requireContext().packageManager.getPackageInfo(requireContext().packageName, 0).versionName
-        }.getOrNull().orEmpty()
         container.addSettingsGroup(R.string.app_information, R.id.profile_app_information_card) {
-            addRow(R.string.app_version, version, showChevron = false)
             addRow(R.string.privacy, getString(R.string.opens_policy)) { showPolicy(R.string.privacy) }
             addRow(R.string.terms, getString(R.string.opens_policy)) { showPolicy(R.string.terms) }
             addRow(R.string.send_feedback, getString(R.string.send_feedback_summary)) { sendFeedback() }
@@ -320,33 +288,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
-    private fun LinearLayout.addSwitch(titleRes: Int, checked: Boolean, action: (Boolean) -> Unit) {
-        addSettingsDividerIfNeeded()
-        val toggle = SwitchMaterial(context).apply {
-            isChecked = checked
-            minimumWidth = dp(48)
-            minimumHeight = dp(48)
-            contentDescription = getString(titleRes)
-            setOnCheckedChangeListener { _, value -> action(value) }
-        }
-        addView(LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            minimumHeight = dp(64)
-            isClickable = true
-            isFocusable = true
-            foreground = selectableItemForeground()
-            setPadding(dp(16), dp(8), dp(12), dp(8))
-            addView(TextView(context).apply {
-                setText(titleRes)
-                textSize = 16f
-                setTextColor(context.getColor(R.color.forgetty_text_primary))
-            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            addView(toggle)
-            setOnClickListener { toggle.isChecked = !toggle.isChecked }
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-    }
-
     private fun LinearLayout.addSettingsDividerIfNeeded() {
         if (childCount == 0) return
         addView(View(context).apply {
@@ -361,71 +302,14 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         ContextCompat.getDrawable(requireContext(), value.resourceId)
     }
 
-    private fun showDefaultFilterDialog() {
-        val values = arrayOf("all", "today", "high", "completed")
-        val labels = arrayOf(getString(R.string.all_filter), getString(R.string.today_filter), getString(R.string.high_priority_filter), getString(R.string.completed_filter_label))
-        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.default_filter)
-            .setSingleChoiceItems(labels, values.indexOf(preferences.defaultFilter)) { dialog, which ->
-                preferences.defaultFilter = values[which]; dialog.dismiss(); rebuildSettings()
-            }.show()
-    }
-
-    private fun showDefaultListDialog() {
-        val lists = TaskListStore.create(requireContext()).getLists()
-        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.default_list)
-            .setSingleChoiceItems(lists.map { it.name }.toTypedArray(), lists.indexOfFirst { it.name == preferences.defaultList }) { dialog, which ->
-                preferences.defaultList = lists[which].name; dialog.dismiss(); rebuildSettings()
-            }.show()
-    }
-
-    private fun showReminderTimeDialog() {
-        val labels = arrayOf("08:00", "09:00", "12:00", "18:00")
-        val values = intArrayOf(480, 540, 720, 1080)
-        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.default_reminder_time)
-            .setItems(labels) { _, which -> preferences.defaultReminderMinutes = values[which]; rebuildSettings() }.show()
-    }
-
-    private fun showStartWeekDialog() {
-        val days = arrayOf(java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.SUNDAY)
-        val labels = arrayOf(getString(R.string.monday), getString(R.string.sunday))
-        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.start_of_week)
-            .setSingleChoiceItems(labels, days.indexOf(preferences.startOfWeek)) { dialog, which ->
-                preferences.startOfWeek = days[which]; dialog.dismiss(); rebuildSettings()
-            }.show()
-    }
-
-    private fun rebuildSettings() { view?.findViewById<LinearLayout>(R.id.profile_extended_settings)?.let(::buildExtendedSettings) }
-
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }
-
-    private fun exportTasks() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            runCatching {
-                val uri = TaskExporter.createJson(requireContext(), taskRepository.getTasks())
-                startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                    type = "application/json"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }, getString(R.string.export_tasks)))
-            }.onFailure { showMessage(R.string.export_failed) }
-        }
-    }
-
     private fun confirmDeleteCompleted() {
         MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.delete_completed_tasks)
             .setMessage(R.string.delete_completed_confirmation).setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.delete) { _, _ -> viewLifecycleOwner.lifecycleScope.launch { taskRepository.deleteCompletedTasks() } }.show()
     }
 
-    private fun showBackendRequirement() = showMessage(R.string.collaboration_backend_required)
     private fun showPolicy(title: Int) = MaterialAlertDialogBuilder(requireContext()).setTitle(title).setMessage(R.string.policy_not_configured).setPositiveButton(android.R.string.ok, null).show()
     private fun sendFeedback() = startActivity(Intent.createChooser(Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:?subject=Forgetty feedback")), getString(R.string.send_feedback)))
-    private fun showMessage(message: Int) = MaterialAlertDialogBuilder(requireContext()).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
-    private fun formatMinutes(value: Int) = "%02d:%02d".format(value / 60, value % 60)
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     private fun renderSyncStatus(isOnline: Boolean) {
@@ -462,27 +346,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             .setMessage(R.string.sign_out_confirmation_message)
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.sign_out) { _, _ -> viewModel.signOut() }
-            .show()
-    }
-
-    private fun confirmDeleteAllTasks() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.delete_all_tasks_title)
-            .setMessage(R.string.delete_all_tasks_message)
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewLifecycleOwner.lifecycleScope.launch {
-                    try {
-                        taskRepository.deleteAllTasks()
-                    } catch (exception: Exception) {
-                        if (!isAdded) return@launch
-                        MaterialAlertDialogBuilder(requireContext())
-                            .setMessage(R.string.tasks_error)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show()
-                    }
-                }
-            }
             .show()
     }
 

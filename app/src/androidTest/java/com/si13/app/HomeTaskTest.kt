@@ -473,7 +473,8 @@ class HomeTaskTest {
             onView(isRoot()).perform(waitFor(500))
 
             onView(withId(R.id.profileFragment)).perform(click())
-            onView(withId(R.id.profile_delete_all_tasks_row)).perform(scrollTo(), click())
+            onView(withId(R.id.profile_data_sync_row)).perform(scrollTo(), click())
+            onView(withId(R.id.data_sync_delete_all_row)).perform(click())
             onView(withText(R.string.delete_all_tasks_title))
                 .inRoot(isDialog())
                 .check(matches(isDisplayed()))
@@ -483,7 +484,7 @@ class HomeTaskTest {
                 .perform(click())
             assertEquals(3, runBlocking { TaskDatabase.getInstance(context).taskDao().getTasks() }.size)
 
-            onView(withId(R.id.profile_delete_all_tasks_row)).perform(scrollTo(), click())
+            onView(withId(R.id.data_sync_delete_all_row)).perform(click())
             onView(withText(R.string.delete))
                 .inRoot(isDialog())
                 .perform(click())
@@ -495,6 +496,30 @@ class HomeTaskTest {
                 TaskDatabase.getInstance(context).taskDao().getTasks()
             }
             assertEquals(0, remainingTasks.size)
+        }
+    }
+
+    @Test
+    fun completedTasksSettingDeletesOnlyCompletedTasks() {
+        seedGuestTasksWithCompletedTask()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(withId(R.id.profile_completed_tasks_row)).perform(scrollTo(), click())
+            onView(withText(R.string.delete_completed_tasks))
+                .inRoot(isDialog())
+                .check(matches(isDisplayed()))
+            onView(withText(R.string.delete))
+                .inRoot(isDialog())
+                .perform(click())
+            onView(isRoot()).perform(waitFor(500))
+
+            val remainingTasks = runBlocking {
+                TaskDatabase.getInstance(context).taskDao().getTasks()
+            }
+            assertEquals(listOf("Active task"), remainingTasks.map(TaskEntity::text))
         }
     }
 
@@ -518,6 +543,21 @@ class HomeTaskTest {
     }
 
     @Test
+    fun productivityMetricsUseTheCardSurfaceWithoutGrayTiles() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(withId(R.id.profile_metrics_horizontal)).check { view, _ ->
+                val metrics = view as ViewGroup
+                (0 until metrics.childCount).forEach { index ->
+                    assertEquals(null, metrics.getChildAt(index).background)
+                }
+            }
+        }
+    }
+
+    @Test
     fun extendedProfileSectionsMatchTheSettingsCardTreatment() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
@@ -526,10 +566,6 @@ class HomeTaskTest {
             onView(isRoot()).check { root, _ ->
                 val reference = root.findViewById<MaterialCardView>(R.id.profile_settings_card)
                 listOf(
-                    R.id.profile_task_preferences_card,
-                    R.id.profile_notifications_card,
-                    R.id.profile_data_sync_card,
-                    R.id.profile_lists_collaboration_card,
                     R.id.profile_app_information_card
                 ).forEach { id ->
                     val card = root.findViewById<MaterialCardView>(id)
@@ -538,6 +574,103 @@ class HomeTaskTest {
                     assertEquals(reference.cardElevation, card.cardElevation, 0.5f)
                     assertEquals(reference.strokeWidth, card.strokeWidth)
                 }
+            }
+        }
+    }
+
+    @Test
+    fun appVersionIsCenteredBelowAppInformationCard() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(isRoot()).check { root, _ ->
+                val appInformation = root.findViewById<View>(R.id.profile_app_information_card)
+                val version = root.findViewById<TextView>(R.id.profile_version_label)
+                val versionName = context.packageManager
+                    .getPackageInfo(context.packageName, 0)
+                    .versionName
+                    .orEmpty()
+                val appInformationLocation = IntArray(2)
+                val versionLocation = IntArray(2)
+                appInformation.getLocationOnScreen(appInformationLocation)
+                version.getLocationOnScreen(versionLocation)
+
+                assertEquals(context.getString(R.string.version_label, versionName), version.text.toString())
+                assertTrue(
+                    appInformationLocation[1] + appInformation.height <= versionLocation[1]
+                )
+                assertTrue(version.parent === root.findViewById<View>(R.id.profile_content))
+                assertTrue(version.gravity and android.view.Gravity.CENTER_HORIZONTAL != 0)
+            }
+        }
+    }
+
+    @Test
+    fun listsAndCollaborationSettingOpensManageLists() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(withId(R.id.profile_manage_lists_row)).perform(scrollTo(), click())
+
+            onView(withId(R.id.list_manager_root)).check(matches(isDisplayed()))
+            onView(withId(R.id.list_manager_title)).check(matches(withText(R.string.manage_lists)))
+        }
+    }
+
+    @Test
+    fun notificationSettingOpensBottomSheetAndPersistsChanges() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(withId(R.id.profile_notifications_row)).perform(scrollTo(), click())
+            onView(withId(R.id.notification_settings_root)).check(matches(isDisplayed()))
+            onView(withId(R.id.notification_settings_title))
+                .check(matches(withText(R.string.notifications)))
+
+            onView(withId(R.id.notification_overdue_reminders_row)).perform(click())
+
+            assertEquals(
+                false,
+                ForgettyPreferences.create(context).notificationPreferences.overdueReminders
+            )
+        }
+    }
+
+    @Test
+    fun taskPreferencesSettingOpensBottomSheetAndPersistsDefaultFilter() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(withId(R.id.profile_task_preferences_row)).perform(scrollTo(), click())
+            onView(withId(R.id.task_preferences_root)).check(matches(isDisplayed()))
+            onView(withId(R.id.task_preferences_title))
+                .check(matches(withText(R.string.task_preferences)))
+
+            onView(withId(R.id.task_preferences_default_filter_row)).perform(click())
+            onView(withText(R.string.today_filter)).inRoot(isDialog()).perform(click())
+
+            assertEquals("today", ForgettyPreferences.create(context).defaultFilter)
+            onView(withId(R.id.task_preferences_default_filter_value))
+                .check(matches(withText(R.string.today_filter)))
+        }
+    }
+
+    @Test
+    fun dataAndSyncSettingOpensBottomSheetWithFutureDeleteAccountItem() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(withId(R.id.profile_data_sync_row)).perform(scrollTo(), click())
+
+            onView(withId(R.id.data_sync_root)).check(matches(isDisplayed()))
+            onView(withId(R.id.data_sync_title)).check(matches(withText(R.string.data_and_sync)))
+            onView(withId(R.id.data_sync_delete_account_row)).check { view, _ ->
+                assertTrue("Future Delete account action must remain disabled.", !view.isEnabled)
             }
         }
     }
@@ -663,6 +796,30 @@ class HomeTaskTest {
                     completed = false,
                     createdAt = 1L,
                     updatedAt = 1L
+                )
+            )
+        }
+    }
+
+    private fun seedGuestTasksWithCompletedTask() {
+        runBlocking {
+            TaskDatabase.getInstance(context).taskDao().upsertAll(
+                listOf(
+                    TaskEntity(
+                        id = "active-task",
+                        text = "Active task",
+                        completed = false,
+                        createdAt = 1L,
+                        updatedAt = 1L
+                    ),
+                    TaskEntity(
+                        id = "completed-task",
+                        text = "Completed task",
+                        completed = true,
+                        createdAt = 2L,
+                        updatedAt = 2L,
+                        completedAt = 2L
+                    )
                 )
             )
         }

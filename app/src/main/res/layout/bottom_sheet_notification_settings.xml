@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/notification_settings_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_list_manager_sheet"
+    android:orientation="vertical">
+
+    <View
+        android:layout_width="32dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_task_details_handle"
+        android:importantForAccessibility="no" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:id="@+id/notification_settings_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/notifications"
+            android:textColor="@color/forgetty_text_primary"
+            android:textSize="18sp" />
+
+        <ImageButton
+            android:id="@+id/notification_settings_close"
+            style="@style/Widget.Forgetty.IconButton"
+            android:contentDescription="@string/close_notifications"
+            android:src="@drawable/ic_close" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/notification_task_reminders_row"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/task_reminders"
+                android:textColor="@color/forgetty_text_primary"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/task_reminders_summary"
+                android:textColor="@color/forgetty_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/notification_task_reminders_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:contentDescription="@string/task_reminders"
+            android:minWidth="48dp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="16dp"
+        android:background="@color/forgetty_outline_variant" />
+
+    <LinearLayout
+        android:id="@+id/notification_overdue_reminders_row"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/overdue_reminders"
+                android:textColor="@color/forgetty_text_primary"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/overdue_reminders_summary"
+                android:textColor="@color/forgetty_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/notification_overdue_reminders_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:contentDescription="@string/overdue_reminders"
+            android:minWidth="48dp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="16dp"
+        android:background="@color/forgetty_outline_variant" />
+
+    <LinearLayout
+        android:id="@+id/notification_daily_summary_row"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="4dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/daily_summary"
+                android:textColor="@color/forgetty_text_primary"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/daily_summary_description"
+                android:textColor="@color/forgetty_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/notification_daily_summary_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:contentDescription="@string/daily_summary"
+            android:minWidth="48dp" />
+    </LinearLayout>
+</LinearLayout>
