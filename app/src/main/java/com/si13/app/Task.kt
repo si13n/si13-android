@@ -157,6 +157,7 @@ enum class RepeatUnit(val storageValue: String) {
 }
 
 const val DEFAULT_TASK_LIST = "Personal"
+const val NO_TASK_LIST = "No list"
 
 val BUILT_IN_TASK_LISTS = listOf("Personal", "Work", "Shared", "Shopping")
 

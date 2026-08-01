@@ -27,11 +27,9 @@ enum class SharedListRole { OWNER, EDITOR, VIEWER }
 class TaskListStore private constructor(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
-    fun getLists(): List<TaskListDefinition> = preferences.getString(KEY_LISTS, null)
-        ?.split(RECORD_SEPARATOR)
-        ?.mapNotNull(::decode)
-        ?.takeIf(List<TaskListDefinition>::isNotEmpty)
-        ?: DEFAULT_LISTS
+    fun getLists(): List<TaskListDefinition> = preferences.getString(KEY_LISTS, null)?.let { encoded ->
+        if (encoded.isBlank()) emptyList() else encoded.split(RECORD_SEPARATOR).mapNotNull(::decode)
+    } ?: DEFAULT_LISTS
 
     fun create(name: String, color: String): TaskListDefinition {
         val cleanName = uniqueName(name)
@@ -43,9 +41,16 @@ class TaskListStore private constructor(context: Context) {
     fun rename(id: String, name: String): Pair<String, TaskListDefinition>? {
         val current = getLists()
         val old = current.firstOrNull { it.id == id } ?: return null
-        val updated = old.copy(name = uniqueName(name, excludingId = id))
+        val change = update(id, name, old.color) ?: return null
+        return change.oldName to change.updated
+    }
+
+    fun update(id: String, name: String, color: String): TaskListChange? {
+        val current = getLists()
+        val old = current.firstOrNull { it.id == id } ?: return null
+        val updated = old.copy(name = uniqueName(name, excludingId = id), color = color)
         save(current.map { if (it.id == id) updated else it })
-        return old.name to updated
+        return TaskListChange(old.name, updated)
     }
 
     fun changeColor(id: String, color: String) {
@@ -55,7 +60,6 @@ class TaskListStore private constructor(context: Context) {
     fun delete(id: String): TaskListDefinition? {
         val current = getLists()
         val target = current.firstOrNull { it.id == id } ?: return null
-        if (target.protected) return null
         save(current.filterNot { it.id == id })
         return target
     }
@@ -65,8 +69,12 @@ class TaskListStore private constructor(context: Context) {
         val names = getLists().filterNot { it.id == excludingId }.map { it.name.lowercase() }.toSet()
         if (base.lowercase() !in names) return base
         var suffix = 2
-        while ("$base $suffix".lowercase() in names) suffix++
-        return "$base $suffix"
+        while (true) {
+            val suffixText = " $suffix"
+            val candidate = base.take(MAX_LIST_NAME_LENGTH - suffixText.length) + suffixText
+            if (candidate.lowercase() !in names) return candidate
+            suffix++
+        }
     }
 
     private fun save(values: List<TaskListDefinition>) {
@@ -99,14 +107,17 @@ class TaskListStore private constructor(context: Context) {
         private const val KEY_LISTS = "lists"
         private const val RECORD_SEPARATOR = "|"
         private const val FIELD_SEPARATOR = ","
+        private const val MAX_LIST_NAME_LENGTH = 40
         val COLORS = listOf("#5268D8", "#477F8D", "#9B577B", "#347A62", "#956B24", "#6B44A8", "#C45252", "#3D7A5E")
         val DEFAULT_LISTS = listOf(
-            TaskListDefinition("personal", "Personal", "#477F8D", protected = true),
-            TaskListDefinition("work", "Work", "#5268D8", protected = true),
-            TaskListDefinition("shared", "Shared", "#9B577B", shared = true, protected = true),
-            TaskListDefinition("shopping", "Shopping", "#347A62", protected = true)
+            TaskListDefinition("personal", "Personal", "#477F8D"),
+            TaskListDefinition("work", "Work", "#5268D8"),
+            TaskListDefinition("shared", "Shared", "#9B577B", shared = true),
+            TaskListDefinition("shopping", "Shopping", "#347A62")
         )
 
         fun create(context: Context) = TaskListStore(context)
     }
 }
+
+data class TaskListChange(val oldName: String, val updated: TaskListDefinition)

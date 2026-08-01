@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="profile_task_preferences_card" type="id" />
+    <item name="profile_notifications_card" type="id" />
+    <item name="profile_data_sync_card" type="id" />
+    <item name="profile_lists_collaboration_card" type="id" />
+    <item name="profile_app_information_card" type="id" />
+    <item name="list_manager_list_card" type="id" />
+    <item name="list_manager_create" type="id" />
+    <item name="list_manager_name" type="id" />
+    <item name="list_manager_colors" type="id" />
+    <item name="list_manager_preview" type="id" />
+    <item name="list_manager_save" type="id" />
+</resources>

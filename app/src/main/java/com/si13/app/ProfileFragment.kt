@@ -5,6 +5,8 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.content.res.ColorStateList
+import android.graphics.Typeface
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -20,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -203,72 +206,159 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
     private fun buildExtendedSettings(container: LinearLayout) {
         container.removeAllViews()
-        container.addSection(R.string.task_preferences)
-        container.addRow(R.string.default_filter, preferences.defaultFilter) { showDefaultFilterDialog() }
-        container.addRow(R.string.default_list, preferences.defaultList) { showDefaultListDialog() }
-        container.addRow(R.string.default_reminder_time, formatMinutes(preferences.defaultReminderMinutes)) { showReminderTimeDialog() }
-        container.addRow(R.string.start_of_week, preferences.startOfWeek.name.lowercase().replaceFirstChar(Char::titlecase)) { showStartWeekDialog() }
-        container.addSwitch(R.string.show_completed_tasks, preferences.showCompleted) { preferences.showCompleted = it }
-        container.addSwitch(R.string.confirm_before_deleting, preferences.confirmBeforeDeleting) { preferences.confirmBeforeDeleting = it }
+        container.addSettingsGroup(R.string.task_preferences, R.id.profile_task_preferences_card) {
+            addRow(R.string.default_filter, preferences.defaultFilter) { showDefaultFilterDialog() }
+            addRow(R.string.default_list, preferences.defaultList) { showDefaultListDialog() }
+            addRow(R.string.default_reminder_time, formatMinutes(preferences.defaultReminderMinutes)) { showReminderTimeDialog() }
+            addRow(R.string.start_of_week, preferences.startOfWeek.name.lowercase().replaceFirstChar(Char::titlecase)) { showStartWeekDialog() }
+            addSwitch(R.string.show_completed_tasks, preferences.showCompleted) { preferences.showCompleted = it }
+            addSwitch(R.string.confirm_before_deleting, preferences.confirmBeforeDeleting) { preferences.confirmBeforeDeleting = it }
+        }
 
-        container.addSection(R.string.notifications)
         val notification = preferences.notificationPreferences
-        container.addSwitch(R.string.task_reminders, notification.taskReminders) { enabled ->
-            preferences.setTaskReminders(enabled); if (enabled) requestNotificationPermission()
+        container.addSettingsGroup(R.string.notifications, R.id.profile_notifications_card) {
+            addSwitch(R.string.task_reminders, notification.taskReminders) { enabled ->
+                preferences.setTaskReminders(enabled); if (enabled) requestNotificationPermission()
+            }
+            addSwitch(R.string.overdue_reminders, notification.overdueReminders) { preferences.setOverdueReminders(it) }
+            addSwitch(R.string.daily_summary, notification.dailySummary) { enabled ->
+                preferences.setDailySummary(enabled); if (enabled) requestNotificationPermission()
+            }
+            addSwitch(R.string.shared_list_updates, notification.sharedListUpdates) { preferences.setSharedListUpdates(it) }
         }
-        container.addSwitch(R.string.overdue_reminders, notification.overdueReminders) { preferences.setOverdueReminders(it) }
-        container.addSwitch(R.string.daily_summary, notification.dailySummary) { enabled ->
-            preferences.setDailySummary(enabled); if (enabled) requestNotificationPermission()
+
+        container.addSettingsGroup(R.string.data_and_sync, R.id.profile_data_sync_card) {
+            addRow(R.string.export_tasks, getString(R.string.export_tasks_summary)) { exportTasks() }
+            addRow(R.string.delete_completed_tasks, getString(R.string.delete_completed_tasks_summary)) { confirmDeleteCompleted() }
         }
-        container.addSwitch(R.string.shared_list_updates, notification.sharedListUpdates) { preferences.setSharedListUpdates(it) }
 
-        container.addSection(R.string.data_and_sync)
-        container.addRow(R.string.export_tasks, getString(R.string.export_tasks_summary)) { exportTasks() }
-        container.addRow(R.string.delete_completed_tasks, getString(R.string.delete_completed_tasks_summary)) { confirmDeleteCompleted() }
+        container.addSettingsGroup(R.string.lists_and_collaboration, R.id.profile_lists_collaboration_card) {
+            addRow(R.string.manage_lists, getString(R.string.manage_lists_summary)) { ListManagerBottomSheet.show(parentFragmentManager) }
+            addRow(R.string.shared_lists, getString(R.string.shared_lists_summary)) { showBackendRequirement() }
+            addRow(R.string.pending_invitations, getString(R.string.no_pending_invitations)) { showBackendRequirement() }
+        }
 
-        container.addSection(R.string.lists_and_collaboration)
-        container.addRow(R.string.manage_lists, getString(R.string.manage_lists_summary)) { ListManagerBottomSheet.show(parentFragmentManager) }
-        container.addRow(R.string.shared_lists, getString(R.string.shared_lists_summary)) { showBackendRequirement() }
-        container.addRow(R.string.pending_invitations, getString(R.string.no_pending_invitations)) { showBackendRequirement() }
-
-        container.addSection(R.string.app_information)
         val version = runCatching {
             requireContext().packageManager.getPackageInfo(requireContext().packageName, 0).versionName
         }.getOrNull().orEmpty()
-        container.addRow(R.string.app_version, version) {}
-        container.addRow(R.string.privacy, getString(R.string.opens_policy)) { showPolicy(R.string.privacy) }
-        container.addRow(R.string.terms, getString(R.string.opens_policy)) { showPolicy(R.string.terms) }
-        container.addRow(R.string.send_feedback, getString(R.string.send_feedback_summary)) { sendFeedback() }
+        container.addSettingsGroup(R.string.app_information, R.id.profile_app_information_card) {
+            addRow(R.string.app_version, version, showChevron = false)
+            addRow(R.string.privacy, getString(R.string.opens_policy)) { showPolicy(R.string.privacy) }
+            addRow(R.string.terms, getString(R.string.opens_policy)) { showPolicy(R.string.terms) }
+            addRow(R.string.send_feedback, getString(R.string.send_feedback_summary)) { sendFeedback() }
+        }
     }
 
-    private fun LinearLayout.addSection(titleRes: Int) {
-        addView(TextView(requireContext()).apply {
-            setText(titleRes); textSize = 17f; setTextColor(context.getColor(R.color.forgetty_text_primary))
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+    private fun LinearLayout.addSettingsGroup(
+        titleRes: Int,
+        cardId: Int,
+        buildRows: LinearLayout.() -> Unit
+    ) {
+        addView(TextView(context).apply {
+            setText(titleRes)
+            textSize = 18f
+            setTextColor(context.getColor(R.color.forgetty_text_primary))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             setPadding(0, dp(22), 0, dp(8))
         })
+        val rows = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            buildRows()
+        }
+        addView(MaterialCardView(context).apply {
+            id = cardId
+            radius = dp(20).toFloat()
+            cardElevation = 0f
+            strokeWidth = 0
+            setCardBackgroundColor(context.getColor(R.color.profile_surface))
+            addView(rows, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
+        }, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
     }
 
-    private fun LinearLayout.addRow(titleRes: Int, summary: String, action: () -> Unit) {
-        addView(LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            minimumHeight = dp(64)
-            background = context.getDrawable(R.drawable.bg_task_notes)
-            isClickable = true; isFocusable = true
+    private fun LinearLayout.addRow(
+        titleRes: Int,
+        summary: String,
+        showChevron: Boolean = true,
+        action: (() -> Unit)? = null
+    ) {
+        addSettingsDividerIfNeeded()
+        addView(LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            minimumHeight = dp(68)
+            isClickable = action != null
+            isFocusable = action != null
+            foreground = selectableItemForeground()
             setPadding(dp(16), dp(10), dp(16), dp(10))
-            addView(TextView(context).apply { setText(titleRes); textSize = 15f; setTextColor(context.getColor(R.color.forgetty_text_primary)) })
-            addView(TextView(context).apply { text = summary; textSize = 12f; setTextColor(context.getColor(R.color.forgetty_text_secondary)) })
-            setOnClickListener { action() }
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(4) })
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(TextView(context).apply {
+                    setText(titleRes)
+                    textSize = 16f
+                    setTextColor(context.getColor(R.color.forgetty_text_primary))
+                })
+                addView(TextView(context).apply {
+                    text = summary
+                    textSize = 13f
+                    setTextColor(context.getColor(R.color.forgetty_text_secondary))
+                    isVisible = summary.isNotBlank()
+                })
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            if (showChevron) {
+                addView(ImageView(context).apply {
+                    setImageResource(R.drawable.ic_chevron_right)
+                    contentDescription = null
+                }, LinearLayout.LayoutParams(dp(24), dp(24)))
+            }
+            setOnClickListener { action?.invoke() }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
     private fun LinearLayout.addSwitch(titleRes: Int, checked: Boolean, action: (Boolean) -> Unit) {
-        addView(SwitchMaterial(requireContext()).apply {
-            setText(titleRes); isChecked = checked; minimumHeight = dp(56)
-            setTextColor(context.getColor(R.color.forgetty_text_primary))
-            setPadding(dp(16), 0, dp(12), 0)
+        addSettingsDividerIfNeeded()
+        val toggle = SwitchMaterial(context).apply {
+            isChecked = checked
+            minimumWidth = dp(48)
+            minimumHeight = dp(48)
+            contentDescription = getString(titleRes)
             setOnCheckedChangeListener { _, value -> action(value) }
+        }
+        addView(LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            minimumHeight = dp(64)
+            isClickable = true
+            isFocusable = true
+            foreground = selectableItemForeground()
+            setPadding(dp(16), dp(8), dp(12), dp(8))
+            addView(TextView(context).apply {
+                setText(titleRes)
+                textSize = 16f
+                setTextColor(context.getColor(R.color.forgetty_text_primary))
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(toggle)
+            setOnClickListener { toggle.isChecked = !toggle.isChecked }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
+    private fun LinearLayout.addSettingsDividerIfNeeded() {
+        if (childCount == 0) return
+        addView(View(context).apply {
+            setBackgroundColor(context.getColor(R.color.profile_divider))
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
+            marginStart = dp(16)
         })
+    }
+
+    private fun selectableItemForeground() = TypedValue().let { value ->
+        requireContext().theme.resolveAttribute(android.R.attr.selectableItemBackground, value, true)
+        ContextCompat.getDrawable(requireContext(), value.resourceId)
     }
 
     private fun showDefaultFilterDialog() {

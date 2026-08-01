@@ -3,6 +3,7 @@ package com.si13.app
 import android.content.Context
 import android.graphics.Rect
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
@@ -30,6 +31,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.google.firebase.auth.FirebaseAuth
+import com.google.android.material.card.MaterialCardView
 import io.qameta.allure.android.runners.AllureAndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matcher
@@ -189,6 +191,35 @@ class HomeTaskTest {
             onView(withId(R.id.task_sort_button)).perform(click())
 
             onView(withText(R.string.sort_due_date)).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun manageListsCreatesEditsRecolorsAndDeletesAListInSheet() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+
+            onView(withId(R.id.task_list_filter_scroll)).perform(swipeLeft())
+            onView(withText(R.string.manage_lists)).perform(click())
+            onView(withId(R.id.list_manager_list_card)).check(matches(isDisplayed()))
+            onView(withId(R.id.list_manager_create)).perform(click())
+            onView(withText(R.string.new_list)).check(matches(isDisplayed()))
+            onView(withId(R.id.list_manager_name)).perform(replaceText("Errands"))
+            onView(withId(R.id.list_manager_save)).perform(click())
+            onView(withText("Errands")).check(matches(isDisplayed()))
+
+            onView(withId(R.id.list_manager_list_card)).perform(clickEditForList("Errands"))
+            onView(withText(R.string.edit_list)).check(matches(isDisplayed()))
+            onView(withId(R.id.list_manager_name)).perform(replaceText("Weekend"))
+            onView(withId(R.id.list_manager_colors)).perform(clickChildAt(2))
+            onView(withId(R.id.list_manager_save)).perform(click())
+            onView(withText("Weekend")).check(matches(isDisplayed()))
+
+            onView(withContentDescription("Delete Weekend list")).perform(click())
+            onView(withText("Delete \"Weekend\"?")).inRoot(isDialog()).check(matches(isDisplayed()))
+            onView(withText(R.string.delete)).inRoot(isDialog()).perform(click())
+            onView(isRoot()).perform(waitFor(300))
+            onView(withText("Weekend")).check(doesNotExist())
         }
     }
 
@@ -452,6 +483,50 @@ class HomeTaskTest {
     }
 
     @Test
+    fun weeklyActivitySitsBetweenProductivityAndSettings() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(isRoot()).check { root, _ ->
+                val productivity = root.findViewById<View>(R.id.profile_productivity_card)
+                val weeklyTitle = root.findViewById<View>(R.id.profile_weekly_activity_title)
+                val weeklyChart = root.findViewById<View>(R.id.profile_weekly_activity)
+                val settingsTitle = root.findViewById<View>(R.id.profile_settings_title)
+
+                assertTrue(productivity.bottom <= weeklyTitle.top)
+                assertTrue(weeklyTitle.bottom <= weeklyChart.top)
+                assertTrue(weeklyChart.bottom <= settingsTitle.top)
+            }
+        }
+    }
+
+    @Test
+    fun extendedProfileSectionsMatchTheSettingsCardTreatment() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+            onView(withId(R.id.profileFragment)).perform(click())
+
+            onView(isRoot()).check { root, _ ->
+                val reference = root.findViewById<MaterialCardView>(R.id.profile_settings_card)
+                listOf(
+                    R.id.profile_task_preferences_card,
+                    R.id.profile_notifications_card,
+                    R.id.profile_data_sync_card,
+                    R.id.profile_lists_collaboration_card,
+                    R.id.profile_app_information_card
+                ).forEach { id ->
+                    val card = root.findViewById<MaterialCardView>(id)
+                    assertEquals(reference.radius, card.radius, 0.5f)
+                    assertEquals(reference.cardBackgroundColor.defaultColor, card.cardBackgroundColor.defaultColor)
+                    assertEquals(reference.cardElevation, card.cardElevation, 0.5f)
+                    assertEquals(reference.strokeWidth, card.strokeWidth)
+                }
+            }
+        }
+    }
+
+    @Test
     fun showsLocalTaskImportDialogForAuthenticatedUserWithGuestTasks() {
         // Seed both sides of the condition: a saved authenticated user and pending guest tasks.
         seedAuthenticatedUserWithGuestTasks()
@@ -496,10 +571,36 @@ class HomeTaskTest {
         FirebaseAuth.getInstance().signOut()
         AuthRepository(context).clear()
         ForgettyPreferences.create(context).clear()
+        context.getSharedPreferences("forgetty_task_lists", Context.MODE_PRIVATE).edit().clear().commit()
         runBlocking {
             TaskDatabase.getInstance(context).taskDao().deleteAll()
         }
     }
+
+    private fun clickEditForList(listName: String): ViewAction = object : ViewAction {
+        override fun getConstraints(): Matcher<View> = isDisplayed()
+
+        override fun getDescription(): String = "Click edit for list '$listName'."
+
+        override fun perform(uiController: UiController, view: View) {
+            val edit = view.findViewWithTag<View>("list-edit-$listName")
+                ?: throw AssertionError("Could not find edit for list '$listName'.")
+            edit.performClick()
+            uiController.loopMainThreadUntilIdle()
+        }
+    }
+
+    private fun clickChildAt(position: Int): ViewAction = object : ViewAction {
+        override fun getConstraints(): Matcher<View> = isDisplayed()
+
+        override fun getDescription(): String = "Click child at position $position."
+
+        override fun perform(uiController: UiController, view: View) {
+            (view as ViewGroup).getChildAt(position).performClick()
+            uiController.loopMainThreadUntilIdle()
+        }
+    }
+
 
     private fun seedAuthenticatedUserWithGuestTasks() {
         runBlocking {
