@@ -3,18 +3,24 @@ package com.si13.app
 import android.app.Dialog
 import android.content.res.Configuration
 import android.graphics.Color
+import android.content.Intent
 import android.os.Bundle
 import android.text.InputFilter
 import android.view.View
 import android.view.Window
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.CheckBox
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -27,6 +33,9 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Date
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
     private lateinit var task: Task
@@ -37,13 +46,21 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
     private lateinit var duePill: View
     private lateinit var dueIcon: ImageView
     private lateinit var clearDueDate: ImageButton
+    private lateinit var notes: TextInputEditText
+    private lateinit var repeatValue: TextView
+    private lateinit var saveStatus: TextView
     private var priority = TaskPriority.NONE
     private var dueDate: String? = null
+    private var repeatRule = TaskRepeatRule.NONE
+    private var textSaveJob: Job? = null
+    private var binding = true
+    private var skipSaveOnDismiss = false
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         task = taskFromArguments()
         priority = task.priority
         dueDate = task.dueDate
+        repeatRule = task.repeatRule
 
         return BottomSheetDialog(requireContext()).apply {
             setContentView(R.layout.bottom_sheet_task_details)
@@ -81,6 +98,11 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         title.setText(task.text)
         title.filters = arrayOf(InputFilter.LengthFilter(TaskRepository.MAX_TASK_LENGTH))
         sheet.findViewById<View>(R.id.task_details_close).setOnClickListener { dismiss() }
+        notes = sheet.findViewById(R.id.task_details_notes)
+        notes.setText(task.note)
+        saveStatus = sheet.findViewById(R.id.task_details_save_status)
+        title.doAfterTextChanged { if (!binding) scheduleTextSave() }
+        notes.doAfterTextChanged { if (!binding) scheduleTextSave() }
 
         priorityValue = sheet.findViewById(R.id.task_details_priority_value)
         priorityIcon = sheet.findViewById(R.id.task_details_priority_icon)
@@ -101,10 +123,18 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
             save()
         }
 
+        repeatValue = sheet.findViewById(R.id.task_details_repeat_value)
+        sheet.findViewById<View>(R.id.task_details_repeat).setOnClickListener { showRepeatChoices() }
+
         sheet.findViewById<TextView>(R.id.task_details_created).text = getString(
             R.string.created_format,
             DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(task.createdAt))
         )
+        sheet.findViewById<TextView>(R.id.task_details_updated).text = getString(
+            R.string.updated_format,
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(task.updatedAt))
+        )
+        bindMetadata(sheet)
         sheet.findViewById<MaterialButton>(R.id.task_details_complete).apply {
             setText(if (task.completed) R.string.mark_as_active else R.string.mark_as_complete)
             setOnClickListener {
@@ -114,11 +144,119 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
             }
         }
         sheet.findViewById<MaterialButton>(R.id.task_details_delete).setOnClickListener {
-            (parentFragment as? HomeFragment)?.deleteTaskFromDetails(task)
+            if (ForgettyPreferences.create(requireContext()).confirmBeforeDeleting) {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.delete_task)
+                    .setMessage(R.string.delete_task_confirmation)
+                    .setNegativeButton(R.string.cancel, null)
+                    .setPositiveButton(R.string.delete) { _, _ -> deleteTask() }
+                    .show()
+            } else deleteTask()
+        }
+        sheet.findViewById<MaterialButton>(R.id.task_details_duplicate).setOnClickListener {
+            skipSaveOnDismiss = true
+            (parentFragment as? HomeFragment)?.duplicateTaskFromDetails(currentTask())
             dismiss()
         }
+        sheet.findViewById<MaterialButton>(R.id.task_details_share).setOnClickListener { shareTask() }
         renderPriority()
         renderDueDate()
+        renderRepeat()
+        binding = false
+    }
+
+    private fun bindMetadata(sheet: View) {
+        val subtasks = sheet.findViewById<LinearLayout>(R.id.task_details_subtasks)
+        task.subtasks.forEach { item ->
+            subtasks.addView(CheckBox(requireContext()).apply {
+                text = item.title
+                isChecked = item.completed
+                minimumHeight = dp(48)
+                setOnCheckedChangeListener { _, checked ->
+                    task = task.copy(subtasks = task.subtasks.map { if (it.id == item.id) it.copy(completed = checked) else it })
+                    save()
+                }
+            })
+        }
+        sheet.findViewById<MaterialButton>(R.id.task_details_list).apply {
+            text = task.listName
+            setOnClickListener { showListChoices() }
+        }
+        sheet.findViewById<TextView>(R.id.task_details_tags).text = task.tags.joinToString("  ") { "#$it" }
+        sheet.findViewById<TextView>(R.id.task_details_attachments).apply {
+            isVisible = task.attachments.isNotEmpty()
+            text = getString(R.string.attachment_count, task.attachments.size)
+        }
+        sheet.findViewById<TextView>(R.id.task_details_location).apply {
+            isVisible = task.locationReminder != null
+            text = task.locationReminder?.let { getString(R.string.location_reminder_summary, it.label) }
+        }
+    }
+
+    private fun scheduleTextSave() {
+        saveStatus.setText(R.string.saving)
+        textSaveJob?.cancel()
+        textSaveJob = lifecycleScope.launch {
+            delay(600)
+            save()
+            saveStatus.setText(R.string.saved)
+        }
+    }
+
+    private fun showRepeatChoices() {
+        val rules = listOf(TaskRepeatRule.NONE, TaskRepeatRule.DAILY, TaskRepeatRule.WEEKDAYS, TaskRepeatRule.WEEKLY, TaskRepeatRule.MONTHLY, TaskRepeatRule.YEARLY)
+        val labels = rules.map(::repeatLabel).toTypedArray()
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.repeat)
+            .setSingleChoiceItems(labels, rules.indexOf(repeatRule)) { dialog, which ->
+                repeatRule = rules[which]
+                renderRepeat()
+                save()
+                dialog.dismiss()
+            }.show()
+    }
+
+    private fun repeatLabel(rule: TaskRepeatRule) = getString(when (rule) {
+        TaskRepeatRule.NONE -> R.string.does_not_repeat
+        TaskRepeatRule.DAILY -> R.string.repeat_daily
+        TaskRepeatRule.WEEKDAYS -> R.string.repeat_weekdays
+        TaskRepeatRule.WEEKLY -> R.string.repeat_weekly
+        TaskRepeatRule.MONTHLY -> R.string.repeat_monthly
+        TaskRepeatRule.YEARLY -> R.string.repeat_yearly
+        TaskRepeatRule.CUSTOM -> R.string.custom
+    })
+
+    private fun renderRepeat() { if (::repeatValue.isInitialized) repeatValue.text = repeatLabel(repeatRule) }
+
+    private fun showListChoices() {
+        val definitions = TaskListStore.create(requireContext()).getLists()
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.choose_list)
+            .setSingleChoiceItems(definitions.map { it.name }.toTypedArray(), definitions.indexOfFirst { it.name == task.listName }) { dialog, which ->
+                task = currentTask().copy(listName = definitions[which].name, listId = definitions[which].id)
+                this@TaskDetailsBottomSheet.dialog
+                    ?.findViewById<MaterialButton>(R.id.task_details_list)?.text = task.listName
+                save()
+                dialog.dismiss()
+            }.show()
+    }
+
+    private fun deleteTask() {
+        skipSaveOnDismiss = true
+        (parentFragment as? HomeFragment)?.deleteTaskFromDetails(task)
+        dismiss()
+    }
+
+    private fun shareTask() {
+        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_task_subject))
+            putExtra(Intent.EXTRA_TEXT, buildString {
+                append(task.text)
+                task.dueDate?.let { append("\n").append(getString(R.string.due_date_format, it)) }
+                task.note.takeIf { it.isNotBlank() }?.let { append("\n\n").append(it) }
+            })
+        }, getString(R.string.share)))
     }
 
     private fun renderPriority() {
@@ -181,17 +319,24 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
     )
 
     private fun save() {
-        val value = title.text?.toString()?.trim().orEmpty()
-        task = task.copy(
+        task = currentTask()
+        (parentFragment as? HomeFragment)?.persistTaskFromDetails(task)
+    }
+
+    private fun currentTask(): Task {
+        val value = if (::title.isInitialized) title.text?.toString()?.trim().orEmpty() else task.text
+        return task.copy(
             text = if (value.isEmpty()) task.text else value,
             priority = priority,
-            dueDate = dueDate
+            dueDate = dueDate,
+            note = if (::notes.isInitialized) notes.text?.toString().orEmpty() else task.note,
+            repeatRule = repeatRule
         )
-        (parentFragment as? HomeFragment)?.updateTaskFromDetails(task)
     }
 
     override fun onDismiss(dialog: android.content.DialogInterface) {
-        if (::title.isInitialized) save()
+        textSaveJob?.cancel()
+        if (::title.isInitialized && !skipSaveOnDismiss) save()
         (parentFragment as? HomeFragment)?.refreshTasksAfterDetails()
         super.onDismiss(dialog)
     }
@@ -204,7 +349,17 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         updatedAt = requireArguments().getLong("updated"),
         priority = TaskPriority.fromStorageValue(requireArguments().getString("priority")),
         dueDate = requireArguments().getString("due"),
-        listName = requireArguments().getString("list").orEmpty().ifBlank { DEFAULT_TASK_LIST }
+        dueTimeMinutes = requireArguments().getInt("dueTime", -1).takeIf { it >= 0 },
+        listName = requireArguments().getString("list").orEmpty().ifBlank { DEFAULT_TASK_LIST },
+        note = requireArguments().getString("note").orEmpty(),
+        reminderAt = requireArguments().getLong("reminder", -1L).takeIf { it >= 0L },
+        repeatRule = TaskRepeatRule.fromStorageValue(requireArguments().getString("repeat")),
+        listId = requireArguments().getString("listId"),
+        tags = TaskFieldCodec.decodeStrings(requireArguments().getString("tags")),
+        subtasks = TaskFieldCodec.decodeSubtasks(requireArguments().getString("subtasks")),
+        attachments = TaskFieldCodec.decodeAttachments(requireArguments().getString("attachments")),
+        locationReminder = TaskFieldCodec.decodeLocation(requireArguments().getString("location")),
+        completedAt = requireArguments().getLong("completedAt", -1L).takeIf { it >= 0L }
     )
 
     private fun isDarkTheme(): Boolean = resources.configuration.uiMode and
@@ -223,7 +378,17 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
                     "updated" to task.updatedAt,
                     "priority" to task.priority.storageValue,
                     "due" to task.dueDate,
-                    "list" to task.listName
+                    "dueTime" to (task.dueTimeMinutes ?: -1),
+                    "list" to task.listName,
+                    "listId" to task.listId,
+                    "note" to task.note,
+                    "reminder" to (task.reminderAt ?: -1L),
+                    "repeat" to task.repeatRule.storageValue,
+                    "tags" to TaskFieldCodec.encodeStrings(task.tags),
+                    "subtasks" to TaskFieldCodec.encodeSubtasks(task.subtasks),
+                    "attachments" to TaskFieldCodec.encodeAttachments(task.attachments),
+                    "location" to TaskFieldCodec.encodeLocation(task.locationReminder),
+                    "completedAt" to (task.completedAt ?: -1L)
                 )
             }.show(manager, "task_details")
         }

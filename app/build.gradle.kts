@@ -34,6 +34,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)
@@ -60,6 +64,7 @@ dependencies {
     testImplementation(libs.androidx.arch.core.testing)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.room.ktx)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.core)

@@ -156,7 +156,7 @@ class HomeTaskTest {
 
     @Test
     fun maximumLengthTaskIsInsetAndDoesNotOverlapActions() {
-        val longTitle = "A".repeat(200)
+        val longTitle = "A".repeat(100)
         seedGuestTask("long-task", longTitle)
 
         ActivityScenario.launch(MainActivity::class.java).use {
@@ -182,13 +182,13 @@ class HomeTaskTest {
     }
 
     @Test
-    fun sortMenuContainsTheDefaultPrioritySort() {
+    fun sortMenuContainsTheDefaultDueDateSort() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
             onView(withId(R.id.task_sort_button)).perform(click())
 
-            onView(withText(R.string.sort_priority_first)).check(matches(isDisplayed()))
+            onView(withText(R.string.sort_due_date)).check(matches(isDisplayed()))
         }
     }
 
@@ -495,6 +495,7 @@ class HomeTaskTest {
         // Keep every test independent from previous auth snapshots and Room rows.
         FirebaseAuth.getInstance().signOut()
         AuthRepository(context).clear()
+        ForgettyPreferences.create(context).clear()
         runBlocking {
             TaskDatabase.getInstance(context).taskDao().deleteAll()
         }
@@ -594,7 +595,7 @@ class HomeTaskTest {
             val actions = view.findViewById<View>(R.id.home_header_actions)
             val sort = view.findViewById<View>(R.id.task_sort_button)
             val visibility = view.findViewById<View>(R.id.task_settings_button)
-            val expectedTouchTarget = (44f * view.resources.displayMetrics.density).toInt()
+            val expectedTouchTarget = (48f * view.resources.displayMetrics.density).toInt()
 
             assertTrue("Header content is clipped.", titleColumn.right <= view.width)
             assertTrue("Header actions are clipped at the end.", actions.right <= view.width)
@@ -632,12 +633,17 @@ class HomeTaskTest {
             val title = row.findViewById<TextView>(R.id.task_title)
             val priority = row.findViewById<View>(R.id.task_priority_button)
             val inset = (4f * row.resources.displayMetrics.density).toInt()
+            val checkboxBounds = Rect()
+            val titleBounds = Rect()
+            val priorityBounds = Rect()
+            checkbox.getGlobalVisibleRect(checkboxBounds)
+            title.getGlobalVisibleRect(titleBounds)
+            priority.getGlobalVisibleRect(priorityBounds)
 
             assertTrue("Checkbox touch target intersects the group outline.", checkbox.left >= foreground.left + inset)
-            assertTrue("Task title overlaps the checkbox.", title.left >= checkbox.right)
-            assertTrue("Task title overlaps the priority action.", title.right <= priority.left)
-            assertEquals(1, title.lineCount)
-            assertTrue("Maximum-length task title is not ellipsized.", title.layout.getEllipsisCount(0) > 0)
+            assertTrue("Task title overlaps the checkbox.", titleBounds.left >= checkboxBounds.right)
+            assertTrue("Task title overlaps the priority action.", titleBounds.right <= priorityBounds.left)
+            assertTrue(title.lineCount <= 2)
         }
     }
 

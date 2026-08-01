@@ -331,6 +331,28 @@ class TaskRepositoryTest {
         assertFailsWithIllegalArgument { repository.addTask("   ") }
         assertFailsWithIllegalArgument { repository.addTask("x".repeat(TaskRepository.MAX_TASK_LENGTH + 1)) }
     }
+
+    @Test
+    fun taskMutationsNotifyReminderAndWidgetBoundary() = runTest {
+        val local = FakeTaskDataSource()
+        val observer = FakeTaskMutationObserver()
+        val repository = TaskRepository(local, { FakeTaskDataSource() }, { null }, mutationObserver = observer)
+
+        val task = repository.addTask(TaskDraft("Remind me", reminderAt = 10_000L))
+        repository.setTaskCompleted(task, true)
+        repository.deleteTask(task.id)
+
+        assertEquals(2, observer.changed.size)
+        assertTrue(observer.changed.last().completed)
+        assertEquals(listOf(task.id), observer.deleted)
+    }
+}
+
+private class FakeTaskMutationObserver : TaskMutationObserver {
+    val changed = mutableListOf<Task>()
+    val deleted = mutableListOf<String>()
+    override fun onTaskChanged(task: Task) { changed += task }
+    override fun onTaskDeleted(taskId: String) { deleted += taskId }
 }
 
 private class FakeTaskDataSource(

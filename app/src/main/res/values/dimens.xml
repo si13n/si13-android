@@ -4,4 +4,5 @@
     <dimen name="home_content_max_width">600dp</dimen>
     <dimen name="task_group_corner_radius">16dp</dimen>
     <dimen name="task_row_height">70dp</dimen>
+    <dimen name="forgetty_touch_target">48dp</dimen>
 </resources>

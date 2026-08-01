@@ -3,8 +3,11 @@ package com.si13.app
 import android.annotation.SuppressLint
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.format.DateFormat
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -12,7 +15,9 @@ import android.view.ViewGroup
 import android.view.ContextThemeWrapper
 import android.view.inputmethod.InputMethodManager
 import android.widget.CheckBox
+import android.widget.GridLayout
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.core.view.isVisible
@@ -20,6 +25,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
+import androidx.activity.OnBackPressedCallback
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -39,6 +45,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -48,6 +57,8 @@ import kotlinx.coroutines.sync.withLock
 class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var taskRepository: TaskRepository
     private lateinit var taskAdapter: TaskAdapter
+    private lateinit var searchAdapter: TaskAdapter
+    private lateinit var calendarAdapter: TaskAdapter
     private lateinit var taskSearchInput: TextInputEditText
     private lateinit var taskSearchPanel: View
     private lateinit var taskSearchButton: ImageButton
@@ -65,16 +76,34 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var swipeDismissLayout: SwipeDismissLayout
     private lateinit var taskListFilterGroup: ChipGroup
     private lateinit var taskStatusFilterGroup: ChipGroup
+    private lateinit var preferences: ForgettyPreferences
+    private lateinit var taskListStore: TaskListStore
+    private lateinit var calendarContainer: View
+    private lateinit var calendarGrid: GridLayout
+    private lateinit var calendarAgendaList: RecyclerView
+    private lateinit var calendarEmpty: View
+    private lateinit var calendarMonthTitle: TextView
+    private lateinit var calendarSelectedDate: TextView
+    private lateinit var searchResults: RecyclerView
+    private lateinit var searchEmpty: View
+    private lateinit var searchHelper: View
+    private lateinit var homeLoading: View
 
     private var allTasks: List<Task> = emptyList()
     private var selectedList: String? = null
     private var statusFilter = HomeTaskFilter.ALL
     private var searchQuery = ""
-    private var sortMode = TaskSortMode.PRIORITY_FIRST
+    private var sortMode = TaskSortMode.DUE_DATE
+    private var displayMode = HomeDisplayMode.LIST
+    private var showCompleted = false
+    private var calendarMonth = YearMonth.now()
+    private var selectedCalendarDate = LocalDate.now()
     private val taskSourceTracker = TaskSourceTracker()
     private var isAddingTask = false
     private var shouldScrollToTopAfterRender = false
     private var taskIdToScrollAfterRender: String? = null
+    private var pendingTaskIdToOpen: String? = null
+    private var suppressTaskOpenForCurrentTouch = false
     private var taskObservationJob: Job? = null
     private val taskDetailsUpdateMutex = Mutex()
     private val authStateListener = FirebaseAuth.AuthStateListener {
@@ -85,8 +114,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         super.onViewCreated(view, savedInstanceState)
 
         taskRepository = TaskRepository.create(requireContext())
+        preferences = ForgettyPreferences.create(requireContext())
+        taskListStore = TaskListStore.create(requireContext())
+        selectedList = preferences.selectedList.takeUnless { it == ForgettyPreferences.ALL_TASKS }
+        statusFilter = HomeTaskFilter.fromKey(preferences.homeFilter)
+        sortMode = TaskSortMode.fromKey(preferences.sortMode)
+        displayMode = preferences.displayMode
+        showCompleted = preferences.showCompleted
         taskSearchInput = view.findViewById(R.id.task_search_input)
-        taskSearchPanel = view.findViewById(R.id.task_search_panel)
+        taskSearchPanel = view.findViewById(R.id.home_search_overlay)
         taskSearchButton = view.findViewById(R.id.task_search_button)
         taskSettingsButton = view.findViewById(R.id.task_settings_button)
         taskSortButton = view.findViewById(R.id.task_sort_button)
@@ -101,6 +137,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         taskListFilterGroup = view.findViewById(R.id.task_list_filter_group)
         taskStatusFilterGroup = view.findViewById(R.id.task_status_filter_group)
         swipeDismissLayout = view as SwipeDismissLayout
+        calendarContainer = view.findViewById(R.id.home_calendar_container)
+        calendarGrid = view.findViewById(R.id.calendar_grid)
+        calendarAgendaList = view.findViewById(R.id.calendar_agenda_list)
+        calendarEmpty = view.findViewById(R.id.calendar_empty)
+        calendarMonthTitle = view.findViewById(R.id.calendar_month_title)
+        calendarSelectedDate = view.findViewById(R.id.calendar_selected_date)
+        searchResults = view.findViewById(R.id.search_results)
+        searchEmpty = view.findViewById(R.id.search_empty)
+        searchHelper = view.findViewById(R.id.search_helper)
+        homeLoading = view.findViewById(R.id.home_loading)
 
         taskAdapter = TaskAdapter(
             onCompletedChanged = { task, completed ->
@@ -119,7 +165,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 deleteTask(task)
             },
             onTaskClicked = { task ->
-                TaskDetailsBottomSheet.show(childFragmentManager, task)
+                if (suppressTaskOpenForCurrentTouch) {
+                    suppressTaskOpenForCurrentTouch = false
+                } else {
+                    TaskDetailsBottomSheet.show(childFragmentManager, task)
+                }
             }
         )
 
@@ -167,19 +217,52 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
         ItemTouchHelper(TaskSwipeCallback(taskAdapter)).attachToRecyclerView(taskList)
 
+        searchAdapter = simpleTaskAdapter()
+        searchResults.layoutManager = LinearLayoutManager(requireContext())
+        searchResults.adapter = searchAdapter
+        calendarAdapter = simpleTaskAdapter()
+        calendarAgendaList.layoutManager = LinearLayoutManager(requireContext())
+        calendarAgendaList.adapter = calendarAdapter
+
         swipeDismissLayout.onTouchDown = { event ->
             val inside = isTouchInsideRevealedTask(event.rawX.toInt(), event.rawY.toInt())
             if (!inside) {
-                taskAdapter.closeRevealedAction()
+                suppressTaskOpenForCurrentTouch = taskAdapter.closeRevealedAction()
             }
         }
 
         configureSearch(view)
         configureFilters(view)
+        configureCalendar(view)
+        childFragmentManager.setFragmentResultListener(
+            ListManagerBottomSheet.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, _ ->
+            populateListChips()
+            renderTasks()
+        }
+        childFragmentManager.setFragmentResultListener(
+            AddTaskBottomSheet.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, result ->
+            taskIdToScrollAfterRender = result.getString(AddTaskBottomSheet.RESULT_TASK_ID)
+            renderTasks()
+        }
         bindActions()
         bindLoginResult()
         updateCurrentDate()
         observeTasks()
+
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(false) {
+                override fun handleOnBackPressed() = closeSearch()
+            }.also { callback ->
+                taskSearchPanel.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                    callback.isEnabled = taskSearchPanel.isVisible
+                }
+            }
+        )
     }
 
     override fun onResume() {
@@ -209,36 +292,65 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         if (::taskList.isInitialized) {
             taskList.adapter = null
         }
+        if (::searchResults.isInitialized) searchResults.adapter = null
+        if (::calendarAgendaList.isInitialized) calendarAgendaList.adapter = null
         super.onDestroyView()
     }
+
+    private fun simpleTaskAdapter() = TaskAdapter(
+        onCompletedChanged = { task, completed ->
+            viewLifecycleOwner.lifecycleScope.launch {
+                runCatching { taskRepository.setTaskCompleted(task, completed) }
+                    .onFailure { showError() }
+            }
+        },
+        onPriorityClicked = ::cycleTaskPriority,
+        onDeleteClicked = ::deleteTask,
+        onTaskClicked = { TaskDetailsBottomSheet.show(childFragmentManager, it) }
+    )
 
     private fun configureSearch(view: View) {
         taskSearchInput.doAfterTextChanged {
             searchQuery = it?.toString().orEmpty().trim()
+            view.findViewById<View>(R.id.task_search_clear).isVisible = searchQuery.isNotEmpty()
             renderTasks()
         }
-        view.findViewById<View>(R.id.task_search_close).setOnClickListener {
-            taskSearchInput.text?.clear()
-            taskSearchPanel.isVisible = false
-            hideKeyboard()
+        view.findViewById<View>(R.id.task_search_close).setOnClickListener { closeSearch() }
+        view.findViewById<View>(R.id.task_search_clear).setOnClickListener { taskSearchInput.text?.clear() }
+        view.findViewById<View>(R.id.search_empty_clear).setOnClickListener { taskSearchInput.text?.clear() }
+    }
+
+    private fun openSearch() {
+        taskSearchPanel.isVisible = true
+        (activity as? MainActivity)?.setBottomNavigationVisible(false)
+        taskSearchInput.requestFocus()
+        taskSearchInput.post {
+            requireContext().getSystemService(InputMethodManager::class.java)
+                ?.showSoftInput(taskSearchInput, InputMethodManager.SHOW_IMPLICIT)
         }
     }
 
+    private fun closeSearch() {
+        taskSearchInput.text?.clear()
+        taskSearchPanel.isVisible = false
+        (activity as? MainActivity)?.setBottomNavigationVisible(true)
+        hideKeyboard()
+    }
+
     private fun configureFilters(view: View) {
-        view.findViewById<View>(R.id.list_view_button).isSelected = true
-        listOf(taskListFilterGroup, taskStatusFilterGroup).forEach { group ->
-            repeat(group.childCount) { index ->
-                (group.getChildAt(index) as? Chip)?.isCheckedIconVisible = false
-            }
+        populateListChips()
+        val filterId = when (statusFilter) {
+            HomeTaskFilter.TODAY -> R.id.status_filter_today
+            HomeTaskFilter.HIGH_PRIORITY -> R.id.status_filter_high
+            HomeTaskFilter.COMPLETED -> R.id.status_filter_completed
+            HomeTaskFilter.ALL -> R.id.status_filter_all
         }
+        taskStatusFilterGroup.check(filterId)
         taskListFilterGroup.setOnCheckedStateChangeListener { _, checkedIds ->
-            selectedList = when (checkedIds.firstOrNull()) {
-                R.id.list_filter_personal -> "Personal"
-                R.id.list_filter_work -> "Work"
-                R.id.list_filter_shared -> "Shared"
-                R.id.list_filter_shopping -> "Shopping"
-                else -> null
-            }
+            selectedList = checkedIds.firstOrNull()?.let { id ->
+                taskListFilterGroup.findViewById<Chip>(id)?.tag as? String
+            }?.takeUnless { it == ForgettyPreferences.ALL_TASKS }
+            preferences.selectedList = selectedList ?: ForgettyPreferences.ALL_TASKS
             renderTasks()
         }
         taskStatusFilterGroup.setOnCheckedStateChangeListener { _, checkedIds ->
@@ -248,50 +360,77 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 R.id.status_filter_completed -> HomeTaskFilter.COMPLETED
                 else -> HomeTaskFilter.ALL
             }
+            preferences.homeFilter = statusFilter.key
             renderTasks()
         }
-        view.findViewById<View>(R.id.calendar_view_button).setOnClickListener {
-            Snackbar.make(swipeDismissLayout, R.string.calendar_coming_soon, Snackbar.LENGTH_SHORT)
-                .setAnchorView(requireActivity().findViewById(R.id.bottom_navigation))
-                .show()
+        view.findViewById<View>(R.id.list_view_button).setOnClickListener { setDisplayMode(HomeDisplayMode.LIST) }
+        view.findViewById<View>(R.id.calendar_view_button).setOnClickListener { setDisplayMode(HomeDisplayMode.CALENDAR) }
+        setDisplayMode(displayMode)
+    }
+
+    private fun populateListChips() {
+        taskListFilterGroup.removeAllViews()
+        val lists = listOf(TaskListDefinition("all", ForgettyPreferences.ALL_TASKS, "#5268D8", protected = true)) +
+            taskListStore.getLists()
+        lists.forEach { definition ->
+            val chip = Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle).apply {
+                id = View.generateViewId()
+                tag = definition.name
+                text = if (definition.shared) "${definition.name}  •" else definition.name
+                isCheckable = true
+                isCheckedIconVisible = false
+                minHeight = resources.getDimensionPixelSize(R.dimen.forgetty_touch_target)
+                setTextColor(requireContext().getColorStateList(R.color.home_filter_chip_text))
+                chipBackgroundColor = requireContext().getColorStateList(R.color.home_filter_chip_background)
+                chipStrokeColor = requireContext().getColorStateList(R.color.home_filter_chip_text)
+                chipStrokeWidth = resources.displayMetrics.density
+            }
+            taskListFilterGroup.addView(chip)
+            if ((selectedList ?: ForgettyPreferences.ALL_TASKS) == definition.name) chip.isChecked = true
         }
-        view.findViewById<View>(R.id.manage_lists_chip).setOnClickListener {
-            showListSummary()
+        val manage = Chip(requireContext()).apply {
+            id = View.generateViewId()
+            tag = MANAGE_LISTS_TAG
+            text = getString(R.string.manage_lists)
+            isCheckable = false
+            minHeight = resources.getDimensionPixelSize(R.dimen.forgetty_touch_target)
+            setOnClickListener { ListManagerBottomSheet.show(childFragmentManager) }
         }
+        taskListFilterGroup.addView(manage)
+    }
+
+    private fun setDisplayMode(mode: HomeDisplayMode) {
+        displayMode = mode
+        preferences.displayMode = mode
+        view?.findViewById<View>(R.id.list_view_button)?.isSelected = mode == HomeDisplayMode.LIST
+        view?.findViewById<View>(R.id.calendar_view_button)?.isSelected = mode == HomeDisplayMode.CALENDAR
+        taskList.isVisible = mode == HomeDisplayMode.LIST
+        calendarContainer.isVisible = mode == HomeDisplayMode.CALENDAR
+        if (mode == HomeDisplayMode.CALENDAR) renderCalendar()
+        renderTasks()
     }
 
     private fun bindActions() {
         taskSearchButton.setOnClickListener {
             taskAdapter.closeRevealedAction()
-            taskSearchPanel.isVisible = true
-            taskSearchInput.requestFocus()
-            taskSearchInput.post {
-                (requireContext().getSystemService(InputMethodManager::class.java))
-                    ?.showSoftInput(taskSearchInput, InputMethodManager.SHOW_IMPLICIT)
-            }
+            openSearch()
         }
 
         taskSettingsButton.setOnClickListener {
             taskAdapter.closeRevealedAction()
-            taskStatusFilterGroup.check(R.id.status_filter_completed)
+            showCompleted = !showCompleted
+            preferences.showCompleted = showCompleted
+            taskSettingsButton.setImageResource(if (showCompleted) R.drawable.ic_visibility else R.drawable.ic_visibility_off)
+            taskSettingsButton.setContentDescription(
+                getString(if (showCompleted) R.string.hide_completed_tasks else R.string.show_completed_tasks)
+            )
+            renderTasks()
         }
 
         taskSortButton.setOnClickListener {
             taskAdapter.closeRevealedAction()
             showTaskMenu()
         }
-    }
-
-    private fun showListSummary() {
-        val labels = BUILT_IN_TASK_LISTS.map { listName ->
-            val count = allTasks.count { it.listName == listName }
-            "$listName  ·  $count"
-        }.toTypedArray()
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.manage_lists)
-            .setItems(labels, null)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
     }
 
     private fun hideKeyboard() {
@@ -309,12 +448,96 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             setOnMenuItemClickListener { item ->
                 TaskSortMode.fromMenuItemId(item.itemId)?.let { selectedMode ->
                     sortMode = selectedMode
+                    preferences.sortMode = selectedMode.key
                     item.isChecked = true
                     renderTasks()
                     true
                 } ?: false
             }
             show()
+        }
+    }
+
+    private fun configureCalendar(view: View) {
+        view.findViewById<View>(R.id.calendar_previous_month).setOnClickListener {
+            calendarMonth = calendarMonth.minusMonths(1)
+            renderCalendar()
+        }
+        view.findViewById<View>(R.id.calendar_next_month).setOnClickListener {
+            calendarMonth = calendarMonth.plusMonths(1)
+            renderCalendar()
+        }
+        view.findViewById<View>(R.id.calendar_today).setOnClickListener {
+            selectedCalendarDate = LocalDate.now()
+            calendarMonth = YearMonth.from(selectedCalendarDate)
+            renderCalendar()
+        }
+    }
+
+    private fun renderCalendar() {
+        if (!::calendarGrid.isInitialized) return
+        val locale = resources.configuration.locales[0] ?: Locale.getDefault()
+        calendarMonthTitle.text = calendarMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+        calendarSelectedDate.text = selectedCalendarDate.format(
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)
+        )
+        calendarGrid.removeAllViews()
+        val firstDay = preferences.startOfWeek
+        val labels = (0..6).map { firstDay.plus(it.toLong()) }
+        labels.forEach { day ->
+            calendarGrid.addView(calendarCell(day.getDisplayName(java.time.format.TextStyle.SHORT, locale), false))
+        }
+        val offset = (7 + calendarMonth.atDay(1).dayOfWeek.value - firstDay.value) % 7
+        repeat(offset) { calendarGrid.addView(calendarCell("", false)) }
+        val scopedTasks = tasksInSelectedList()
+        repeat(calendarMonth.lengthOfMonth()) { index ->
+            val date = calendarMonth.atDay(index + 1)
+            val hasTask = scopedTasks.any { it.dueDate.toLocalDateOrNull() == date }
+            calendarGrid.addView(calendarCell((index + 1).toString(), hasTask, date))
+        }
+        val agenda = TaskSorter.sort(scopedTasks.filter { it.dueDate.toLocalDateOrNull() == selectedCalendarDate }, sortMode)
+        calendarAdapter.submitSections(
+            agenda.takeIf { it.isNotEmpty() }?.let {
+                listOf(TaskSection(TaskSectionKind.TODAY, it))
+            }.orEmpty()
+        ) {}
+        calendarEmpty.isVisible = agenda.isEmpty()
+    }
+
+    private fun calendarCell(label: String, hasTask: Boolean, date: LocalDate? = null): TextView {
+        val density = resources.displayMetrics.density
+        val locale = resources.configuration.locales[0] ?: Locale.getDefault()
+        return TextView(requireContext()).apply {
+            layoutParams = GridLayout.LayoutParams().apply {
+                width = 0
+                height = (42 * density).toInt()
+                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+            }
+            gravity = Gravity.CENTER
+            textSize = if (date == null) 11f else 13f
+            text = if (hasTask) "$label\n•" else label
+            setTextColor(requireContext().getColor(
+                when {
+                    date == selectedCalendarDate -> R.color.white
+                    date == LocalDate.now() -> R.color.forgetty_primary
+                    else -> R.color.forgetty_text_primary
+                }
+            ))
+            if (date == selectedCalendarDate) {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(requireContext().getColor(R.color.forgetty_primary))
+                }
+            }
+            if (date != null) {
+                isClickable = true
+                isFocusable = true
+                contentDescription = date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale))
+                setOnClickListener {
+                    selectedCalendarDate = date
+                    renderCalendar()
+                }
+            }
         }
     }
 
@@ -367,10 +590,25 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         observeTasks()
     }
 
-    fun showAddTaskSheet() {
+    fun showAddTaskSheet(startVoice: Boolean = false) {
         if (!isAdded || childFragmentManager.findFragmentByTag(AddTaskBottomSheet.TAG) != null) return
         taskAdapter.closeRevealedAction()
-        AddTaskBottomSheet().show(childFragmentManager, AddTaskBottomSheet.TAG)
+        AddTaskBottomSheet().apply {
+            arguments = Bundle().apply { putBoolean(AddTaskBottomSheet.ARG_START_VOICE, startVoice) }
+        }.show(childFragmentManager, AddTaskBottomSheet.TAG)
+    }
+
+    fun openSearchFromExtension() = openSearch()
+
+    fun showTodayFromExtension() {
+        taskStatusFilterGroup.check(R.id.status_filter_today)
+        setDisplayMode(HomeDisplayMode.LIST)
+    }
+
+    fun openTaskFromExtension(taskId: String) {
+        val task = allTasks.firstOrNull { it.id == taskId }
+        if (task == null) pendingTaskIdToOpen = taskId
+        else TaskDetailsBottomSheet.show(childFragmentManager, task)
     }
 
     fun createTask(
@@ -457,6 +695,26 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         renderTasks()
     }
 
+    fun persistTaskFromDetails(updatedTask: Task) {
+        allTasks = allTasks.map { if (it.id == updatedTask.id) updatedTask else it }
+        renderTasks()
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                taskDetailsUpdateMutex.withLock { taskRepository.updateTask(updatedTask) }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                showError()
+            }
+        }
+    }
+
+    fun duplicateTaskFromDetails(task: Task) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching { taskRepository.duplicateTask(task) }.onFailure { showError() }
+        }
+    }
+
     fun deleteTaskFromDetails(task: Task) = deleteTask(task)
 
     private fun restoreTask(task: Task) {
@@ -479,14 +737,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun renderTasks() {
-        val listFiltered = allTasks.filter { task ->
-            (selectedList == null || task.listName == selectedList) &&
-                (searchQuery.isBlank() || task.text.contains(searchQuery, ignoreCase = true))
-        }
+        val listFiltered = tasksInSelectedList()
         val sections = TaskSectioner.sections(
             TaskSorter.sort(listFiltered, sortMode),
             statusFilter,
-            LocalDate.now()
+            LocalDate.now(),
+            showCompleted
         )
         val visibleTaskCount = sections.sumOf { it.tasks.size }
 
@@ -499,29 +755,31 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 val changedTaskPosition = taskAdapter.positionOfTask(taskId)
                 if (changedTaskPosition != -1) {
                     scrollTaskListToPosition(changedTaskPosition)
+                    taskIdToScrollAfterRender = null
                 }
-                taskIdToScrollAfterRender = null
             }
         }
-        val completedTaskCount = allTasks.count(Task::completed)
+        val progressScope = tasksInSelectedList(includeSearch = false)
+        val completedTaskCount = progressScope.count(Task::completed)
         taskProgressText.text = getString(
             R.string.home_progress_summary,
             completedTaskCount,
-            allTasks.size
+            progressScope.size
         )
-        val completionRate = if (allTasks.isEmpty()) 0 else completedTaskCount * 100 / allTasks.size
+        val completionRate = if (progressScope.isEmpty()) 0 else completedTaskCount * 100 / progressScope.size
         taskProgressIndicator.setProgressCompat(completionRate, true)
         taskProgressEncouragement.setText(
             when {
-                allTasks.isNotEmpty() && completionRate == 100 -> R.string.progress_all_done
+                progressScope.isNotEmpty() && completionRate == 100 -> R.string.progress_all_done
                 completionRate >= 75 -> R.string.progress_almost_there
                 completionRate >= 35 -> R.string.progress_keep_going
                 else -> R.string.progress_good_start
             }
         )
         statusText.isVisible = false
+        homeLoading.isVisible = false
 
-        emptyTasksContainer.isVisible = visibleTaskCount == 0
+        emptyTasksContainer.isVisible = visibleTaskCount == 0 && displayMode == HomeDisplayMode.LIST
         if (allTasks.isEmpty()) {
             emptyTasksText.setText(R.string.tasks_empty)
             emptyTasksHint.setText(R.string.tasks_empty_hint)
@@ -533,6 +791,36 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 else -> getString(R.string.tasks_empty_hint)
             }
         }
+
+        if (taskSearchPanel.isVisible) {
+            val searchTasks = if (searchQuery.isBlank()) emptyList() else TaskSorter.sort(listFiltered, sortMode)
+            searchAdapter.submitSections(
+                searchTasks.takeIf { it.isNotEmpty() }
+                    ?.let { listOf(TaskSection(TaskSectionKind.UPCOMING, it)) }
+                    .orEmpty()
+            ) {}
+            searchHelper.isVisible = searchQuery.isBlank()
+            searchEmpty.isVisible = searchQuery.isNotBlank() && searchTasks.isEmpty()
+            searchResults.isVisible = searchTasks.isNotEmpty()
+        }
+        if (displayMode == HomeDisplayMode.CALENDAR) renderCalendar()
+        pendingTaskIdToOpen?.let { id ->
+            allTasks.firstOrNull { it.id == id }?.let { task ->
+                pendingTaskIdToOpen = null
+                TaskDetailsBottomSheet.show(childFragmentManager, task)
+            }
+        }
+    }
+
+    private fun tasksInSelectedList(includeSearch: Boolean = true): List<Task> = allTasks.filter { task ->
+        val matchesList = selectedList == null || task.listName == selectedList || task.listId == selectedList
+        val matchesSearch = !includeSearch || searchQuery.isBlank() || listOf(
+            task.text,
+            task.note,
+            task.listName,
+            task.tags.joinToString(" ")
+        ).any { it.contains(searchQuery, ignoreCase = true) }
+        matchesList && matchesSearch
     }
 
     private fun updateCurrentDate() {
@@ -548,6 +836,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun showError() {
+        if (!isAdded || view == null) return
+        homeLoading.isVisible = false
         statusText.text = getString(R.string.tasks_error)
         statusText.isVisible = true
     }
@@ -557,13 +847,21 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             ?: AuthRepository(requireContext()).getCurrentUser()?.uid
     }
 
+    companion object {
+        private const val MANAGE_LISTS_TAG = "manage_lists"
+    }
+
 }
 
-internal enum class HomeTaskFilter {
-    ALL,
-    TODAY,
-    HIGH_PRIORITY,
-    COMPLETED
+internal enum class HomeTaskFilter(val key: String) {
+    ALL("all"),
+    TODAY("today"),
+    HIGH_PRIORITY("high"),
+    COMPLETED("completed");
+
+    companion object {
+        fun fromKey(key: String) = values().firstOrNull { it.key == key } ?: ALL
+    }
 }
 
 internal enum class TaskSectionKind(val titleRes: Int, val accentColorRes: Int) {
@@ -577,11 +875,16 @@ internal enum class TaskSectionKind(val titleRes: Int, val accentColorRes: Int) 
 internal data class TaskSection(val kind: TaskSectionKind, val tasks: List<Task>)
 
 internal object TaskSectioner {
-    fun sections(tasks: List<Task>, filter: HomeTaskFilter, today: LocalDate): List<TaskSection> {
+    fun sections(
+        tasks: List<Task>,
+        filter: HomeTaskFilter,
+        today: LocalDate,
+        showCompleted: Boolean = false
+    ): List<TaskSection> {
         val filtered = when (filter) {
-            HomeTaskFilter.ALL -> tasks.filterNot { it.completed }
+            HomeTaskFilter.ALL -> if (showCompleted) tasks else tasks.filterNot { it.completed }
             HomeTaskFilter.TODAY -> tasks.filter {
-                !it.completed && it.dueDate?.let(LocalDate::parse) == today
+                !it.completed && it.dueDate.toLocalDateOrNull() == today
             }
             HomeTaskFilter.HIGH_PRIORITY -> tasks.filter {
                 !it.completed && it.priority == TaskPriority.HIGH
@@ -599,7 +902,8 @@ internal object TaskSectioner {
         val upcoming = mutableListOf<Task>()
         val noDueDate = mutableListOf<Task>()
         filtered.forEach { task ->
-            val dueDate = task.dueDate?.let(LocalDate::parse)
+            if (task.completed) return@forEach
+            val dueDate = task.dueDate.toLocalDateOrNull()
             when {
                 dueDate == null -> noDueDate += task
                 dueDate.isBefore(today) -> overdue += task
@@ -620,19 +924,27 @@ internal object TaskSectioner {
             noDueDate.takeIf(List<Task>::isNotEmpty)?.let {
                 add(TaskSection(TaskSectionKind.NO_DUE_DATE, it))
             }
+            if (showCompleted) {
+                tasks.filter(Task::completed).takeIf(List<Task>::isNotEmpty)?.let {
+                    add(TaskSection(TaskSectionKind.COMPLETED, it))
+                }
+            }
         }
     }
 }
 
-internal enum class TaskSortMode(val menuItemId: Int) {
-    NEWEST_FIRST(R.id.action_sort_newest),
-    OLDEST_FIRST(R.id.action_sort_oldest),
-    PRIORITY_FIRST(R.id.action_sort_priority),
-    ALPHABETICAL(R.id.action_sort_alphabetical);
+internal enum class TaskSortMode(val menuItemId: Int, val key: String) {
+    NEWEST_FIRST(R.id.action_sort_newest, "newest"),
+    OLDEST_FIRST(R.id.action_sort_oldest, "oldest"),
+    PRIORITY_FIRST(R.id.action_sort_priority, "priority"),
+    ALPHABETICAL(R.id.action_sort_alphabetical, "alphabetical"),
+    DUE_DATE(R.id.action_sort_due_date, "due_date");
 
     companion object {
         fun fromMenuItemId(menuItemId: Int): TaskSortMode? =
             values().firstOrNull { it.menuItemId == menuItemId }
+
+        fun fromKey(key: String): TaskSortMode = values().firstOrNull { it.key == key } ?: DUE_DATE
     }
 }
 
@@ -657,9 +969,17 @@ internal object TaskSorter {
                         ?: second.createdAt.compareTo(first.createdAt)
                 }
             }
+            TaskSortMode.DUE_DATE -> tasks.sortedWith(
+                compareBy<Task> { it.dueDate.toLocalDateOrNull() ?: LocalDate.MAX }
+                    .thenByDescending { it.priority?.rank ?: 0 }
+                    .thenByDescending { it.createdAt }
+                    .thenBy { it.id }
+            )
         }
     }
 }
+
+private fun String?.toLocalDateOrNull(): LocalDate? = this?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 
 private enum class TaskGroupPosition {
     SINGLE,
@@ -804,6 +1124,11 @@ private class TaskAdapter(
         private val taskTitle: TextView = cell.findViewById(R.id.task_title)
         private val taskDueDate: TextView = cell.findViewById(R.id.task_due_date)
         private val taskListName: TextView = cell.findViewById(R.id.task_list_name)
+        private val metadataRow: View = cell.findViewById(R.id.task_metadata_row)
+        private val taskTags: TextView = cell.findViewById(R.id.task_tags)
+        private val reminderIcon: View = cell.findViewById(R.id.task_reminder_icon)
+        private val repeatIcon: View = cell.findViewById(R.id.task_repeat_icon)
+        private val assignees: TextView = cell.findViewById(R.id.task_assignees)
         private val priorityButton: View = cell.findViewById(R.id.task_priority_button)
         private val priorityDot: View = cell.findViewById(R.id.task_priority_dot)
         private val foreground: View = cell.findViewById(R.id.task_foreground_container)
@@ -841,6 +1166,7 @@ private class TaskAdapter(
             taskTitle.isActivated = task.completed
             bindDueDate(task)
             bindList(task)
+            bindMetadata(task)
             checkbox.isChecked = task.completed
             checkbox.contentDescription = checkbox.context.getString(
                 if (task.completed) R.string.task_completed else R.string.task_not_completed
@@ -935,7 +1261,7 @@ private class TaskAdapter(
         }
 
         private fun bindDueDate(task: Task) {
-            val dueDate = task.dueDate?.let(LocalDate::parse)
+            val dueDate = task.dueDate.toLocalDateOrNull()
             if (dueDate == null) {
                 taskDueDate.visibility = View.GONE
                 taskDueDate.text = null
@@ -946,7 +1272,7 @@ private class TaskAdapter(
             val overdue = TaskDatePresentation.isOverdue(dueDate, today)
             val color = if (overdue && !task.completed) R.color.home_delete else R.color.home_text_secondary
             taskDueDate.visibility = View.VISIBLE
-            taskDueDate.text = when (dueDate) {
+            val dateLabel = when (dueDate) {
                 today -> taskDueDate.context.getString(R.string.due_today)
                 today.plusDays(1) -> taskDueDate.context.getString(R.string.due_tomorrow)
                 else -> taskDueDate.context.getString(
@@ -958,8 +1284,24 @@ private class TaskAdapter(
                     )
                 )
             }
+            val timeLabel = task.dueTimeMinutes?.let { minutes ->
+                java.time.LocalTime.of(minutes / 60, minutes % 60).format(
+                    java.time.format.DateTimeFormatter.ofLocalizedTime(java.time.format.FormatStyle.SHORT)
+                )
+            }
+            taskDueDate.text = listOfNotNull(dateLabel, timeLabel).joinToString(" · ")
             taskDueDate.setTextColor(taskDueDate.context.getColor(color))
             taskDueDate.compoundDrawablesRelative[0]?.setTint(taskDueDate.context.getColor(color))
+        }
+
+        private fun bindMetadata(task: Task) {
+            taskTags.isVisible = task.tags.isNotEmpty()
+            taskTags.text = task.tags.joinToString("  ") { "#$it" }
+            reminderIcon.isVisible = task.reminderAt != null
+            repeatIcon.isVisible = task.repeatRule != TaskRepeatRule.NONE
+            assignees.isVisible = task.assigneeIds.isNotEmpty()
+            assignees.text = task.assigneeIds.take(2).joinToString("") { id -> id.firstOrNull()?.uppercase() ?: "" }
+            metadataRow.isVisible = taskTags.isVisible || reminderIcon.isVisible || repeatIcon.isVisible || assignees.isVisible
         }
 
         private fun bindList(task: Task) {

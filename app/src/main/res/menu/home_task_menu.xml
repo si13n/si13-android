@@ -12,11 +12,14 @@
         <item
             android:id="@+id/action_sort_priority"
             android:checkable="true"
-            android:checked="true"
             android:title="@string/sort_priority_first" />
         <item
             android:id="@+id/action_sort_alphabetical"
             android:checkable="true"
             android:title="@string/sort_alphabetical" />
+        <item
+            android:id="@+id/action_sort_due_date"
+            android:checkable="true"
+            android:title="@string/sort_due_date" />
     </group>
 </menu>

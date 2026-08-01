@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="4dp"
     android:layout_marginBottom="4dp"
-    android:minHeight="70dp">
+    android:minHeight="76dp">
 
     <LinearLayout
         android:id="@+id/task_delete_action"
@@ -82,7 +82,7 @@
                     android:layout_height="wrap_content"
                     android:ellipsize="end"
                     android:fontFamily="sans-serif"
-                    android:maxLines="1"
+                    android:maxLines="2"
                     android:textColor="@color/home_task_text"
                     android:textSize="15sp"
                     tools:text="Prepare the weekly report" />
@@ -123,6 +123,21 @@
                         android:textColor="@color/home_personal"
                         android:textSize="10sp"
                         tools:text="Work" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/task_metadata_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView android:id="@+id/task_tags" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="1" android:textColor="@color/forgetty_tertiary" android:textSize="10sp" tools:text="#QA  #Important" />
+                    <ImageView android:id="@+id/task_reminder_icon" android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@string/task_has_reminder" android:padding="2dp" android:src="@drawable/ic_notifications" android:visibility="gone" app:tint="@color/forgetty_text_secondary" />
+                    <ImageView android:id="@+id/task_repeat_icon" android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@string/task_repeats" android:padding="2dp" android:src="@drawable/ic_repeat" android:visibility="gone" app:tint="@color/forgetty_text_secondary" />
+                    <TextView android:id="@+id/task_assignees" android:layout_width="wrap_content" android:layout_height="22dp" android:background="@drawable/bg_task_list_badge" android:gravity="center" android:minWidth="22dp" android:paddingStart="4dp" android:paddingEnd="4dp" android:textColor="@color/forgetty_tertiary" android:textSize="9sp" android:visibility="gone" tools:text="SD" />
                 </LinearLayout>
             </LinearLayout>
 
