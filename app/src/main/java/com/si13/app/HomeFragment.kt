@@ -4,17 +4,13 @@ import android.annotation.SuppressLint
 import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Bundle
-import android.text.Editable
-import android.text.InputFilter
-import android.text.TextWatcher
 import android.text.format.DateFormat
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ContextThemeWrapper
-import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.PopupMenu
@@ -22,6 +18,7 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -32,7 +29,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import com.google.firebase.auth.FirebaseAuth
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
@@ -50,8 +48,9 @@ import kotlinx.coroutines.sync.withLock
 class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var taskRepository: TaskRepository
     private lateinit var taskAdapter: TaskAdapter
-    private lateinit var taskInput: TextInputEditText
-    private lateinit var addTaskButton: MaterialButton
+    private lateinit var taskSearchInput: TextInputEditText
+    private lateinit var taskSearchPanel: View
+    private lateinit var taskSearchButton: ImageButton
     private lateinit var taskSettingsButton: ImageButton
     private lateinit var taskSortButton: ImageButton
     private lateinit var homeDateText: TextView
@@ -59,15 +58,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var emptyTasksText: TextView
     private lateinit var emptyTasksHint: TextView
     private lateinit var emptyTasksContainer: View
-    private lateinit var characterCounterText: TextView
     private lateinit var taskProgressText: TextView
+    private lateinit var taskProgressEncouragement: TextView
     private lateinit var taskProgressIndicator: LinearProgressIndicator
-    private lateinit var taskInputPanel: View
     private lateinit var taskList: RecyclerView
     private lateinit var swipeDismissLayout: SwipeDismissLayout
+    private lateinit var taskListFilterGroup: ChipGroup
+    private lateinit var taskStatusFilterGroup: ChipGroup
 
     private var allTasks: List<Task> = emptyList()
-    private var showCompleted = false
+    private var selectedList: String? = null
+    private var statusFilter = HomeTaskFilter.ALL
+    private var searchQuery = ""
     private var sortMode = TaskSortMode.PRIORITY_FIRST
     private val taskSourceTracker = TaskSourceTracker()
     private var isAddingTask = false
@@ -83,8 +85,9 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         super.onViewCreated(view, savedInstanceState)
 
         taskRepository = TaskRepository.create(requireContext())
-        taskInput = view.findViewById(R.id.task_input)
-        addTaskButton = view.findViewById(R.id.add_task_button)
+        taskSearchInput = view.findViewById(R.id.task_search_input)
+        taskSearchPanel = view.findViewById(R.id.task_search_panel)
+        taskSearchButton = view.findViewById(R.id.task_search_button)
         taskSettingsButton = view.findViewById(R.id.task_settings_button)
         taskSortButton = view.findViewById(R.id.task_sort_button)
         homeDateText = view.findViewById(R.id.home_date_text)
@@ -92,10 +95,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         emptyTasksText = view.findViewById(R.id.empty_tasks_text)
         emptyTasksHint = view.findViewById(R.id.empty_tasks_hint)
         emptyTasksContainer = view.findViewById(R.id.empty_tasks_container)
-        characterCounterText = view.findViewById(R.id.task_character_counter)
         taskProgressText = view.findViewById(R.id.task_progress_text)
+        taskProgressEncouragement = view.findViewById(R.id.task_progress_encouragement)
         taskProgressIndicator = view.findViewById(R.id.task_progress_indicator)
-        taskInputPanel = view.findViewById(R.id.task_input_panel)
+        taskListFilterGroup = view.findViewById(R.id.task_list_filter_group)
+        taskStatusFilterGroup = view.findViewById(R.id.task_status_filter_group)
         swipeDismissLayout = view as SwipeDismissLayout
 
         taskAdapter = TaskAdapter(
@@ -170,7 +174,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
         }
 
-        configureTaskInput()
+        configureSearch(view)
+        configureFilters(view)
         bindActions()
         bindLoginResult()
         updateCurrentDate()
@@ -207,58 +212,91 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         super.onDestroyView()
     }
 
-    private fun configureTaskInput() {
-        taskInput.filters = arrayOf(InputFilter.LengthFilter(TaskRepository.MAX_TASK_LENGTH))
-        updateCharacterCounter()
-        updateAddButtonState()
+    private fun configureSearch(view: View) {
+        taskSearchInput.doAfterTextChanged {
+            searchQuery = it?.toString().orEmpty().trim()
+            renderTasks()
+        }
+        view.findViewById<View>(R.id.task_search_close).setOnClickListener {
+            taskSearchInput.text?.clear()
+            taskSearchPanel.isVisible = false
+            hideKeyboard()
+        }
+    }
 
-        taskInput.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                updateCharacterCounter()
-                updateAddButtonState()
-            }
-
-            override fun afterTextChanged(s: Editable?) = Unit
-        })
-
-        taskInput.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_DONE && addTaskButton.isEnabled) {
-                submitTaskFromKeyboard()
-            } else {
-                false
+    private fun configureFilters(view: View) {
+        view.findViewById<View>(R.id.list_view_button).isSelected = true
+        listOf(taskListFilterGroup, taskStatusFilterGroup).forEach { group ->
+            repeat(group.childCount) { index ->
+                (group.getChildAt(index) as? Chip)?.isCheckedIconVisible = false
             }
         }
-
-        taskInput.setOnKeyListener { _, keyCode, event ->
-            if (
-                keyCode == KeyEvent.KEYCODE_ENTER &&
-                event.action == KeyEvent.ACTION_UP &&
-                addTaskButton.isEnabled
-            ) {
-                submitTaskFromKeyboard()
-            } else {
-                false
+        taskListFilterGroup.setOnCheckedStateChangeListener { _, checkedIds ->
+            selectedList = when (checkedIds.firstOrNull()) {
+                R.id.list_filter_personal -> "Personal"
+                R.id.list_filter_work -> "Work"
+                R.id.list_filter_shared -> "Shared"
+                R.id.list_filter_shopping -> "Shopping"
+                else -> null
             }
+            renderTasks()
+        }
+        taskStatusFilterGroup.setOnCheckedStateChangeListener { _, checkedIds ->
+            statusFilter = when (checkedIds.firstOrNull()) {
+                R.id.status_filter_today -> HomeTaskFilter.TODAY
+                R.id.status_filter_high -> HomeTaskFilter.HIGH_PRIORITY
+                R.id.status_filter_completed -> HomeTaskFilter.COMPLETED
+                else -> HomeTaskFilter.ALL
+            }
+            renderTasks()
+        }
+        view.findViewById<View>(R.id.calendar_view_button).setOnClickListener {
+            Snackbar.make(swipeDismissLayout, R.string.calendar_coming_soon, Snackbar.LENGTH_SHORT)
+                .setAnchorView(requireActivity().findViewById(R.id.bottom_navigation))
+                .show()
+        }
+        view.findViewById<View>(R.id.manage_lists_chip).setOnClickListener {
+            showListSummary()
         }
     }
 
     private fun bindActions() {
-        addTaskButton.setOnClickListener {
+        taskSearchButton.setOnClickListener {
             taskAdapter.closeRevealedAction()
-            addTask()
+            taskSearchPanel.isVisible = true
+            taskSearchInput.requestFocus()
+            taskSearchInput.post {
+                (requireContext().getSystemService(InputMethodManager::class.java))
+                    ?.showSoftInput(taskSearchInput, InputMethodManager.SHOW_IMPLICIT)
+            }
         }
 
         taskSettingsButton.setOnClickListener {
             taskAdapter.closeRevealedAction()
-            toggleCompletedTasks()
+            taskStatusFilterGroup.check(R.id.status_filter_completed)
         }
 
         taskSortButton.setOnClickListener {
             taskAdapter.closeRevealedAction()
             showTaskMenu()
         }
+    }
+
+    private fun showListSummary() {
+        val labels = BUILT_IN_TASK_LISTS.map { listName ->
+            val count = allTasks.count { it.listName == listName }
+            "$listName  ·  $count"
+        }.toTypedArray()
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.manage_lists)
+            .setItems(labels, null)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun hideKeyboard() {
+        (requireContext().getSystemService(InputMethodManager::class.java))
+            ?.hideSoftInputFromWindow(taskSearchInput.windowToken, 0)
     }
 
     private fun showTaskMenu() {
@@ -329,47 +367,35 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         observeTasks()
     }
 
-    private fun addTask() {
-        if (isAddingTask) {
-            return
-        }
+    fun showAddTaskSheet() {
+        if (!isAdded || childFragmentManager.findFragmentByTag(AddTaskBottomSheet.TAG) != null) return
+        taskAdapter.closeRevealedAction()
+        AddTaskBottomSheet().show(childFragmentManager, AddTaskBottomSheet.TAG)
+    }
 
-        val taskText = taskInput.text?.toString().orEmpty()
+    fun createTask(
+        text: String,
+        priority: TaskPriority,
+        dueDate: String?,
+        listName: String
+    ) {
+        if (isAddingTask) return
         isAddingTask = true
-        updateAddButtonState()
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                taskRepository.addTask(taskText)
+                taskRepository.addTask(text, priority, dueDate, listName)
                 shouldScrollToTopAfterRender = true
-                taskInput.text?.clear()
             } catch (exception: IllegalArgumentException) {
                 statusText.text = exception.message ?: getString(R.string.task_too_long)
                 statusText.isVisible = true
             } catch (exception: Exception) {
-                showError()
+                statusText.setText(R.string.add_task_failed)
+                statusText.isVisible = true
             } finally {
                 isAddingTask = false
-                updateAddButtonState()
             }
         }
-    }
-
-    private fun submitTaskFromKeyboard(): Boolean {
-        // A task input is one task per line: Enter submits instead of inserting a newline.
-        addTask()
-        return true
-    }
-
-    private fun toggleCompletedTasks() {
-        showCompleted = !showCompleted
-        taskSettingsButton.setImageResource(
-            if (showCompleted) R.drawable.ic_visibility else R.drawable.ic_visibility_off
-        )
-        taskSettingsButton.contentDescription = getString(
-            if (showCompleted) R.string.hide_completed_tasks else R.string.show_completed_tasks
-        )
-        renderTasks()
     }
 
     private fun cycleTaskPriority(task: Task) {
@@ -389,7 +415,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             try {
                 taskRepository.deleteTask(task.id)
                 Snackbar.make(swipeDismissLayout, R.string.task_deleted, Snackbar.LENGTH_LONG)
-                    .setAnchorView(taskInputPanel)
+                    .setAnchorView(requireActivity().findViewById(R.id.bottom_navigation))
                     .setAction(R.string.undo) { restoreTask(task) }
                     .show()
             } catch (exception: Exception) {
@@ -453,15 +479,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun renderTasks() {
-        val activeTasks = TaskSorter.sort(allTasks.filterNot { it.completed }, sortMode)
-        val completedTasks = if (showCompleted) {
-            TaskSorter.sort(allTasks.filter { it.completed }, sortMode)
-        } else {
-            emptyList()
+        val listFiltered = allTasks.filter { task ->
+            (selectedList == null || task.listName == selectedList) &&
+                (searchQuery.isBlank() || task.text.contains(searchQuery, ignoreCase = true))
         }
-        val visibleTaskCount = activeTasks.size + completedTasks.size
+        val sections = TaskSectioner.sections(
+            TaskSorter.sort(listFiltered, sortMode),
+            statusFilter,
+            LocalDate.now()
+        )
+        val visibleTaskCount = sections.sumOf { it.tasks.size }
 
-        taskAdapter.submitTasks(activeTasks, completedTasks) {
+        taskAdapter.submitSections(sections) {
             if (shouldScrollToTopAfterRender && visibleTaskCount > 0) {
                 scrollTaskListToPosition(0)
                 shouldScrollToTopAfterRender = false
@@ -474,13 +503,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 taskIdToScrollAfterRender = null
             }
         }
-        val activeTaskCount = allTasks.count { task -> !task.completed }
-        val completedTaskCount = allTasks.size - activeTaskCount
-        statusText.text = getString(
-            R.string.home_task_status,
-            activeTaskCount
-        )
-        statusText.isVisible = true
+        val completedTaskCount = allTasks.count(Task::completed)
         taskProgressText.text = getString(
             R.string.home_progress_summary,
             completedTaskCount,
@@ -488,6 +511,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         )
         val completionRate = if (allTasks.isEmpty()) 0 else completedTaskCount * 100 / allTasks.size
         taskProgressIndicator.setProgressCompat(completionRate, true)
+        taskProgressEncouragement.setText(
+            when {
+                allTasks.isNotEmpty() && completionRate == 100 -> R.string.progress_all_done
+                completionRate >= 75 -> R.string.progress_almost_there
+                completionRate >= 35 -> R.string.progress_keep_going
+                else -> R.string.progress_good_start
+            }
+        )
+        statusText.isVisible = false
 
         emptyTasksContainer.isVisible = visibleTaskCount == 0
         if (allTasks.isEmpty()) {
@@ -495,7 +527,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             emptyTasksHint.setText(R.string.tasks_empty_hint)
         } else {
             emptyTasksText.setText(R.string.no_active_tasks)
-            emptyTasksHint.setText(R.string.show_completed_hint)
+            emptyTasksHint.text = when {
+                searchQuery.isNotBlank() -> getString(R.string.search_tasks)
+                statusFilter != HomeTaskFilter.COMPLETED -> getString(R.string.show_completed_hint)
+                else -> getString(R.string.tasks_empty_hint)
+            }
         }
     }
 
@@ -511,20 +547,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             ?: taskList.scrollToPosition(position)
     }
 
-    private fun updateCharacterCounter() {
-        val length = taskInput.text?.length ?: 0
-        characterCounterText.text = getString(
-            R.string.task_character_counter,
-            length,
-            TaskRepository.MAX_TASK_LENGTH
-        )
-        characterCounterText.isVisible = length >= CHARACTER_COUNTER_THRESHOLD
-    }
-
-    private fun updateAddButtonState() {
-        addTaskButton.isEnabled = !isAddingTask && !taskInput.text?.toString().orEmpty().isBlank()
-    }
-
     private fun showError() {
         statusText.text = getString(R.string.tasks_error)
         statusText.isVisible = true
@@ -535,8 +557,70 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             ?: AuthRepository(requireContext()).getCurrentUser()?.uid
     }
 
-    companion object {
-        private const val CHARACTER_COUNTER_THRESHOLD = 170
+}
+
+internal enum class HomeTaskFilter {
+    ALL,
+    TODAY,
+    HIGH_PRIORITY,
+    COMPLETED
+}
+
+internal enum class TaskSectionKind(val titleRes: Int, val accentColorRes: Int) {
+    OVERDUE(R.string.overdue_section, R.color.home_overdue),
+    TODAY(R.string.today_section, R.color.home_accent),
+    UPCOMING(R.string.upcoming_section, R.color.home_upcoming),
+    NO_DUE_DATE(R.string.no_due_date_section, R.color.home_upcoming),
+    COMPLETED(R.string.completed_section, R.color.home_success)
+}
+
+internal data class TaskSection(val kind: TaskSectionKind, val tasks: List<Task>)
+
+internal object TaskSectioner {
+    fun sections(tasks: List<Task>, filter: HomeTaskFilter, today: LocalDate): List<TaskSection> {
+        val filtered = when (filter) {
+            HomeTaskFilter.ALL -> tasks.filterNot { it.completed }
+            HomeTaskFilter.TODAY -> tasks.filter {
+                !it.completed && it.dueDate?.let(LocalDate::parse) == today
+            }
+            HomeTaskFilter.HIGH_PRIORITY -> tasks.filter {
+                !it.completed && it.priority == TaskPriority.HIGH
+            }
+            HomeTaskFilter.COMPLETED -> tasks.filter { it.completed }
+        }
+        if (filter == HomeTaskFilter.COMPLETED) {
+            return filtered.takeIf(List<Task>::isNotEmpty)
+                ?.let { listOf(TaskSection(TaskSectionKind.COMPLETED, it)) }
+                .orEmpty()
+        }
+
+        val overdue = mutableListOf<Task>()
+        val dueToday = mutableListOf<Task>()
+        val upcoming = mutableListOf<Task>()
+        val noDueDate = mutableListOf<Task>()
+        filtered.forEach { task ->
+            val dueDate = task.dueDate?.let(LocalDate::parse)
+            when {
+                dueDate == null -> noDueDate += task
+                dueDate.isBefore(today) -> overdue += task
+                dueDate == today -> dueToday += task
+                else -> upcoming += task
+            }
+        }
+        return buildList {
+            overdue.takeIf(List<Task>::isNotEmpty)?.let {
+                add(TaskSection(TaskSectionKind.OVERDUE, it))
+            }
+            dueToday.takeIf(List<Task>::isNotEmpty)?.let {
+                add(TaskSection(TaskSectionKind.TODAY, it))
+            }
+            upcoming.takeIf(List<Task>::isNotEmpty)?.let {
+                add(TaskSection(TaskSectionKind.UPCOMING, it))
+            }
+            noDueDate.takeIf(List<Task>::isNotEmpty)?.let {
+                add(TaskSection(TaskSectionKind.NO_DUE_DATE, it))
+            }
+        }
     }
 }
 
@@ -586,7 +670,7 @@ private enum class TaskGroupPosition {
 
 private sealed class TaskListItem {
     data class Row(val task: Task, val groupPosition: TaskGroupPosition) : TaskListItem()
-    object CompletedHeader : TaskListItem()
+    data class SectionHeader(val kind: TaskSectionKind, val count: Int) : TaskListItem()
 }
 
 private class TaskAdapter(
@@ -605,7 +689,7 @@ private class TaskAdapter(
     override fun getItemViewType(position: Int): Int {
         return when (getItem(position)) {
             is TaskListItem.Row -> VIEW_TYPE_TASK
-            TaskListItem.CompletedHeader -> VIEW_TYPE_COMPLETED_HEADER
+            is TaskListItem.SectionHeader -> VIEW_TYPE_SECTION_HEADER
         }
     }
 
@@ -613,15 +697,16 @@ private class TaskAdapter(
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
             VIEW_TYPE_TASK -> TaskViewHolder(inflater.inflate(R.layout.item_task, parent, false))
-            else -> CompletedHeaderViewHolder(
+            else -> SectionHeaderViewHolder(
                 inflater.inflate(R.layout.item_task_section_header, parent, false)
             )
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        if (holder is TaskViewHolder) {
-            holder.bind(getItem(position) as TaskListItem.Row)
+        when (holder) {
+            is TaskViewHolder -> holder.bind(getItem(position) as TaskListItem.Row)
+            is SectionHeaderViewHolder -> holder.bind(getItem(position) as TaskListItem.SectionHeader)
         }
     }
 
@@ -650,19 +735,12 @@ private class TaskAdapter(
         )
     }
 
-    fun submitTasks(
-        activeTasks: List<Task>,
-        completedTasks: List<Task>,
-        commitCallback: () -> Unit
-    ) {
+    fun submitSections(sections: List<TaskSection>, commitCallback: () -> Unit) {
         val items = buildList {
-            activeTasks.forEachIndexed { index, task ->
-                add(TaskListItem.Row(task, groupPosition(index, activeTasks.size)))
-            }
-            if (completedTasks.isNotEmpty()) {
-                add(TaskListItem.CompletedHeader)
-                completedTasks.forEachIndexed { index, task ->
-                    add(TaskListItem.Row(task, groupPosition(index, completedTasks.size)))
+            sections.forEach { section ->
+                add(TaskListItem.SectionHeader(section.kind, section.tasks.size))
+                section.tasks.forEachIndexed { index, task ->
+                    add(TaskListItem.Row(task, groupPosition(index, section.tasks.size)))
                 }
             }
         }
@@ -707,7 +785,17 @@ private class TaskAdapter(
     private fun getItemOrNull(position: Int): TaskListItem.Row? =
         if (position in 0 until itemCount) getItem(position) as? TaskListItem.Row else null
 
-    private class CompletedHeaderViewHolder(view: View) : RecyclerView.ViewHolder(view)
+    private class SectionHeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val title: TextView = view.findViewById(R.id.task_section_title)
+        private val count: TextView = view.findViewById(R.id.task_section_count)
+        private val accent: View = view.findViewById(R.id.task_section_accent)
+
+        fun bind(header: TaskListItem.SectionHeader) {
+            title.setText(header.kind.titleRes)
+            count.text = header.count.toString()
+            accent.setBackgroundColor(accent.context.getColor(header.kind.accentColorRes))
+        }
+    }
 
     inner class TaskViewHolder(
         private val cell: View,
@@ -715,6 +803,7 @@ private class TaskAdapter(
         private val checkbox: CheckBox = cell.findViewById(R.id.task_checkbox)
         private val taskTitle: TextView = cell.findViewById(R.id.task_title)
         private val taskDueDate: TextView = cell.findViewById(R.id.task_due_date)
+        private val taskListName: TextView = cell.findViewById(R.id.task_list_name)
         private val priorityButton: View = cell.findViewById(R.id.task_priority_button)
         private val priorityDot: View = cell.findViewById(R.id.task_priority_dot)
         private val foreground: View = cell.findViewById(R.id.task_foreground_container)
@@ -751,6 +840,7 @@ private class TaskAdapter(
             taskTitle.text = task.text
             taskTitle.isActivated = task.completed
             bindDueDate(task)
+            bindList(task)
             checkbox.isChecked = task.completed
             checkbox.contentDescription = checkbox.context.getString(
                 if (task.completed) R.string.task_completed else R.string.task_not_completed
@@ -872,26 +962,25 @@ private class TaskAdapter(
             taskDueDate.compoundDrawablesRelative[0]?.setTint(taskDueDate.context.getColor(color))
         }
 
+        private fun bindList(task: Task) {
+            taskListName.text = task.listName
+            taskListName.setTextColor(
+                taskListName.context.getColor(
+                    when (task.listName) {
+                        "Work" -> R.color.home_work
+                        "Shared" -> R.color.home_shared
+                        "Shopping" -> R.color.home_shopping
+                        else -> R.color.home_personal
+                    }
+                )
+            )
+        }
+
         private fun updateGroupShape(position: TaskGroupPosition) {
-            foreground.setBackgroundResource(
-                when (position) {
-                    TaskGroupPosition.SINGLE -> R.drawable.bg_task_group_single
-                    TaskGroupPosition.FIRST -> R.drawable.bg_task_group_first
-                    TaskGroupPosition.MIDDLE -> R.drawable.bg_task_group_middle
-                    TaskGroupPosition.LAST -> R.drawable.bg_task_group_last
-                }
-            )
+            foreground.setBackgroundResource(R.drawable.bg_task_group_single)
             foreground.invalidateOutline()
-            divider.isVisible = position == TaskGroupPosition.FIRST ||
-                position == TaskGroupPosition.MIDDLE
-            deleteAction.setBackgroundResource(
-                when (position) {
-                    TaskGroupPosition.SINGLE -> R.drawable.bg_task_delete_action
-                    TaskGroupPosition.FIRST -> R.drawable.bg_task_delete_top
-                    TaskGroupPosition.MIDDLE -> R.drawable.bg_task_delete_middle
-                    TaskGroupPosition.LAST -> R.drawable.bg_task_delete_bottom
-                }
-            )
+            divider.isVisible = false
+            deleteAction.setBackgroundResource(R.drawable.bg_task_delete_action)
         }
     }
 
@@ -901,8 +990,10 @@ private class TaskAdapter(
                 oldItem is TaskListItem.Row && newItem is TaskListItem.Row -> {
                     oldItem.task.id == newItem.task.id
                 }
-                else -> oldItem === TaskListItem.CompletedHeader &&
-                    newItem === TaskListItem.CompletedHeader
+                oldItem is TaskListItem.SectionHeader && newItem is TaskListItem.SectionHeader -> {
+                    oldItem.kind == newItem.kind
+                }
+                else -> false
             }
         }
 
@@ -917,7 +1008,7 @@ private class TaskAdapter(
         private const val COMPLETED_PRIORITY_ALPHA = 0.55f
         private const val REVEAL_ANIMATION_DURATION_MS = 200L
         private const val VIEW_TYPE_TASK = 1
-        private const val VIEW_TYPE_COMPLETED_HEADER = 2
+        private const val VIEW_TYPE_SECTION_HEADER = 2
     }
 }
 

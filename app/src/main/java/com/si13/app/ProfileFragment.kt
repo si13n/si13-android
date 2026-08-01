@@ -18,6 +18,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ProfileFragment : Fragment(R.layout.fragment_profile) {
@@ -76,6 +77,9 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         signOutButton.setOnClickListener { confirmSignOut() }
         view.findViewById<View>(R.id.profile_appearance_row).setOnClickListener {
             showAppearanceDialog()
+        }
+        view.findViewById<View>(R.id.profile_manage_lists_row).setOnClickListener {
+            showListSummary()
         }
         view.findViewById<View>(R.id.profile_delete_all_tasks_row).setOnClickListener {
             confirmDeleteAllTasks()
@@ -150,6 +154,21 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 dialog.dismiss()
             }
             .show()
+    }
+
+    private fun showListSummary() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val tasks = runCatching { taskRepository.observeTasks().first() }.getOrDefault(emptyList())
+            if (!isAdded) return@launch
+            val labels = BUILT_IN_TASK_LISTS.map { listName ->
+                "$listName  ·  ${tasks.count { it.listName == listName }}"
+            }.toTypedArray()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.manage_lists)
+                .setItems(labels, null)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        }
     }
 
     private fun renderUser(user: AuthUser) {

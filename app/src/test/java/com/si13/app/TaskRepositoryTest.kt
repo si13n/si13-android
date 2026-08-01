@@ -57,6 +57,24 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun `new task metadata is persisted`() = runTest {
+        val local = FakeTaskDataSource()
+        val repository = TaskRepository(local, { FakeTaskDataSource() }, { null })
+
+        repository.addTask(
+            text = "Prepare the release notes",
+            priority = TaskPriority.HIGH,
+            dueDate = "2026-08-01",
+            listName = "Work"
+        )
+
+        val task = local.getTasks().single()
+        assertEquals(TaskPriority.HIGH, task.priority)
+        assertEquals("2026-08-01", task.dueDate)
+        assertEquals("Work", task.listName)
+    }
+
+    @Test
     fun setTaskPriorityUpdatesTask() = runTest {
         val local = FakeTaskDataSource()
         val task = Task("task-1", "Guest task", false, 1L, 1L)

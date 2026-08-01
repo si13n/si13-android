@@ -32,16 +32,20 @@ class MainActivity : AppCompatActivity() {
         val bottomNavigationView = findViewById<View>(R.id.bottom_navigation)
         val homeButton = findViewById<MaterialButton>(R.id.homeFragment)
         val profileButton = findViewById<MaterialButton>(R.id.profileFragment)
+        val addTaskButton = findViewById<MaterialButton>(R.id.add_task_fab)
 
         homeButton.setOnClickListener { navigateTo(navController, R.id.homeFragment) }
         profileButton.setOnClickListener { navigateTo(navController, R.id.profileFragment) }
+        addTaskButton.setOnClickListener {
+            navigateTo(navController, R.id.homeFragment)
+            addTaskButton.post {
+                (navHostFragment.childFragmentManager.primaryNavigationFragment as? HomeFragment)
+                    ?.showAddTaskSheet()
+            }
+        }
         navController.addOnDestinationChangedListener { _, destination, _ ->
-            updateNavigationButton(homeButton, destination.id == R.id.homeFragment, R.string.home)
-            updateNavigationButton(
-                profileButton,
-                destination.id == R.id.profileFragment,
-                R.string.profile
-            )
+            updateNavigationButton(homeButton, destination.id == R.id.homeFragment)
+            updateNavigationButton(profileButton, destination.id == R.id.profileFragment)
         }
 
         if (savedInstanceState == null) {
@@ -82,22 +86,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateNavigationButton(
         button: MaterialButton,
-        selected: Boolean,
-        labelRes: Int
+        selected: Boolean
     ) {
-        button.text = if (selected) getString(labelRes) else ""
-        button.contentDescription = getString(labelRes)
-        button.backgroundTintList = ColorStateList.valueOf(
-            if (selected) {
-                MaterialColors.getColor(button, androidx.appcompat.R.attr.colorPrimary)
-            } else {
-                Color.TRANSPARENT
-            }
-        )
+        button.text = ""
+        button.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
         val contentColor = MaterialColors.getColor(
             button,
             if (selected) {
-                com.google.android.material.R.attr.colorOnPrimary
+                androidx.appcompat.R.attr.colorPrimary
             } else {
                 com.google.android.material.R.attr.colorOnSurfaceVariant
             }
@@ -105,6 +101,5 @@ class MainActivity : AppCompatActivity() {
         button.iconTint = ColorStateList.valueOf(
             contentColor
         )
-        button.setTextColor(contentColor)
     }
 }

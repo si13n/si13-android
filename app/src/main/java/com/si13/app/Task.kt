@@ -7,8 +7,13 @@ data class Task(
     val createdAt: Long,
     val updatedAt: Long,
     val priority: TaskPriority = TaskPriority.NONE,
-    val dueDate: String? = null
+    val dueDate: String? = null,
+    val listName: String = DEFAULT_TASK_LIST
 )
+
+const val DEFAULT_TASK_LIST = "Personal"
+
+val BUILT_IN_TASK_LISTS = listOf("Personal", "Work", "Shared", "Shopping")
 
 enum class TaskPriority(val rank: Int, val storageValue: String) {
     NONE(0, "none"), HIGH(1, "high");

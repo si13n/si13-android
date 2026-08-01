@@ -34,4 +34,43 @@ class TaskPresentationTest {
         assertEquals(TaskPriority.HIGH, TaskPriority.fromStorageValue("low"))
         assertEquals(TaskPriority.HIGH, TaskPriority.fromStorageValue("medium"))
     }
+
+    @Test
+    fun `all filter groups active tasks by due date`() {
+        val tasks = listOf(
+            task("overdue", dueDate = "2026-07-27"),
+            task("today", dueDate = "2026-07-28"),
+            task("upcoming", dueDate = "2026-07-29"),
+            task("unscheduled"),
+            task("done", completed = true)
+        )
+
+        val sections = TaskSectioner.sections(tasks, HomeTaskFilter.ALL, today)
+
+        assertEquals(
+            listOf(
+                TaskSectionKind.OVERDUE,
+                TaskSectionKind.TODAY,
+                TaskSectionKind.UPCOMING,
+                TaskSectionKind.NO_DUE_DATE
+            ),
+            sections.map(TaskSection::kind)
+        )
+        assertEquals(4, sections.sumOf { it.tasks.size })
+    }
+
+    @Test
+    fun `completed filter excludes active tasks`() {
+        val tasks = listOf(task("active"), task("done", completed = true))
+
+        val sections = TaskSectioner.sections(tasks, HomeTaskFilter.COMPLETED, today)
+
+        assertEquals(listOf("done"), sections.single().tasks.map(Task::id))
+    }
+
+    private fun task(
+        id: String,
+        dueDate: String? = null,
+        completed: Boolean = false
+    ) = Task(id, id, completed, 1L, 1L, dueDate = dueDate)
 }

@@ -84,6 +84,7 @@ class RemoteTaskDataSource(
             "updatedAt" to updatedAt
         )
         values["priority"] = priority.storageValue
+        values["listName"] = listName
         dueDate?.let { values["dueDate"] = it }
         return values
     }
@@ -101,7 +102,8 @@ class RemoteTaskDataSource(
             createdAt = createdAt.toLong(),
             updatedAt = updatedAt.toLong(),
             priority = TaskPriority.fromStorageValue(this["priority"] as? String),
-            dueDate = this["dueDate"] as? String
+            dueDate = this["dueDate"] as? String,
+            listName = (this["listName"] as? String).orEmpty().ifBlank { DEFAULT_TASK_LIST }
         )
     }
 }

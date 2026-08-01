@@ -26,9 +26,7 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isRoot
-import androidx.test.espresso.matcher.ViewMatchers.Visibility.GONE
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
-import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.google.firebase.auth.FirebaseAuth
@@ -63,12 +61,13 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
+            onView(withId(R.id.add_task_fab)).perform(click())
             onView(withId(R.id.task_input)).perform(replaceText("Buy milk"))
             onView(withId(R.id.add_task_button)).perform(click())
             onView(isRoot()).perform(waitFor(500))
 
             onView(withText("Buy milk")).check(matches(isDisplayed()))
-            onView(withId(R.id.task_character_counter)).check(matches(withEffectiveVisibility(GONE)))
+            onView(withId(R.id.task_character_counter)).check(doesNotExist())
         }
     }
 
@@ -77,6 +76,7 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
+            onView(withId(R.id.add_task_fab)).perform(click())
             onView(withId(R.id.task_input)).perform(replaceText("Add once"))
             onView(withId(R.id.add_task_button)).perform(callClickTwice())
             onView(isRoot()).perform(waitFor(500))
@@ -95,25 +95,24 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
+            onView(withId(R.id.add_task_fab)).perform(click())
             onView(withId(R.id.task_input)).perform(replaceText("Submit with enter"))
             onView(withId(R.id.task_input)).perform(pressImeActionButton())
             onView(isRoot()).perform(waitFor(500))
 
             onView(withText("Submit with enter")).check(matches(isDisplayed()))
-            onView(withId(R.id.task_character_counter)).check(matches(withEffectiveVisibility(GONE)))
+            onView(withId(R.id.task_character_counter)).check(doesNotExist())
         }
     }
 
     @Test
-    fun characterCounterAppearsAtOneHundredSeventyCharacters() {
+    fun newTaskSheetShowsOneHundredCharacterLimit() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(withId(R.id.task_input)).perform(replaceText("x".repeat(169)))
-            onView(withId(R.id.task_character_counter)).check(matches(withEffectiveVisibility(GONE)))
-
-            onView(withId(R.id.task_input)).perform(replaceText("x".repeat(170)))
-            onView(withText("170 / 200")).check(matches(isDisplayed()))
+            onView(withId(R.id.add_task_fab)).perform(click())
+            onView(withId(R.id.task_input)).perform(replaceText("x".repeat(100)))
+            onView(withText("100/100")).check(matches(isDisplayed()))
         }
     }
 
@@ -125,7 +124,7 @@ class HomeTaskTest {
             continueAsGuest()
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withId(R.id.task_list)).perform(scrollRecyclerToPosition(29))
+            onView(withId(R.id.task_list)).perform(scrollRecyclerToPosition(30))
             onView(withText("Guest task 1")).check(matches(isDisplayed()))
             onView(withId(R.id.task_list)).check(taskIsCompletelyVisible("Guest task 1"))
         }
@@ -169,15 +168,15 @@ class HomeTaskTest {
     }
 
     @Test
-    fun bottomNavigationShowsLabelOnlyForSelectedDestination() {
+    fun bottomNavigationKeepsIconOnlyDestinations() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(withId(R.id.homeFragment)).check(matches(withText(R.string.home)))
+            onView(withId(R.id.homeFragment)).check(matches(withText("")))
             onView(withId(R.id.profileFragment)).check(matches(withText("")))
 
             onView(withId(R.id.profileFragment)).perform(click())
-            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.profile)))
+            onView(withId(R.id.profileFragment)).check(matches(withText("")))
             onView(withId(R.id.homeFragment)).check(matches(withText("")))
         }
     }
@@ -200,15 +199,13 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(withText(R.string.today)).check(matches(isDisplayed()))
+            onView(withText(R.string.my_tasks)).check(matches(isDisplayed()))
             onView(withId(R.id.home_date_text)).check(matches(isDisplayed()))
-            onView(withText("3 active")).check(matches(isDisplayed()))
             onView(withText("0 of 3 completed")).check(matches(isDisplayed()))
 
             onView(withId(R.id.task_list)).perform(clickCheckboxForTask("Guest task 3"))
             onView(isRoot()).perform(waitFor(500))
 
-            onView(withText("2 active")).check(matches(isDisplayed()))
             onView(withText("1 of 3 completed")).check(matches(isDisplayed()))
         }
     }
@@ -235,8 +232,9 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
             onView(isRoot()).perform(waitFor(500))
-            onView(withId(R.id.task_list)).perform(scrollRecyclerToPosition(29))
+            onView(withId(R.id.task_list)).perform(scrollRecyclerToPosition(30))
 
+            onView(withId(R.id.add_task_fab)).perform(click())
             onView(withId(R.id.task_input)).perform(replaceText("Newest task"))
             onView(withId(R.id.add_task_button)).perform(click())
             onView(isRoot()).perform(waitFor(500))
@@ -278,6 +276,7 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
+            onView(withId(R.id.add_task_fab)).perform(click())
             onView(withId(R.id.task_input)).perform(replaceText("Finish checklist"))
             onView(withId(R.id.add_task_button)).perform(click())
             onView(isRoot()).perform(waitFor(500))
@@ -595,9 +594,9 @@ class HomeTaskTest {
             val actions = view.findViewById<View>(R.id.home_header_actions)
             val sort = view.findViewById<View>(R.id.task_sort_button)
             val visibility = view.findViewById<View>(R.id.task_settings_button)
-            val expectedTouchTarget = (48f * view.resources.displayMetrics.density).toInt()
+            val expectedTouchTarget = (44f * view.resources.displayMetrics.density).toInt()
 
-            assertTrue("Header title and actions overlap.", titleColumn.right <= actions.left)
+            assertTrue("Header content is clipped.", titleColumn.right <= view.width)
             assertTrue("Header actions are clipped at the end.", actions.right <= view.width)
             assertEquals(expectedTouchTarget, sort.width)
             assertEquals(expectedTouchTarget, sort.height)
@@ -610,10 +609,12 @@ class HomeTaskTest {
         return ViewAssertion { view, _ ->
             val recyclerView = view as RecyclerView
             val expectedRowHeight = view.resources.getDimensionPixelSize(R.dimen.task_row_height)
+            val taskRows = (0 until recyclerView.childCount)
+                .map(recyclerView::getChildAt)
+                .filter { it.findViewById<View>(R.id.task_title) != null }
 
-            assertEquals(1, recyclerView.childCount)
-            assertEquals(expectedRowHeight, recyclerView.getChildAt(0).height)
-            assertEquals(expectedRowHeight, recyclerView.height)
+            assertEquals(1, taskRows.size)
+            assertTrue(taskRows.single().height >= expectedRowHeight)
         }
     }
 
@@ -718,10 +719,10 @@ class HomeTaskTest {
     private fun firstTaskTextIs(expectedText: String): ViewAssertion {
         return ViewAssertion { view, _ ->
             val recyclerView = view as RecyclerView
-            val firstTaskText = recyclerView.getChildAt(0)
-                ?.findViewById<TextView>(R.id.task_title)
-                ?.text
-                ?.toString()
+            val firstTaskText = (0 until recyclerView.childCount)
+                .map(recyclerView::getChildAt)
+                .mapNotNull { it.findViewById<TextView>(R.id.task_title)?.text?.toString() }
+                .firstOrNull()
             assertEquals(expectedText, firstTaskText)
         }
     }

@@ -16,7 +16,12 @@ class TaskRepository(
         return activeDataSource().observeTasks().map { tasks -> tasks.sortedForDisplay() }
     }
 
-    suspend fun addTask(text: String) {
+    suspend fun addTask(
+        text: String,
+        priority: TaskPriority = TaskPriority.NONE,
+        dueDate: String? = null,
+        listName: String = DEFAULT_TASK_LIST
+    ) {
         val trimmedText = text.trim()
         require(trimmedText.isNotEmpty()) { "Task text cannot be empty." }
         require(trimmedText.length <= MAX_TASK_LENGTH) { "Task text cannot exceed $MAX_TASK_LENGTH characters." }
@@ -29,7 +34,9 @@ class TaskRepository(
                 completed = false,
                 createdAt = now,
                 updatedAt = now,
-                priority = TaskPriority.NONE
+                priority = priority,
+                dueDate = dueDate,
+                listName = listName.ifBlank { DEFAULT_TASK_LIST }
             )
         )
     }

@@ -203,7 +203,8 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         createdAt = requireArguments().getLong("created"),
         updatedAt = requireArguments().getLong("updated"),
         priority = TaskPriority.fromStorageValue(requireArguments().getString("priority")),
-        dueDate = requireArguments().getString("due")
+        dueDate = requireArguments().getString("due"),
+        listName = requireArguments().getString("list").orEmpty().ifBlank { DEFAULT_TASK_LIST }
     )
 
     private fun isDarkTheme(): Boolean = resources.configuration.uiMode and
@@ -221,7 +222,8 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
                     "created" to task.createdAt,
                     "updated" to task.updatedAt,
                     "priority" to task.priority.storageValue,
-                    "due" to task.dueDate
+                    "due" to task.dueDate,
+                    "list" to task.listName
                 )
             }.show(manager, "task_details")
         }

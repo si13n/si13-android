@@ -11,7 +11,8 @@ data class TaskEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val priority: String? = null,
-    val dueDate: String? = null
+    val dueDate: String? = null,
+    val listName: String = DEFAULT_TASK_LIST
 ) {
     fun toTask(): Task {
         return Task(
@@ -21,7 +22,8 @@ data class TaskEntity(
             createdAt = createdAt,
             updatedAt = updatedAt,
             priority = TaskPriority.fromStorageValue(priority),
-            dueDate = dueDate
+            dueDate = dueDate,
+            listName = listName
         )
     }
 }
@@ -34,6 +36,7 @@ fun Task.toEntity(): TaskEntity {
         createdAt = createdAt,
         updatedAt = updatedAt,
         priority = priority.storageValue,
-        dueDate = dueDate
+        dueDate = dueDate,
+        listName = listName
     )
 }
