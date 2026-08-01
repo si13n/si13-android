@@ -1,29 +1,35 @@
 package com.si13.app
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
+import android.text.style.ForegroundColorSpan
 import android.text.format.DateFormat
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.ContextThemeWrapper
 import android.view.inputmethod.InputMethodManager
 import android.widget.CheckBox
 import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.PopupMenu
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.widget.doAfterTextChanged
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.Fragment
 import androidx.activity.OnBackPressedCallback
 import androidx.lifecycle.Lifecycle
@@ -37,7 +43,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import java.text.Collator
@@ -46,6 +51,7 @@ import java.util.Date
 import java.util.Locale
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlinx.coroutines.CancellationException
@@ -71,7 +77,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var emptyTasksContainer: View
     private lateinit var taskProgressText: TextView
     private lateinit var taskProgressEncouragement: TextView
-    private lateinit var taskProgressIndicator: LinearProgressIndicator
+    private lateinit var taskProgressIndicator: ProgressBar
     private lateinit var taskList: RecyclerView
     private lateinit var swipeDismissLayout: SwipeDismissLayout
     private lateinit var taskListFilterGroup: ChipGroup
@@ -242,6 +248,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             renderTasks()
         }
         childFragmentManager.setFragmentResultListener(
+            SortMenuBottomSheet.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, result ->
+            sortMode = TaskSortMode.fromKey(
+                result.getString(SortMenuBottomSheet.RESULT_SORT_KEY).orEmpty()
+            )
+            preferences.sortMode = sortMode.key
+            renderTasks()
+        }
+        childFragmentManager.setFragmentResultListener(
             AddTaskBottomSheet.RESULT_KEY,
             viewLifecycleOwner
         ) { _, result ->
@@ -370,30 +386,76 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private fun populateListChips() {
         taskListFilterGroup.removeAllViews()
+        val density = resources.displayMetrics.density
+        val compactHeight = (30 * density).toInt()
         val lists = listOf(TaskListDefinition("all", ForgettyPreferences.ALL_TASKS, "#5268D8", protected = true)) +
             taskListStore.getLists()
         lists.forEach { definition ->
             val chip = Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle).apply {
                 id = View.generateViewId()
                 tag = definition.name
-                text = if (definition.shared) "${definition.name}  •" else definition.name
+                text = if (definition.shared) {
+                    SpannableString("${definition.name}  •").apply {
+                        setSpan(
+                            ForegroundColorSpan(requireContext().getColor(R.color.forgetty_secondary)),
+                            length - 1,
+                            length,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                } else {
+                    definition.name
+                }
                 isCheckable = true
                 isCheckedIconVisible = false
-                minHeight = resources.getDimensionPixelSize(R.dimen.forgetty_touch_target)
-                setTextColor(requireContext().getColorStateList(R.color.home_filter_chip_text))
-                chipBackgroundColor = requireContext().getColorStateList(R.color.home_filter_chip_background)
-                chipStrokeColor = requireContext().getColorStateList(R.color.home_filter_chip_text)
-                chipStrokeWidth = resources.displayMetrics.density
+                setEnsureMinTouchTargetSize(false)
+                minHeight = compactHeight
+                chipMinHeight = 30 * density
+                chipCornerRadius = 10 * density
+                chipStartPadding = 12 * density
+                chipEndPadding = 12 * density
+                textStartPadding = 0f
+                textEndPadding = 0f
+                textSize = 13f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                setTextColor(requireContext().getColorStateList(R.color.home_list_chip_text))
+                chipBackgroundColor = requireContext().getColorStateList(R.color.home_list_chip_background)
+                chipStrokeWidth = 0f
+                layoutParams = ChipGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, compactHeight)
+                if (definition.id != "all") {
+                    chipIcon = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(Color.WHITE)
+                        setSize((7 * density).toInt(), (7 * density).toInt())
+                    }
+                    isChipIconVisible = true
+                    chipIconSize = 7 * density
+                    iconStartPadding = 0f
+                    iconEndPadding = 5 * density
+                    val fallbackColor = runCatching { Color.parseColor(definition.color) }
+                        .getOrDefault(requireContext().getColor(R.color.forgetty_text_secondary))
+                    chipIconTint = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                        intArrayOf(requireContext().getColor(R.color.forgetty_primary), fallbackColor)
+                    )
+                }
             }
             taskListFilterGroup.addView(chip)
             if ((selectedList ?: ForgettyPreferences.ALL_TASKS) == definition.name) chip.isChecked = true
         }
-        val manage = Chip(requireContext()).apply {
+        val manage = ImageButton(requireContext()).apply {
             id = View.generateViewId()
             tag = MANAGE_LISTS_TAG
-            text = getString(R.string.manage_lists)
-            isCheckable = false
-            minHeight = resources.getDimensionPixelSize(R.dimen.forgetty_touch_target)
+            contentDescription = getString(R.string.manage_lists)
+            background = requireContext().getDrawable(R.drawable.bg_manage_lists_button)
+            setImageResource(R.drawable.ic_manage_lists)
+            ImageViewCompat.setImageTintList(
+                this,
+                ColorStateList.valueOf(requireContext().getColor(R.color.forgetty_text_secondary))
+            )
+            val iconPadding = (7 * density).toInt()
+            setPadding(iconPadding, iconPadding, iconPadding, iconPadding)
+            layoutParams = ChipGroup.LayoutParams(compactHeight, compactHeight)
             setOnClickListener { ListManagerBottomSheet.show(childFragmentManager) }
         }
         taskListFilterGroup.addView(manage)
@@ -411,6 +473,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun bindActions() {
+        renderShowCompletedControl()
         taskSearchButton.setOnClickListener {
             taskAdapter.closeRevealedAction()
             openSearch()
@@ -420,10 +483,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             taskAdapter.closeRevealedAction()
             showCompleted = !showCompleted
             preferences.showCompleted = showCompleted
-            taskSettingsButton.setImageResource(if (showCompleted) R.drawable.ic_visibility else R.drawable.ic_visibility_off)
-            taskSettingsButton.setContentDescription(
-                getString(if (showCompleted) R.string.hide_completed_tasks else R.string.show_completed_tasks)
-            )
+            renderShowCompletedControl()
             renderTasks()
         }
 
@@ -433,29 +493,28 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    private fun renderShowCompletedControl() {
+        taskSettingsButton.setImageResource(R.drawable.ic_check_circle)
+        ImageViewCompat.setImageTintList(
+            taskSettingsButton,
+            ColorStateList.valueOf(
+                requireContext().getColor(
+                    if (showCompleted) R.color.forgetty_primary else R.color.forgetty_text_secondary
+                )
+            )
+        )
+        taskSettingsButton.contentDescription = getString(
+            if (showCompleted) R.string.hide_completed_tasks else R.string.show_completed_tasks
+        )
+    }
+
     private fun hideKeyboard() {
         (requireContext().getSystemService(InputMethodManager::class.java))
             ?.hideSoftInputFromWindow(taskSearchInput.windowToken, 0)
     }
 
     private fun showTaskMenu() {
-        PopupMenu(
-            ContextThemeWrapper(requireContext(), R.style.ThemeOverlay_Si13_HomePopup),
-            taskSortButton
-        ).apply {
-            inflate(R.menu.home_task_menu)
-            menu.findItem(sortMode.menuItemId).isChecked = true
-            setOnMenuItemClickListener { item ->
-                TaskSortMode.fromMenuItemId(item.itemId)?.let { selectedMode ->
-                    sortMode = selectedMode
-                    preferences.sortMode = selectedMode.key
-                    item.isChecked = true
-                    renderTasks()
-                    true
-                } ?: false
-            }
-            show()
-        }
+        SortMenuBottomSheet.show(childFragmentManager, sortMode)
     }
 
     private fun configureCalendar(view: View) {
@@ -759,22 +818,27 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 }
             }
         }
-        val progressScope = tasksInSelectedList(includeSearch = false)
+        // The Figma Home card summarizes the full task set, independent of list/filter chips.
+        val progressScope = allTasks
         val completedTaskCount = progressScope.count(Task::completed)
-        taskProgressText.text = getString(
+        val progressSummary = getString(
             R.string.home_progress_summary,
             completedTaskCount,
             progressScope.size
         )
+        val emphasizedPrefix = "$completedTaskCount of ${progressScope.size}"
+        taskProgressText.text = SpannableString(progressSummary).apply {
+            setSpan(
+                StyleSpan(Typeface.BOLD),
+                0,
+                emphasizedPrefix.length.coerceAtMost(length),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
         val completionRate = if (progressScope.isEmpty()) 0 else completedTaskCount * 100 / progressScope.size
-        taskProgressIndicator.setProgressCompat(completionRate, true)
+        taskProgressIndicator.progress = completionRate
         taskProgressEncouragement.setText(
-            when {
-                progressScope.isNotEmpty() && completionRate == 100 -> R.string.progress_all_done
-                completionRate >= 75 -> R.string.progress_almost_there
-                completionRate >= 35 -> R.string.progress_keep_going
-                else -> R.string.progress_good_start
-            }
+            HomeProgressPresentation.messageRes(completedTaskCount, progressScope.size)
         )
         statusText.isVisible = false
         homeLoading.isVisible = false
@@ -864,6 +928,18 @@ internal enum class HomeTaskFilter(val key: String) {
     }
 }
 
+internal object HomeProgressPresentation {
+    fun messageRes(completed: Int, total: Int): Int {
+        val percentage = if (total <= 0) 0 else completed.coerceIn(0, total) * 100 / total
+        return when {
+            percentage == 0 -> R.string.progress_get_started
+            percentage < 40 -> R.string.progress_good_start
+            percentage < 80 -> R.string.progress_keep_going
+            else -> R.string.progress_almost_there
+        }
+    }
+}
+
 internal enum class TaskSectionKind(val titleRes: Int, val accentColorRes: Int) {
     OVERDUE(R.string.overdue_section, R.color.home_overdue),
     TODAY(R.string.today_section, R.color.home_accent),
@@ -933,17 +1009,14 @@ internal object TaskSectioner {
     }
 }
 
-internal enum class TaskSortMode(val menuItemId: Int, val key: String) {
-    NEWEST_FIRST(R.id.action_sort_newest, "newest"),
-    OLDEST_FIRST(R.id.action_sort_oldest, "oldest"),
-    PRIORITY_FIRST(R.id.action_sort_priority, "priority"),
-    ALPHABETICAL(R.id.action_sort_alphabetical, "alphabetical"),
-    DUE_DATE(R.id.action_sort_due_date, "due_date");
+internal enum class TaskSortMode(val key: String) {
+    NEWEST_FIRST("newest"),
+    OLDEST_FIRST("oldest"),
+    PRIORITY_FIRST("priority"),
+    ALPHABETICAL("alphabetical"),
+    DUE_DATE("due_date");
 
     companion object {
-        fun fromMenuItemId(menuItemId: Int): TaskSortMode? =
-            values().firstOrNull { it.menuItemId == menuItemId }
-
         fun fromKey(key: String): TaskSortMode = values().firstOrNull { it.key == key } ?: DUE_DATE
     }
 }
@@ -1124,11 +1197,10 @@ private class TaskAdapter(
         private val taskTitle: TextView = cell.findViewById(R.id.task_title)
         private val taskDueDate: TextView = cell.findViewById(R.id.task_due_date)
         private val taskListName: TextView = cell.findViewById(R.id.task_list_name)
-        private val metadataRow: View = cell.findViewById(R.id.task_metadata_row)
-        private val taskTags: TextView = cell.findViewById(R.id.task_tags)
+        private val metadataRow: ChipGroup = cell.findViewById(R.id.task_metadata_row)
         private val reminderIcon: View = cell.findViewById(R.id.task_reminder_icon)
         private val repeatIcon: View = cell.findViewById(R.id.task_repeat_icon)
-        private val assignees: TextView = cell.findViewById(R.id.task_assignees)
+        private val assignees: LinearLayout = cell.findViewById(R.id.task_assignees)
         private val priorityButton: View = cell.findViewById(R.id.task_priority_button)
         private val priorityDot: View = cell.findViewById(R.id.task_priority_dot)
         private val foreground: View = cell.findViewById(R.id.task_foreground_container)
@@ -1168,6 +1240,14 @@ private class TaskAdapter(
             bindList(task)
             bindMetadata(task)
             checkbox.isChecked = task.completed
+            checkbox.setButtonDrawable(
+                when {
+                    task.completed -> R.drawable.ic_task_checkbox_checked_filled
+                    task.priority == TaskPriority.HIGH -> R.drawable.ic_task_checkbox_priority
+                    else -> R.drawable.ic_task_checkbox_outline
+                }
+            )
+            checkbox.buttonTintList = null
             checkbox.contentDescription = checkbox.context.getString(
                 if (task.completed) R.string.task_completed else R.string.task_not_completed
             )
@@ -1178,15 +1258,19 @@ private class TaskAdapter(
             priorityDot.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 priorityButton.context.getColor(priorityDotColor(task.priority))
             )
-            priorityDot.alpha = if (task.completed) COMPLETED_PRIORITY_ALPHA else 1f
+            priorityDot.alpha = 1f
             taskTitle.paintFlags = if (task.completed) {
                 taskTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             } else {
                 taskTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
-            cell.alpha = 1f
+            cell.alpha = if (task.completed) COMPLETED_TASK_ALPHA else 1f
             boundTask = task
             updateGroupShape(item.groupPosition)
+            foreground.setBackgroundResource(
+                if (task.completed) R.drawable.bg_task_card_completed else R.drawable.bg_task_group_single
+            )
+            foreground.invalidateOutline()
             updateRevealState(task.id == revealedTaskId, animate = false)
             ViewCompat.replaceAccessibilityAction(
                 cell,
@@ -1270,53 +1354,88 @@ private class TaskAdapter(
             }
             val today = LocalDate.now()
             val overdue = TaskDatePresentation.isOverdue(dueDate, today)
-            val color = if (overdue && !task.completed) R.color.home_delete else R.color.home_text_secondary
+            val dueToday = dueDate == today
+            val daysFromToday = ChronoUnit.DAYS.between(today, dueDate)
+            val color = when {
+                overdue && !task.completed -> R.color.home_overdue
+                dueToday && !task.completed -> R.color.forgetty_primary
+                else -> R.color.home_text_secondary
+            }
             taskDueDate.visibility = View.VISIBLE
-            val dateLabel = when (dueDate) {
-                today -> taskDueDate.context.getString(R.string.due_today)
-                today.plusDays(1) -> taskDueDate.context.getString(R.string.due_tomorrow)
-                else -> taskDueDate.context.getString(
-                    R.string.due_date_format,
-                    TaskDatePresentation.formatDate(
-                        dueDate,
-                        today,
-                        taskDueDate.resources.configuration.locales[0] ?: Locale.getDefault()
-                    )
+            val locale = taskDueDate.resources.configuration.locales[0] ?: Locale.getDefault()
+            val dateLabel = when {
+                daysFromToday < 0 -> taskDueDate.context.getString(
+                    R.string.home_days_overdue,
+                    -daysFromToday
                 )
+                daysFromToday == 0L -> taskDueDate.context.getString(R.string.home_due_today)
+                daysFromToday == 1L -> taskDueDate.context.getString(R.string.home_due_tomorrow)
+                daysFromToday in 2L..6L -> dueDate.format(DateTimeFormatter.ofPattern("EEE", locale))
+                else -> TaskDatePresentation.formatDate(dueDate, today, locale)
             }
             val timeLabel = task.dueTimeMinutes?.let { minutes ->
                 java.time.LocalTime.of(minutes / 60, minutes % 60).format(
                     java.time.format.DateTimeFormatter.ofLocalizedTime(java.time.format.FormatStyle.SHORT)
                 )
             }
-            taskDueDate.text = listOfNotNull(dateLabel, timeLabel).joinToString(" · ")
+            taskDueDate.text = listOfNotNull(dateLabel, timeLabel).joinToString(" ")
             taskDueDate.setTextColor(taskDueDate.context.getColor(color))
+            taskDueDate.setTypeface(
+                Typeface.create("sans-serif", Typeface.NORMAL),
+                if ((overdue || dueToday) && !task.completed) Typeface.BOLD else Typeface.NORMAL
+            )
             taskDueDate.compoundDrawablesRelative[0]?.setTint(taskDueDate.context.getColor(color))
         }
 
         private fun bindMetadata(task: Task) {
-            taskTags.isVisible = task.tags.isNotEmpty()
-            taskTags.text = task.tags.joinToString("  ") { "#$it" }
             reminderIcon.isVisible = task.reminderAt != null
             repeatIcon.isVisible = task.repeatRule != TaskRepeatRule.NONE
+            while (metadataRow.childCount > FIXED_METADATA_CHILD_COUNT) {
+                metadataRow.removeViewAt(metadataRow.childCount - 1)
+            }
+            task.tags.forEach { tag ->
+                metadataRow.addView(TextView(metadataRow.context).apply {
+                    text = tag
+                    textSize = 11f
+                    setTypeface(typeface, Typeface.BOLD)
+                    setTextColor(context.getColor(R.color.forgetty_on_secondary_container))
+                    setBackgroundResource(R.drawable.bg_task_tag)
+                    setPadding(dp(6), dp(1), dp(6), dp(1))
+                    maxLines = 1
+                })
+            }
+            assignees.removeAllViews()
             assignees.isVisible = task.assigneeIds.isNotEmpty()
-            assignees.text = task.assigneeIds.take(2).joinToString("") { id -> id.firstOrNull()?.uppercase() ?: "" }
-            metadataRow.isVisible = taskTags.isVisible || reminderIcon.isVisible || repeatIcon.isVisible || assignees.isVisible
+            task.assigneeIds.take(2).forEachIndexed { index, id ->
+                assignees.addView(TextView(assignees.context).apply {
+                    text = id.firstOrNull()?.uppercase() ?: ""
+                    gravity = Gravity.CENTER
+                    textSize = 9f
+                    setTypeface(typeface, Typeface.BOLD)
+                    setTextColor(
+                        context.getColor(
+                            if (index == 0) R.color.forgetty_on_primary_container
+                            else R.color.forgetty_on_secondary_container
+                        )
+                    )
+                    setBackgroundResource(
+                        if (index == 0) R.drawable.bg_task_assignee_primary
+                        else R.drawable.bg_task_assignee_secondary
+                    )
+                }, LinearLayout.LayoutParams(dp(18), dp(18)).apply {
+                    if (index > 0) marginStart = -dp(6)
+                })
+            }
+            metadataRow.isVisible = taskDueDate.isVisible || reminderIcon.isVisible ||
+                repeatIcon.isVisible || task.listName.isNotBlank() || task.tags.isNotEmpty()
         }
 
         private fun bindList(task: Task) {
             taskListName.text = task.listName
-            taskListName.setTextColor(
-                taskListName.context.getColor(
-                    when (task.listName) {
-                        "Work" -> R.color.home_work
-                        "Shared" -> R.color.home_shared
-                        "Shopping" -> R.color.home_shopping
-                        else -> R.color.home_personal
-                    }
-                )
-            )
+            taskListName.setTextColor(taskListName.context.getColor(R.color.forgetty_text_secondary))
         }
+
+        private fun dp(value: Int): Int = (value * cell.resources.displayMetrics.density).toInt()
 
         private fun updateGroupShape(position: TaskGroupPosition) {
             foreground.setBackgroundResource(R.drawable.bg_task_group_single)
@@ -1347,7 +1466,8 @@ private class TaskAdapter(
     private object RevealStatePayload
 
     companion object {
-        private const val COMPLETED_PRIORITY_ALPHA = 0.55f
+        private const val COMPLETED_TASK_ALPHA = 0.65f
+        private const val FIXED_METADATA_CHILD_COUNT = 4
         private const val REVEAL_ANIMATION_DURATION_MS = 200L
         private const val VIEW_TYPE_TASK = 1
         private const val VIEW_TYPE_SECTION_HEADER = 2

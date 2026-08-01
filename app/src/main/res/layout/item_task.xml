@@ -5,8 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="4dp"
-    android:layout_marginBottom="4dp"
-    android:minHeight="76dp">
+    android:layout_marginBottom="4dp">
 
     <LinearLayout
         android:id="@+id/task_delete_action"
@@ -24,8 +23,8 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_delete"
             app:tint="@color/white" />
@@ -34,10 +33,11 @@
     <FrameLayout
         android:id="@+id/task_foreground_container"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:background="@drawable/bg_task_group_single"
         android:clipToOutline="true"
         android:foreground="?attr/selectableItemBackground"
+        android:minHeight="70dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -45,7 +45,8 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="wrap_content"
+            android:minHeight="70dp">
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/task_checkbox"
@@ -53,13 +54,11 @@
                 android:layout_height="48dp"
                 android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:button="@drawable/task_checkbox_button"
-                android:buttonTint="@color/task_checkbox_tint"
+                android:button="@drawable/ic_task_checkbox_outline"
                 android:minHeight="0dp"
                 android:minWidth="0dp"
                 android:padding="0dp"
                 app:centerIfNoTextEnabled="true"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -68,8 +67,8 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="2dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="10dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp"
                 android:orientation="vertical"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/task_priority_button"
@@ -82,69 +81,69 @@
                     android:layout_height="wrap_content"
                     android:ellipsize="end"
                     android:fontFamily="sans-serif"
+                    android:lineSpacingExtra="1dp"
                     android:maxLines="2"
                     android:textColor="@color/home_task_text"
                     android:textSize="15sp"
                     tools:text="Prepare the weekly report" />
 
-                <LinearLayout
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/task_metadata_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:visibility="gone"
+                    app:chipSpacingHorizontal="6dp"
+                    app:chipSpacingVertical="4dp"
+                    app:singleLine="false">
 
                     <TextView
                         android:id="@+id/task_due_date"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:drawableStart="@drawable/ic_calendar"
+                        android:drawableStart="@drawable/ic_task_calendar_small"
                         android:drawablePadding="3dp"
                         android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium"
                         android:maxLines="1"
                         android:textColor="@color/home_text_secondary"
-                        android:textSize="11sp"
+                        android:textSize="12sp"
                         android:visibility="gone"
-                        tools:text="Today 14:00"
+                        tools:text="Today · 14:00"
                         tools:visibility="visible" />
+
+                    <ImageView
+                        android:id="@+id/task_repeat_icon"
+                        android:layout_width="11dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@string/task_repeats"
+                        android:src="@drawable/ic_task_repeat_small"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/task_reminder_icon"
+                        android:layout_width="11dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@string/task_has_reminder"
+                        android:src="@drawable/ic_task_bell_small"
+                        android:visibility="gone" />
 
                     <TextView
                         android:id="@+id/task_list_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:background="@drawable/bg_task_list_badge"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:paddingStart="6dp"
-                        android:paddingTop="2dp"
-                        android:paddingEnd="6dp"
-                        android:paddingBottom="2dp"
-                        android:textColor="@color/home_personal"
-                        android:textSize="10sp"
+                        android:textColor="@color/forgetty_text_secondary"
+                        android:textSize="12sp"
                         tools:text="Work" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/task_metadata_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:visibility="gone">
-
-                    <TextView android:id="@+id/task_tags" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="1" android:textColor="@color/forgetty_tertiary" android:textSize="10sp" tools:text="#QA  #Important" />
-                    <ImageView android:id="@+id/task_reminder_icon" android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@string/task_has_reminder" android:padding="2dp" android:src="@drawable/ic_notifications" android:visibility="gone" app:tint="@color/forgetty_text_secondary" />
-                    <ImageView android:id="@+id/task_repeat_icon" android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@string/task_repeats" android:padding="2dp" android:src="@drawable/ic_repeat" android:visibility="gone" app:tint="@color/forgetty_text_secondary" />
-                    <TextView android:id="@+id/task_assignees" android:layout_width="wrap_content" android:layout_height="22dp" android:background="@drawable/bg_task_list_badge" android:gravity="center" android:minWidth="22dp" android:paddingStart="4dp" android:paddingEnd="4dp" android:textColor="@color/forgetty_tertiary" android:textSize="9sp" android:visibility="gone" tools:text="SD" />
-                </LinearLayout>
+                </com.google.android.material.chip.ChipGroup>
             </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/task_priority_button"
                 android:layout_width="44dp"
-                android:layout_height="match_parent"
+                android:layout_height="0dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:contentDescription="@string/no_priority"
@@ -157,10 +156,21 @@
                     android:id="@+id/task_priority_dot"
                     android:layout_width="8dp"
                     android:layout_height="8dp"
-                    android:layout_gravity="center"
+                    android:layout_gravity="top|center_horizontal"
+                    android:layout_marginTop="18dp"
                     android:background="@drawable/bg_task_priority_dot"
                     android:importantForAccessibility="no"
                     tools:visibility="visible" />
+
+                <LinearLayout
+                    android:id="@+id/task_assignees"
+                    android:layout_width="wrap_content"
+                    android:layout_height="18dp"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:layout_marginBottom="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone" />
             </FrameLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 

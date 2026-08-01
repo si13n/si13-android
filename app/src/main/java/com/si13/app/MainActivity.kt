@@ -119,7 +119,6 @@ class MainActivity : AppCompatActivity() {
         button: MaterialButton,
         selected: Boolean
     ) {
-        button.text = ""
         button.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
         val contentColor = MaterialColors.getColor(
             button,
@@ -132,6 +131,7 @@ class MainActivity : AppCompatActivity() {
         button.iconTint = ColorStateList.valueOf(
             contentColor
         )
+        button.setTextColor(contentColor)
     }
 
     companion object {

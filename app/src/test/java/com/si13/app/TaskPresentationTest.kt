@@ -68,6 +68,16 @@ class TaskPresentationTest {
         assertEquals(listOf("done"), sections.single().tasks.map(Task::id))
     }
 
+    @Test
+    fun `home progress messages match Figma thresholds`() {
+        assertEquals(R.string.progress_get_started, HomeProgressPresentation.messageRes(0, 0))
+        assertEquals(R.string.progress_get_started, HomeProgressPresentation.messageRes(0, 5))
+        assertEquals(R.string.progress_good_start, HomeProgressPresentation.messageRes(1, 5))
+        assertEquals(R.string.progress_keep_going, HomeProgressPresentation.messageRes(2, 5))
+        assertEquals(R.string.progress_almost_there, HomeProgressPresentation.messageRes(4, 5))
+        assertEquals(R.string.progress_almost_there, HomeProgressPresentation.messageRes(5, 5))
+    }
+
     private fun task(
         id: String,
         dueDate: String? = null,

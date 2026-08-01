@@ -11,4 +11,9 @@
     <item name="list_manager_colors" type="id" />
     <item name="list_manager_preview" type="id" />
     <item name="list_manager_save" type="id" />
+    <item name="sort_option_priority" type="id" />
+    <item name="sort_option_newest" type="id" />
+    <item name="sort_option_oldest" type="id" />
+    <item name="sort_option_alphabetical" type="id" />
+    <item name="sort_option_due_date" type="id" />
 </resources>

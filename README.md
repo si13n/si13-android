@@ -4,16 +4,20 @@ Forgetty is a native Kotlin todo application built with Android Views, Material 
 
 ## Screenshots
 
+Screenshots use emulator-only fixture data; production builds do not include hardcoded sample tasks.
+
 <table>
   <tr>
     <th>Home</th>
+    <th>Sort tasks</th>
     <th>Add task</th>
     <th>Profile</th>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/forgetty-home.png" alt="Forgetty Home screen" width="220" /></td>
-    <td><img src="docs/screenshots/forgetty-add-task.png" alt="Forgetty Add Task screen" width="220" /></td>
-    <td><img src="docs/screenshots/forgetty-profile.png" alt="Forgetty guest Profile screen" width="220" /></td>
+    <td><img src="docs/screenshots/forgetty-home.png" alt="Forgetty Home screen populated with example tasks" width="180" /></td>
+    <td><img src="docs/screenshots/forgetty-sort.png" alt="Forgetty task sorting bottom sheet" width="180" /></td>
+    <td><img src="docs/screenshots/forgetty-add-task.png" alt="Forgetty Add Task screen" width="180" /></td>
+    <td><img src="docs/screenshots/forgetty-profile.png" alt="Forgetty guest Profile screen" width="180" /></td>
   </tr>
 </table>
 
