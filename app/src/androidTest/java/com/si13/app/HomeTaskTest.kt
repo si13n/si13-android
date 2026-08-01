@@ -27,6 +27,7 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isRoot
+import androidx.test.espresso.matcher.ViewMatchers.isSelected
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -170,16 +171,16 @@ class HomeTaskTest {
     }
 
     @Test
-    fun bottomNavigationKeepsIconOnlyDestinations() {
+    fun bottomNavigationShowsLabeledDestinations() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(withId(R.id.homeFragment)).check(matches(withText("")))
-            onView(withId(R.id.profileFragment)).check(matches(withText("")))
+            onView(withId(R.id.homeFragment)).check(matches(withText(R.string.home)))
+            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.profile)))
 
             onView(withId(R.id.profileFragment)).perform(click())
-            onView(withId(R.id.profileFragment)).check(matches(withText("")))
-            onView(withId(R.id.homeFragment)).check(matches(withText("")))
+            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.profile)))
+            onView(withId(R.id.homeFragment)).check(matches(withText(R.string.home)))
         }
     }
 
@@ -190,7 +191,23 @@ class HomeTaskTest {
 
             onView(withId(R.id.task_sort_button)).perform(click())
 
+            onView(withId(R.id.sort_menu_root)).check(matches(isDisplayed()))
             onView(withText(R.string.sort_due_date)).check(matches(isDisplayed()))
+            onView(withId(R.id.sort_option_due_date)).check(matches(isSelected()))
+        }
+    }
+
+    @Test
+    fun sortMenuPersistsAndMarksTheSelectedOption() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            continueAsGuest()
+
+            onView(withId(R.id.task_sort_button)).perform(click())
+            onView(withId(R.id.sort_option_priority)).perform(click())
+            onView(withId(R.id.sort_menu_root)).check(doesNotExist())
+
+            onView(withId(R.id.task_sort_button)).perform(click())
+            onView(withId(R.id.sort_option_priority)).check(matches(isSelected()))
         }
     }
 
@@ -199,8 +216,7 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(withId(R.id.task_list_filter_scroll)).perform(swipeLeft())
-            onView(withText(R.string.manage_lists)).perform(click())
+            onView(withContentDescription(R.string.manage_lists)).perform(click())
             onView(withId(R.id.list_manager_list_card)).check(matches(isDisplayed()))
             onView(withId(R.id.list_manager_create)).perform(click())
             onView(withText(R.string.new_list)).check(matches(isDisplayed()))

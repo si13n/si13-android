@@ -25,7 +25,7 @@
         android:text="@string/upcoming_section"
         android:textAllCaps="true"
         android:textColor="@color/home_text_secondary"
-        android:textSize="11sp" />
+        android:textSize="12sp" />
 
     <TextView
         android:id="@+id/task_section_count"

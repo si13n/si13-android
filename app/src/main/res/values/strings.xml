@@ -63,9 +63,10 @@
     <string name="today_filter">Today</string>
     <string name="high_priority_filter">High priority</string>
     <string name="completed_filter_label">Completed</string>
+    <string name="progress_get_started">Let\'s get started</string>
     <string name="progress_good_start">A good start</string>
-    <string name="progress_keep_going">Keep going</string>
-    <string name="progress_almost_there">Almost there</string>
+    <string name="progress_keep_going">Making progress</string>
+    <string name="progress_almost_there">Almost there!</string>
     <string name="progress_all_done">All done</string>
     <string name="overdue_section">Overdue</string>
     <string name="today_section">Today</string>
@@ -120,8 +121,8 @@
         <item quantity="one">%d task left</item>
         <item quantity="other">%d tasks left</item>
     </plurals>
-    <string name="tasks_empty">Nothing on your mind yet</string>
-    <string name="tasks_empty_hint">Add your first task</string>
+    <string name="tasks_empty">Nothing to do yet</string>
+    <string name="tasks_empty_hint">Add your first task and keep today clear.</string>
     <string name="no_active_tasks">No active tasks</string>
     <string name="show_completed_hint">Open Completed to review finished tasks</string>
     <string name="task_input_hint">Add a task…</string>
@@ -141,6 +142,7 @@
     <string name="sort_priority_first">Priority first</string>
     <string name="sort_alphabetical">Alphabetical</string>
     <string name="sort_due_date">Due date</string>
+    <string name="sort_option_selected">%1$s, selected</string>
     <string name="active_filter">Active</string>
     <string name="completed_filter">Completed</string>
     <string name="home_task_status">%1$d active</string>
@@ -258,6 +260,9 @@
     <string name="due_today">Due Today</string>
     <string name="due_tomorrow">Due Tomorrow</string>
     <string name="due_date_format">Due %1$s</string>
+    <string name="home_due_today">Today</string>
+    <string name="home_due_tomorrow">Tomorrow</string>
+    <string name="home_days_overdue">%1$dd overdue</string>
     <string name="repeat">Repeat</string>
     <string name="does_not_repeat">Does not repeat</string>
     <string name="notes">Notes</string>
