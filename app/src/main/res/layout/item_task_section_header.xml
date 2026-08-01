@@ -1,13 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/task_section_title"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:fontFamily="sans-serif-medium"
-    android:paddingStart="2dp"
-    android:paddingTop="24dp"
-    android:paddingEnd="2dp"
-    android:paddingBottom="12dp"
-    android:text="@string/completed"
-    android:textColor="@color/home_text_secondary"
-    android:textSize="15sp" />
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="0dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="0dp"
+    android:paddingBottom="2dp">
+
+    <View
+        android:id="@+id/task_section_accent"
+        android:layout_width="3dp"
+        android:layout_height="14dp"
+        android:background="@color/home_upcoming" />
+
+    <TextView
+        android:id="@+id/task_section_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.06"
+        android:text="@string/upcoming_section"
+        android:textAllCaps="true"
+        android:textColor="@color/home_text_secondary"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/task_section_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_task_section_count"
+        android:gravity="center"
+        android:minWidth="20dp"
+        android:paddingStart="5dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="5dp"
+        android:paddingBottom="2dp"
+        android:textColor="@color/home_text_secondary"
+        android:textSize="10sp" />
+</LinearLayout>

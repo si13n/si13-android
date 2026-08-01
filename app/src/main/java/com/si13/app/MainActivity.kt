@@ -18,6 +18,11 @@ import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var navController: NavController
+    private lateinit var navHostFragment: NavHostFragment
+    fun setBottomNavigationVisible(visible: Boolean) {
+        findViewById<View>(R.id.bottom_navigation)?.visibility = if (visible) View.VISIBLE else View.GONE
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
@@ -26,22 +31,26 @@ class MainActivity : AppCompatActivity() {
         )
         setContentView(R.layout.activity_main)
 
-        val navHostFragment = supportFragmentManager
+        navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
+        navController = navHostFragment.navController
         val bottomNavigationView = findViewById<View>(R.id.bottom_navigation)
         val homeButton = findViewById<MaterialButton>(R.id.homeFragment)
         val profileButton = findViewById<MaterialButton>(R.id.profileFragment)
+        val addTaskButton = findViewById<MaterialButton>(R.id.add_task_fab)
 
         homeButton.setOnClickListener { navigateTo(navController, R.id.homeFragment) }
         profileButton.setOnClickListener { navigateTo(navController, R.id.profileFragment) }
+        addTaskButton.setOnClickListener {
+            navigateTo(navController, R.id.homeFragment)
+            addTaskButton.post {
+                (navHostFragment.childFragmentManager.primaryNavigationFragment as? HomeFragment)
+                    ?.showAddTaskSheet()
+            }
+        }
         navController.addOnDestinationChangedListener { _, destination, _ ->
-            updateNavigationButton(homeButton, destination.id == R.id.homeFragment, R.string.home)
-            updateNavigationButton(
-                profileButton,
-                destination.id == R.id.profileFragment,
-                R.string.profile
-            )
+            updateNavigationButton(homeButton, destination.id == R.id.homeFragment)
+            updateNavigationButton(profileButton, destination.id == R.id.profileFragment)
         }
 
         if (savedInstanceState == null) {
@@ -68,6 +77,32 @@ class MainActivity : AppCompatActivity() {
             )
             insets
         }
+        handleExtensionIntent(intent)
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleExtensionIntent(intent)
+    }
+
+    private fun handleExtensionIntent(intent: android.content.Intent?) {
+        val action = intent?.action
+        val taskId = intent?.getStringExtra(EXTRA_TASK_ID)
+        if (action !in setOf(ACTION_ADD_TASK, ACTION_TODAY_TASKS, ACTION_VOICE_TASK, ACTION_SEARCH_TASKS) && taskId == null) return
+        navigateTo(navController, R.id.homeFragment)
+        findViewById<View>(R.id.nav_host_fragment).post {
+            val home = navHostFragment.childFragmentManager.primaryNavigationFragment as? HomeFragment
+            when (action) {
+                ACTION_ADD_TASK -> home?.showAddTaskSheet()
+                ACTION_VOICE_TASK -> home?.showAddTaskSheet(startVoice = true)
+                ACTION_TODAY_TASKS -> home?.showTodayFromExtension()
+                ACTION_SEARCH_TASKS -> home?.openSearchFromExtension()
+            }
+            taskId?.let { home?.openTaskFromExtension(it) }
+            intent?.removeExtra(EXTRA_TASK_ID)
+            intent?.action = null
+        }
     }
 
     private fun navigateTo(navController: NavController, destinationId: Int) {
@@ -82,22 +117,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateNavigationButton(
         button: MaterialButton,
-        selected: Boolean,
-        labelRes: Int
+        selected: Boolean
     ) {
-        button.text = if (selected) getString(labelRes) else ""
-        button.contentDescription = getString(labelRes)
-        button.backgroundTintList = ColorStateList.valueOf(
-            if (selected) {
-                MaterialColors.getColor(button, androidx.appcompat.R.attr.colorPrimary)
-            } else {
-                Color.TRANSPARENT
-            }
-        )
+        button.text = ""
+        button.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
         val contentColor = MaterialColors.getColor(
             button,
             if (selected) {
-                com.google.android.material.R.attr.colorOnPrimary
+                androidx.appcompat.R.attr.colorPrimary
             } else {
                 com.google.android.material.R.attr.colorOnSurfaceVariant
             }
@@ -105,6 +132,12 @@ class MainActivity : AppCompatActivity() {
         button.iconTint = ColorStateList.valueOf(
             contentColor
         )
-        button.setTextColor(contentColor)
+    }
+
+    companion object {
+        const val ACTION_ADD_TASK = "com.si13.app.ADD_TASK"
+        const val ACTION_TODAY_TASKS = "com.si13.app.TODAY_TASKS"
+        const val ACTION_VOICE_TASK = "com.si13.app.VOICE_TASK"
+        const val ACTION_SEARCH_TASKS = "com.si13.app.SEARCH_TASKS"
     }
 }

@@ -4,278 +4,377 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/home_background"
+    android:background="@color/forgetty_background"
     tools:context=".HomeFragment">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:id="@+id/home_content"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintWidth_max="@dimen/home_content_max_width">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/home_header"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:id="@+id/home_offline_banner"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="20dp"
-            android:paddingTop="16dp"
-            android:paddingEnd="20dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:background="@color/forgetty_surface_container"
+            android:gravity="center_vertical"
+            android:minHeight="32dp"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:visibility="gone">
 
-            <LinearLayout
-                android:id="@+id/home_title_column"
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_cloud_off"
+                app:tint="@color/forgetty_text_secondary" />
+
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toStartOf="@id/home_header_actions"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/offline_changes_sync_later"
+                android:textColor="@color/forgetty_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
 
-                <TextView
-                    android:id="@+id/home_title_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:text="@string/today"
-                    android:textColor="@color/home_text_primary"
-                    android:textSize="27sp" />
+        <LinearLayout
+            android:id="@+id/home_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/home_title_column"
+                android:layout_width="match_parent"
+                android:layout_height="48dp">
 
                 <TextView
                     android:id="@+id/home_date_text"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="@color/home_text_secondary"
-                    android:textSize="14sp"
-                    tools:text="Tuesday, July 27" />
-            </LinearLayout>
+                    android:textColor="@color/forgetty_text_secondary"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/home_header_actions"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:text="Saturday 1 August" />
 
-            <LinearLayout
-                android:id="@+id/home_header_actions"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:baselineAligned="false"
-                android:gravity="center_vertical|end"
-                android:orientation="horizontal"
-                app:layout_constraintBottom_toBottomOf="@id/home_title_column"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <TextView
-                    android:id="@+id/task_status_text"
+                <LinearLayout
+                    android:id="@+id/home_header_actions"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="80dp"
-                    android:minHeight="32dp"
-                    android:background="@drawable/bg_home_status_chip"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:gravity="center"
-                    android:maxLines="2"
-                    android:paddingStart="8dp"
-                    android:paddingTop="4dp"
-                    android:paddingEnd="8dp"
-                    android:paddingBottom="4dp"
-                    android:text="@string/tasks_loading"
-                    android:textColor="@color/home_text_primary"
-                    android:textSize="11sp"
-                    tools:text="3 active" />
-
-                <ImageButton
-                    android:id="@+id/task_sort_button"
-                    android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_home_icon_button"
-                    android:contentDescription="@string/sort_tasks"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_sort"
-                    app:tint="@color/home_text_secondary" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
 
-                <ImageButton
-                    android:id="@+id/task_settings_button"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_home_icon_button"
-                    android:contentDescription="@string/show_completed_tasks"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_visibility_off"
-                    app:tint="@color/home_text_secondary" />
-            </LinearLayout>
+                    <ImageButton
+                        android:id="@+id/task_search_button"
+                        style="@style/Widget.Forgetty.IconButton"
+                        android:contentDescription="@string/search_tasks"
+                        android:src="@drawable/ic_search"
+                        app:tint="@color/forgetty_text_secondary" />
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/task_progress_indicator"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:max="100"
-                app:indicatorColor="@color/home_accent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/home_title_column"
-                app:trackColor="@color/home_border"
-                app:trackCornerRadius="2dp"
-                app:trackThickness="4dp" />
+                    <ImageButton
+                        android:id="@+id/task_settings_button"
+                        style="@style/Widget.Forgetty.IconButton"
+                        android:contentDescription="@string/show_completed_tasks"
+                        android:src="@drawable/ic_check_circle"
+                        app:tint="@color/forgetty_text_secondary" />
 
-            <TextView
-                android:id="@+id/task_progress_text"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/home_text_secondary"
-                android:textSize="13sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/task_progress_indicator"
-                tools:text="2 of 5 completed" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/task_list"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:clipToOutline="true"
-            android:clipToPadding="false"
-            android:fadeScrollbars="false"
-            android:overScrollMode="never"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="0dp"
-            android:scrollbars="none"
-            app:layout_constraintBottom_toTopOf="@id/task_input_panel"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/home_header"
-            app:layout_constraintVertical_bias="0"
-            app:layout_constrainedHeight="true"
-            tools:listitem="@layout/item_task" />
-
-        <LinearLayout
-            android:id="@+id/empty_tasks_container"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="24dp"
-            app:layout_constraintBottom_toTopOf="@id/task_input_panel"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/home_header">
-
-            <TextView
-                android:id="@+id/empty_tasks_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
-                android:gravity="center"
-                android:text="@string/tasks_empty"
-                android:textColor="@color/home_text_primary"
-                android:textSize="18sp" />
-
-            <TextView
-                android:id="@+id/empty_tasks_hint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:gravity="center"
-                android:text="@string/tasks_empty_hint"
-                android:textColor="@color/home_text_secondary"
-                android:textSize="14sp" />
-        </LinearLayout>
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/task_input_panel"
-            android:layout_width="0dp"
-            android:layout_height="68dp"
-            android:layout_marginStart="20dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/home_surface"
-            app:cardCornerRadius="22dp"
-            app:cardElevation="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:strokeColor="@color/home_border"
-            app:strokeWidth="1dp">
+                    <ImageButton
+                        android:id="@+id/task_sort_button"
+                        style="@style/Widget.Forgetty.IconButton"
+                        android:contentDescription="@string/sort_tasks"
+                        android:src="@drawable/ic_sort"
+                        app:tint="@color/forgetty_text_secondary" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="wrap_content">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/task_input"
+                <TextView
+                    android:id="@+id/home_title_text"
                     android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:background="@android:color/transparent"
-                    android:gravity="center_vertical"
-                    android:hint="@string/task_input_hint"
-                    android:imeOptions="actionDone"
-                    android:inputType="textCapSentences"
-                    android:maxLines="1"
-                    android:paddingStart="18dp"
-                    android:paddingEnd="8dp"
-                    android:singleLine="true"
-                    android:textColor="@color/home_text_primary"
-                    android:textColorHint="@color/home_text_secondary"
-                    android:textSize="16sp"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/my_tasks"
+                    android:textColor="@color/forgetty_text_primary"
+                    android:textSize="24sp"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/task_character_counter"
+                    app:layout_constraintEnd_toStartOf="@id/view_mode_container"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <TextView
-                    android:id="@+id/task_character_counter"
+                <LinearLayout
+                    android:id="@+id/view_mode_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_home_segment_container"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:padding="3dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:id="@+id/list_view_button"
+                        style="@style/Widget.Forgetty.Segment"
+                        android:text="@string/list_view" />
+
+                    <TextView
+                        android:id="@+id/calendar_view_button"
+                        style="@style/Widget.Forgetty.Segment"
+                        android:text="@string/calendar_view" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <HorizontalScrollView
+                android:id="@+id/task_list_filter_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/task_list_filter_group"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:textColor="@color/home_text_secondary"
-                    android:textSize="12sp"
-                    android:visibility="gone"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/add_task_button"
-                    app:layout_constraintTop_toTopOf="parent"
-                    tools:text="170 / 200"
-                    tools:visibility="visible" />
+                    app:chipSpacingHorizontal="6dp"
+                    app:selectionRequired="true"
+                    app:singleLine="true"
+                    app:singleSelection="true" />
+            </HorizontalScrollView>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/add_task_button"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginEnd="8dp"
-                    android:contentDescription="@string/add_task"
-                    android:gravity="center"
-                    android:insetLeft="0dp"
-                    android:insetTop="0dp"
-                    android:insetRight="0dp"
-                    android:insetBottom="0dp"
-                    android:minHeight="0dp"
-                    android:minWidth="0dp"
-                    android:text=""
-                    app:backgroundTint="@color/home_accent"
-                    app:cornerRadius="26dp"
-                    app:icon="@drawable/ic_send"
-                    app:iconGravity="textStart"
-                    app:iconPadding="0dp"
-                    app:iconSize="22dp"
-                    app:iconTint="@color/white"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-        </com.google.android.material.card.MaterialCardView>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/task_progress_card"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="@color/forgetty_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/forgetty_outline_variant"
+                app:strokeWidth="1dp">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <TextView
+                        android:id="@+id/task_progress_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/forgetty_text_primary"
+                        android:textSize="13sp"
+                        app:layout_constraintBottom_toTopOf="@id/task_progress_indicator"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:text="1 of 7 completed" />
+
+                    <TextView
+                        android:id="@+id/task_progress_encouragement"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="@color/forgetty_secondary"
+                        android:textSize="12sp"
+                        app:layout_constraintBottom_toBottomOf="@id/task_progress_text"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/task_progress_text"
+                        tools:text="A good start" />
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/task_progress_indicator"
+                        android:layout_width="0dp"
+                        android:layout_height="4dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="10dp"
+                        android:max="100"
+                        app:indicatorColor="@color/forgetty_primary"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/task_progress_text"
+                        app:trackColor="@color/forgetty_surface_container"
+                        app:trackCornerRadius="2dp"
+                        app:trackThickness="4dp" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/task_status_filter_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:chipSpacingHorizontal="6dp"
+                    app:selectionRequired="true"
+                    app:singleLine="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.chip.Chip android:id="@+id/status_filter_all" style="@style/Widget.Forgetty.FilterChip" android:layout_width="wrap_content" android:layout_height="40dp" android:checked="true" android:text="@string/all_filter" />
+                    <com.google.android.material.chip.Chip android:id="@+id/status_filter_today" style="@style/Widget.Forgetty.FilterChip" android:layout_width="wrap_content" android:layout_height="40dp" android:text="@string/today_filter" />
+                    <com.google.android.material.chip.Chip android:id="@+id/status_filter_high" style="@style/Widget.Forgetty.FilterChip" android:layout_width="wrap_content" android:layout_height="40dp" android:text="@string/high_priority_filter" />
+                    <com.google.android.material.chip.Chip android:id="@+id/status_filter_completed" style="@style/Widget.Forgetty.FilterChip" android:layout_width="wrap_content" android:layout_height="40dp" android:text="@string/completed_filter_label" />
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
+            <TextView
+                android:id="@+id/task_status_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/forgetty_overdue"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/task_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="16dp"
+                android:scrollbars="none" />
+
+            <LinearLayout
+                android:id="@+id/home_calendar_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/forgetty_surface"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/forgetty_outline_variant"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:gravity="center_vertical" android:orientation="horizontal">
+                            <ImageButton android:id="@+id/calendar_previous_month" style="@style/Widget.Forgetty.IconButton" android:contentDescription="@string/previous_month" android:src="@drawable/ic_chevron_left" app:tint="@color/forgetty_text_secondary" />
+                            <TextView android:id="@+id/calendar_month_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:gravity="center" android:textColor="@color/forgetty_text_primary" android:textSize="15sp" tools:text="August 2026" />
+                            <ImageButton android:id="@+id/calendar_next_month" style="@style/Widget.Forgetty.IconButton" android:contentDescription="@string/next_month" android:src="@drawable/ic_chevron_right" app:tint="@color/forgetty_text_secondary" />
+                            <com.google.android.material.button.MaterialButton android:id="@+id/calendar_today" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:minWidth="48dp" android:text="@string/today" android:textAllCaps="false" android:textColor="@color/forgetty_primary" android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <GridLayout
+                            android:id="@+id/calendar_grid"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:columnCount="7"
+                            android:orientation="horizontal" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView android:id="@+id/calendar_selected_date" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:fontFamily="sans-serif-medium" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />
+                <TextView android:id="@+id/calendar_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:padding="24dp" android:text="@string/no_tasks_this_day" android:textColor="@color/forgetty_text_secondary" android:textSize="14sp" android:visibility="gone" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/calendar_agenda_list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:paddingBottom="16dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/empty_tasks_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="32dp">
+
+                <ImageView android:layout_width="40dp" android:layout_height="40dp" android:contentDescription="@null" android:src="@drawable/ic_empty_tasks" app:tint="@color/forgetty_outline" />
+                <TextView android:id="@+id/empty_tasks_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:fontFamily="sans-serif-medium" android:gravity="center" android:textColor="@color/forgetty_text_primary" android:textSize="16sp" />
+                <TextView android:id="@+id/empty_tasks_hint" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textColor="@color/forgetty_text_secondary" android:textSize="14sp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/empty_add_task" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginTop="8dp" android:text="@string/add_task" android:textAllCaps="false" android:visibility="gone" />
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/home_loading"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                app:indicatorColor="@color/forgetty_primary" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/home_search_overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/forgetty_background"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@color/forgetty_surface"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingEnd="8dp">
+
+            <ImageButton android:id="@+id/task_search_close" android:layout_width="48dp" android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/close_search" android:padding="14dp" android:src="@drawable/ic_arrow_back" app:tint="@color/forgetty_text_primary" />
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/task_search_input" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:hint="@string/search_tasks_placeholder" android:imeOptions="actionSearch" android:inputType="text" android:singleLine="true" android:textColor="@color/forgetty_text_primary" android:textColorHint="@color/forgetty_text_secondary" android:textSize="16sp" />
+            <ImageButton android:id="@+id/task_search_clear" android:layout_width="48dp" android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/clear_search" android:padding="15dp" android:src="@drawable/ic_close" android:visibility="gone" app:tint="@color/forgetty_text_secondary" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/search_helper" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:paddingTop="40dp" android:text="@string/search_titles_notes" android:textColor="@color/forgetty_text_secondary" android:textSize="14sp" />
+        <LinearLayout android:id="@+id/search_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:orientation="vertical" android:padding="40dp" android:visibility="gone">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/no_matching_tasks" android:textColor="@color/forgetty_text_primary" android:textSize="16sp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/try_different_search" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/search_empty_clear" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/clear_search" android:textAllCaps="false" />
+        </LinearLayout>
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/search_results" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:padding="16dp" />
+    </LinearLayout>
 </com.si13.app.SwipeDismissLayout>

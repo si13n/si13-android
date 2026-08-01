@@ -127,19 +127,50 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:fontFamily="sans-serif-medium" android:text="@string/your_progress" android:textColor="?attr/colorOnSurface" android:textSize="18sp" />
+            <LinearLayout
+                android:id="@+id/profile_guest_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_profile_card"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="20dp">
+                <TextView android:id="@+id/profile_message_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="@string/using_forgetty_guest" android:textColor="@color/text_primary" android:textSize="18sp" android:fontFamily="sans-serif-medium" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/guest_local_storage_explanation" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                <LinearLayout android:id="@+id/profile_sign_in_button" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="16dp" android:background="@drawable/bg_google_sign_in_button" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="16dp" android:paddingEnd="16dp">
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:src="@drawable/ic_google_g" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:gravity="center" android:text="@string/sign_in_with_google" android:textColor="@color/text_primary" android:textSize="14sp" />
+                </LinearLayout>
+                <TextView android:id="@+id/profile_error_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center" android:textColor="?attr/colorError" android:visibility="gone" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center" android:text="@string/google_privacy_reassurance" android:textColor="@color/text_secondary" android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:fontFamily="sans-serif-medium" android:text="@string/productivity" android:textColor="?attr/colorOnSurface" android:textSize="18sp" />
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/profile_productivity_card"
                 android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
                 app:cardBackgroundColor="@color/profile_surface" app:cardCornerRadius="20dp" app:cardElevation="0dp" app:strokeWidth="0dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                    <LinearLayout android:id="@+id/profile_metrics_horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                        <include layout="@layout/profile_metric_completed" />
-                        <View android:layout_width="1dp" android:layout_height="40dp" android:background="@color/profile_divider" />
-                        <include layout="@layout/profile_metric_active" />
-                        <View android:layout_width="1dp" android:layout_height="40dp" android:background="@color/profile_divider" />
-                        <include layout="@layout/profile_metric_rate" />
-                    </LinearLayout>
+                    <GridLayout android:id="@+id/profile_metrics_horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:columnCount="2" android:rowCount="2" android:useDefaultMargins="true">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:background="@color/forgetty_surface_low" android:orientation="vertical" android:padding="10dp">
+                            <TextView android:id="@+id/profile_completed_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:textColor="?attr/colorPrimary" android:textSize="20sp" />
+                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/completed_today" android:textColor="@color/profile_secondary" android:textSize="11sp" />
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:background="@color/forgetty_surface_low" android:orientation="vertical" android:padding="10dp">
+                            <TextView android:id="@+id/profile_week_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:textColor="?attr/colorPrimary" android:textSize="20sp" />
+                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/completed_this_week" android:textColor="@color/profile_secondary" android:textSize="11sp" />
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:background="@color/forgetty_surface_low" android:orientation="vertical" android:padding="10dp">
+                            <TextView android:id="@+id/profile_active_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:textColor="?attr/colorPrimary" android:textSize="20sp" />
+                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/active_tasks" android:textColor="@color/profile_secondary" android:textSize="11sp" />
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:background="@color/forgetty_surface_low" android:orientation="vertical" android:padding="10dp">
+                            <TextView android:id="@+id/profile_rate_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:textColor="?attr/colorPrimary" android:textSize="20sp" />
+                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/completion_rate" android:textColor="@color/profile_secondary" android:textSize="11sp" />
+                        </LinearLayout>
+                    </GridLayout>
                     <LinearLayout android:id="@+id/profile_metrics_vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
                         <include layout="@layout/profile_metric_completed_vertical" />
                         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/profile_divider" />
@@ -151,9 +182,29 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:fontFamily="sans-serif-medium" android:text="@string/settings" android:textColor="?attr/colorOnSurface" android:textSize="18sp" />
-            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" app:cardBackgroundColor="@color/profile_surface" app:cardCornerRadius="20dp" app:cardElevation="0dp" app:strokeWidth="0dp">
+            <TextView
+                android:id="@+id/profile_weekly_activity_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/weekly_activity"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="15sp" />
+
+            <com.si13.app.WeeklyActivityView
+                android:id="@+id/profile_weekly_activity"
+                android:layout_width="match_parent"
+                android:layout_height="124dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_profile_card"
+                android:contentDescription="@string/weekly_activity_description" />
+
+            <TextView android:id="@+id/profile_settings_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:fontFamily="sans-serif-medium" android:text="@string/settings" android:textColor="?attr/colorOnSurface" android:textSize="18sp" />
+            <com.google.android.material.card.MaterialCardView android:id="@+id/profile_settings_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" app:cardBackgroundColor="@color/profile_surface" app:cardCornerRadius="20dp" app:cardElevation="0dp" app:strokeWidth="0dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                    <include layout="@layout/profile_setting_lists" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginStart="68dp" android:background="@color/profile_divider" />
                     <include layout="@layout/profile_setting_appearance" />
                     <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginStart="68dp" android:background="@color/profile_divider" />
                     <include layout="@layout/profile_setting_reminders" />
@@ -166,14 +217,7 @@
 
             <com.google.android.material.button.MaterialButton android:id="@+id/profile_sign_out_button" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="28dp" android:contentDescription="@string/sign_out" android:text="@string/sign_out" android:textAllCaps="false" android:textColor="?attr/colorError" android:textSize="15sp" app:cornerRadius="14dp" app:icon="@drawable/ic_logout" app:iconGravity="textStart" app:iconPadding="8dp" app:iconSize="20dp" app:iconTint="?attr/colorError" app:strokeColor="?attr/colorError" />
 
-            <LinearLayout android:id="@+id/profile_guest_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:gravity="center_horizontal" android:orientation="vertical">
-                <TextView android:id="@+id/profile_message_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="@string/guest_profile_message" android:textColor="@color/text_secondary" android:textSize="16sp" />
-                <LinearLayout android:id="@+id/profile_sign_in_button" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="16dp" android:background="@drawable/bg_google_sign_in_button" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="16dp" android:paddingEnd="16dp">
-                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:src="@drawable/ic_google_g" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:gravity="center" android:text="@string/sign_in_with_google" android:textColor="@color/text_primary" android:textSize="14sp" />
-                </LinearLayout>
-                <TextView android:id="@+id/profile_error_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center" android:textColor="?attr/colorError" android:visibility="gone" />
-            </LinearLayout>
+            <LinearLayout android:id="@+id/profile_extended_settings" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:orientation="vertical" />
         </LinearLayout>
     </FrameLayout>
 </androidx.core.widget.NestedScrollView>
