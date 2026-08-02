@@ -56,11 +56,33 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         content.addView(metrics2)
 
         card("Overdue", tinted = overdue.isNotEmpty()).apply {
-            val value = TextView(context).apply { text = overdue.size.toString(); textSize = 24f; setTextColor(if (overdue.isEmpty()) color(R.color.forgetty_text_secondary) else color(R.color.home_priority_high)); gravity = Gravity.END }
-            (getChildAt(0) as LinearLayout).addView(value)
-            if (overdue.isEmpty()) addText("All caught up — nothing overdue.", 13)
-            overdue.forEach { addText("${it.text}  •  ${daysLate(it, today)}d late", 13) }
+            val row = getChildAt(0) as LinearLayout
+
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+
+            row.getChildAt(0).layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+
+            val value = TextView(context).apply {
+                text = overdue.size.toString()
+                textSize = 24f
+                setTextColor(
+                    if (overdue.isEmpty()) {
+                        color(R.color.forgetty_text_secondary)
+                    } else {
+                        color(R.color.home_priority_high)
+                    }
+                )
+                gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            }
+
+            row.addView(value)
         }.also(content::addView)
+
         activityCard(tasks, today)
         breakdownCard("By list", tasks.groupingBy { it.listName }.eachCount()) { name, count ->
             val done = tasks.count { it.listName == name && it.completed }
