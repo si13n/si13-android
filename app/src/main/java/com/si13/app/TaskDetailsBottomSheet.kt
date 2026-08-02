@@ -2,10 +2,12 @@ package com.si13.app
 
 import android.app.Dialog
 import android.content.res.Configuration
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputFilter
+import android.graphics.Paint
 import android.view.View
 import android.view.Window
 import android.widget.ImageButton
@@ -25,6 +27,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.textfield.TextInputEditText
@@ -49,6 +53,12 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
     private lateinit var notes: TextInputEditText
     private lateinit var repeatValue: TextView
     private lateinit var saveStatus: TextView
+    private lateinit var tagGroup: ChipGroup
+    private lateinit var tagEditor: View
+    private lateinit var tagEditButton: TextView
+    private lateinit var newTag: TextInputEditText
+    private val tags = linkedSetOf<String>()
+    private var editingTags = false
     private var priority = TaskPriority.NONE
     private var dueDate: String? = null
     private var repeatRule = TaskRepeatRule.NONE
@@ -61,6 +71,7 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         priority = task.priority
         dueDate = task.dueDate
         repeatRule = task.repeatRule
+        tags += task.tags
 
         return BottomSheetDialog(requireContext()).apply {
             setContentView(R.layout.bottom_sheet_task_details)
@@ -97,7 +108,13 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         title = sheet.findViewById(R.id.task_details_title)
         title.setText(task.text)
         title.filters = arrayOf(InputFilter.LengthFilter(TaskRepository.MAX_TASK_LENGTH))
+        renderTitleState()
         sheet.findViewById<View>(R.id.task_details_close).setOnClickListener { dismiss() }
+        sheet.findViewById<View>(R.id.task_details_toggle_complete).setOnClickListener {
+            task = task.copy(completed = !task.completed)
+            renderTitleState()
+            save()
+        }
         notes = sheet.findViewById(R.id.task_details_notes)
         notes.setText(task.note)
         saveStatus = sheet.findViewById(R.id.task_details_save_status)
@@ -159,6 +176,23 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
             dismiss()
         }
         sheet.findViewById<MaterialButton>(R.id.task_details_share).setOnClickListener { shareTask() }
+        tagGroup = sheet.findViewById(R.id.task_details_tag_group)
+        tagEditor = sheet.findViewById(R.id.task_details_tag_editor)
+        tagEditButton = sheet.findViewById(R.id.task_details_tags_edit)
+        newTag = sheet.findViewById(R.id.task_details_new_tag)
+        tagEditButton.setOnClickListener {
+            editingTags = !editingTags
+            renderTags()
+        }
+        sheet.findViewById<MaterialButton>(R.id.task_details_add_tag).setOnClickListener {
+            newTag.text?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { value ->
+                tags += value
+                newTag.text?.clear()
+                renderTags()
+                save()
+            }
+        }
+        renderTags()
         renderPriority()
         renderDueDate()
         renderRepeat()
@@ -178,11 +212,11 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
                 }
             })
         }
-        sheet.findViewById<MaterialButton>(R.id.task_details_list).apply {
+        sheet.findViewById<TextView>(R.id.task_details_list).apply {
             text = task.listName
             setOnClickListener { showListChoices() }
         }
-        sheet.findViewById<TextView>(R.id.task_details_tags).text = task.tags.joinToString("  ") { "#$it" }
+        renderTags()
         sheet.findViewById<TextView>(R.id.task_details_attachments).apply {
             isVisible = task.attachments.isNotEmpty()
             text = getString(R.string.attachment_count, task.attachments.size)
@@ -228,6 +262,29 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
 
     private fun renderRepeat() { if (::repeatValue.isInitialized) repeatValue.text = repeatLabel(repeatRule) }
 
+    private fun renderTags() {
+        if (!::tagGroup.isInitialized) return
+        tagGroup.removeAllViews()
+        tags.forEach { value ->
+            tagGroup.addView(Chip(requireContext()).apply {
+                text = if (editingTags) "$value  ×" else value
+                isClickable = editingTags
+                isCheckable = false
+                setTextColor(requireContext().getColor(R.color.forgetty_text_primary))
+                chipBackgroundColor = ColorStateList.valueOf(requireContext().getColor(R.color.home_accent_container))
+                setOnClickListener {
+                    if (editingTags) {
+                        tags.remove(value)
+                        renderTags()
+                        save()
+                    }
+                }
+            })
+        }
+        tagEditor.isVisible = editingTags
+        tagEditButton.text = getString(if (editingTags) R.string.done else R.string.edit)
+    }
+
     private fun showListChoices() {
         val definitions = TaskListStore.create(requireContext()).getLists()
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
@@ -235,7 +292,7 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
             .setSingleChoiceItems(definitions.map { it.name }.toTypedArray(), definitions.indexOfFirst { it.name == task.listName }) { dialog, which ->
                 task = currentTask().copy(listName = definitions[which].name, listId = definitions[which].id)
                 this@TaskDetailsBottomSheet.dialog
-                    ?.findViewById<MaterialButton>(R.id.task_details_list)?.text = task.listName
+                    ?.findViewById<TextView>(R.id.task_details_list)?.text = task.listName
                 save()
                 dialog.dismiss()
             }.show()
@@ -265,6 +322,25 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
         priorityValue.setTextColor(requireContext().getColor(presentation.colorRes))
         priorityIcon.setColorFilter(requireContext().getColor(presentation.colorRes))
         priorityValue.setBackgroundResource(presentation.backgroundRes)
+    }
+
+    private fun renderTitleState() {
+        if (!::title.isInitialized) return
+        title.paintFlags = if (task.completed) {
+            title.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+        } else {
+            title.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+        }
+        title.setTextColor(requireContext().getColor(
+            if (task.completed) R.color.forgetty_text_secondary else R.color.forgetty_text_primary
+        ))
+        dialog?.findViewById<ImageButton>(R.id.task_details_toggle_complete)?.apply {
+            setImageResource(if (task.completed) R.drawable.ic_check_circle else R.drawable.ic_task_checkbox_unchecked)
+            contentDescription = getString(if (task.completed) R.string.mark_as_active else R.string.mark_as_complete)
+        }
+        dialog?.findViewById<MaterialButton>(R.id.task_details_complete)?.setText(
+            if (task.completed) R.string.mark_as_active else R.string.mark_as_complete
+        )
     }
 
     private fun renderDueDate() {
@@ -330,7 +406,8 @@ class TaskDetailsBottomSheet : BottomSheetDialogFragment() {
             priority = priority,
             dueDate = dueDate,
             note = if (::notes.isInitialized) notes.text?.toString().orEmpty() else task.note,
-            repeatRule = repeatRule
+            repeatRule = repeatRule,
+            tags = tags.toList()
         )
     }
 

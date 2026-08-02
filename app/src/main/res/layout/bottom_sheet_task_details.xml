@@ -33,38 +33,41 @@
             android:gravity="top"
             android:orientation="horizontal">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/task_details_title_layout"
+            <ImageButton
+                android:id="@+id/task_details_toggle_complete"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/mark_as_complete"
+                android:padding="8dp"
+                android:src="@drawable/ic_check_circle"
+                app:tint="@color/forgetty_primary" />
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/task_details_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                app:boxBackgroundMode="outline"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxStrokeColor="?attr/colorPrimary"
-                app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="2dp"
-                app:counterEnabled="true"
-                app:counterMaxLength="100"
-                app:counterTextAppearance="@style/TextAppearance.Si13.TaskDetails.Counter"
-                app:hintTextAppearance="@style/TextAppearance.Si13.TaskDetails.Hint">
+                android:background="@android:color/transparent"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center_vertical"
+                android:inputType="textCapSentences|textMultiLine"
+                android:maxLines="3"
+                android:minHeight="56dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="18sp" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/task_details_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="60dp"
-                    android:gravity="center_vertical"
-                    android:inputType="textCapSentences|textMultiLine"
-                    android:maxLines="3"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="17sp"
-                    android:fontFamily="sans-serif-medium" />
-            </com.google.android.material.textfield.TextInputLayout>
+            <ImageButton
+                android:id="@+id/task_details_more"
+                android:layout_width="40dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/more_options"
+                android:padding="12dp"
+                android:src="@drawable/ic_more_vert"
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <ImageButton
                 android:id="@+id/task_details_close"
@@ -82,13 +85,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <LinearLayout
                 android:id="@+id/task_details_priority"
@@ -176,12 +174,11 @@
                     </LinearLayout>
                 </FrameLayout>
             </LinearLayout>
-            </LinearLayout>
-
             <LinearLayout
                 android:id="@+id/task_details_repeat"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
+                android:layout_marginStart="8dp"
                 android:gravity="center_vertical">
 
                 <ImageView
@@ -214,67 +211,52 @@
             android:background="?attr/colorOutline"
             android:alpha="0.55" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="center_vertical">
-
-            <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_history"
-                app:tint="?attr/colorOnSurfaceVariant" />
-
-            <TextView
-                android:id="@+id/task_details_created"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="13sp" />
-        </LinearLayout>
-
         <TextView
-            android:id="@+id/task_details_updated"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:paddingStart="24dp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp" />
-
-        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/notes"
-            app:boxBackgroundMode="outline"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusTopStart="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/task_details_notes"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="top|start"
-                android:inputType="textCapSentences|textMultiLine"
-                android:maxLength="2000"
-                android:minHeight="92dp" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:text="@string/notes"
+            android:textColor="@color/forgetty_text_secondary"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium" />
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/task_details_notes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:gravity="top|start"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLength="2000"
+            android:minHeight="92dp"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
+            android:textSize="16sp" />
 
         <TextView android:id="@+id/task_details_save_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="end" android:paddingTop="4dp" android:text="@string/saved" android:textColor="@color/forgetty_text_secondary" android:textSize="12sp" />
 
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="12dp" android:background="@color/forgetty_outline_variant" />
         <TextView style="@style/TextAppearance.MaterialComponents.Subtitle2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/subtasks" android:textColor="@color/forgetty_text_secondary" />
         <LinearLayout android:id="@+id/task_details_subtasks" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
 
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="12dp" android:background="@color/forgetty_outline_variant" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical">
             <TextView android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:gravity="center_vertical" android:text="@string/choose_list" android:textColor="@color/forgetty_text_secondary" />
-            <com.google.android.material.button.MaterialButton android:id="@+id/task_details_list" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="48dp" android:textAllCaps="false" />
+            <TextView android:id="@+id/task_details_list" android:layout_width="wrap_content" android:layout_height="48dp" android:gravity="center_vertical" android:textColor="@color/forgetty_text_primary" android:textSize="16sp" />
         </LinearLayout>
-        <TextView android:id="@+id/task_details_tags" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="4dp" android:textColor="@color/forgetty_tertiary" android:textSize="13sp" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/tags" android:textColor="@color/forgetty_text_secondary" android:textSize="14sp" android:fontFamily="sans-serif-medium" />
+            <TextView android:id="@+id/task_details_tags_edit" android:layout_width="wrap_content" android:layout_height="40dp" android:gravity="center" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/edit" android:textColor="@color/forgetty_primary" android:textSize="14sp" />
+        </LinearLayout>
+        <com.google.android.material.chip.ChipGroup android:id="@+id/task_details_tag_group" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" app:chipSpacingHorizontal="8dp" app:chipSpacingVertical="6dp" app:singleLine="false" />
+        <LinearLayout android:id="@+id/task_details_tag_editor" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center_vertical" android:orientation="horizontal" android:visibility="gone">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/task_details_new_tag" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:hint="@string/new_tag" android:paddingStart="12dp" android:paddingEnd="12dp" android:textSize="14sp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/task_details_add_tag" android:layout_width="wrap_content" android:layout_height="52dp" android:layout_marginStart="8dp" android:text="@string/add" android:textAllCaps="false" />
+        </LinearLayout>
+        <TextView android:id="@+id/task_details_tags" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical">
+            <TextView android:id="@+id/task_details_created" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />
+            <TextView android:id="@+id/task_details_updated" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />
+        </LinearLayout>
         <TextView android:id="@+id/task_details_attachments" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="8dp" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" android:visibility="gone" />
         <TextView android:id="@+id/task_details_location" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="8dp" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" android:visibility="gone" />
 

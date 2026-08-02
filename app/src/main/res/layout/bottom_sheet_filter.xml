@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/filter_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_list_manager_sheet"
+    android:orientation="vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="16dp">
+
+    <View android:layout_width="32dp" android:layout_height="4dp" android:layout_gravity="center_horizontal" android:layout_marginTop="10dp" android:background="@drawable/bg_task_details_handle" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:id="@+id/filter_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="@string/filter_tasks" android:textColor="@color/forgetty_text_primary" android:textSize="22sp" />
+        <TextView android:id="@+id/filter_clear" android:layout_width="wrap_content" android:layout_height="48dp" android:gravity="center" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/clear_all" android:textColor="@color/forgetty_primary" android:textSize="14sp" />
+        <ImageButton android:id="@+id/filter_close" style="@style/Widget.Forgetty.IconButton" android:contentDescription="@string/close_filter" android:src="@drawable/ic_close" app:tint="@color/forgetty_text_secondary" />
+    </LinearLayout>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:layout_marginBottom="8dp" android:fontFamily="sans-serif-medium" android:text="@string/filter_lists" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />
+    <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" app:cardBackgroundColor="@color/forgetty_surface" app:cardCornerRadius="18dp" app:cardElevation="0dp" app:strokeWidth="0dp">
+        <LinearLayout android:id="@+id/filter_list_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:layout_marginBottom="8dp" android:fontFamily="sans-serif-medium" android:text="@string/filter_tags" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />
+    <com.google.android.material.chip.ChipGroup android:id="@+id/filter_tag_group" android:layout_width="match_parent" android:layout_height="wrap_content" app:chipSpacingHorizontal="8dp" app:chipSpacingVertical="8dp" app:singleLine="false" />
+
+    <com.google.android.material.button.MaterialButton android:id="@+id/filter_apply" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="16dp" android:text="@string/apply_filters" android:textAllCaps="false" android:textSize="16sp" app:cornerRadius="18dp" />
+</LinearLayout>
