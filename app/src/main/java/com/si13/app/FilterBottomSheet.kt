@@ -70,6 +70,9 @@ class FilterBottomSheet : BottomSheetDialogFragment() {
         tagGroup = root.findViewById(R.id.filter_tag_group)
         applyButton = root.findViewById(R.id.filter_apply)
         root.findViewById<View>(R.id.filter_close).setOnClickListener { dismiss() }
+        root.findViewById<View>(R.id.filter_manage_lists).setOnClickListener {
+            ListManagerBottomSheet.show(parentFragmentManager)
+        }
         root.findViewById<View>(R.id.filter_clear).setOnClickListener {
             selectedList = null
             selectedTags.clear()

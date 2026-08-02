@@ -20,7 +20,23 @@
 
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:layout_marginBottom="8dp" android:fontFamily="sans-serif-medium" android:text="@string/filter_lists" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />
     <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" app:cardBackgroundColor="@color/forgetty_surface" app:cardCornerRadius="18dp" app:cardElevation="0dp" app:strokeWidth="0dp">
-        <LinearLayout android:id="@+id/filter_list_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+            <LinearLayout android:id="@+id/filter_list_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/forgetty_outline_variant" />
+            <TextView
+                android:id="@+id/filter_manage_lists"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/manage_lists"
+                android:text="@string/manage_lists"
+                android:textColor="@color/forgetty_primary"
+                android:textSize="16sp" />
+        </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:layout_marginBottom="8dp" android:fontFamily="sans-serif-medium" android:text="@string/filter_tags" android:textColor="@color/forgetty_text_secondary" android:textSize="13sp" />

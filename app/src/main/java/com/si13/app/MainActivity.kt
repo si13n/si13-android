@@ -153,6 +153,6 @@ class MainActivity : AppCompatActivity() {
         const val ACTION_TODAY_TASKS = "com.si13.app.TODAY_TASKS"
         const val ACTION_VOICE_TASK = "com.si13.app.VOICE_TASK"
         const val ACTION_SEARCH_TASKS = "com.si13.app.SEARCH_TASKS"
-        private const val DEMO_SEED_KEY = "demo_seed_v1"
+        const val DEMO_SEED_KEY = "demo_seed_v1"
     }
 }

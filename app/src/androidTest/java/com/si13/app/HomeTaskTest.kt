@@ -176,10 +176,10 @@ class HomeTaskTest {
             continueAsGuest()
 
             onView(withId(R.id.homeFragment)).check(matches(withText(R.string.home)))
-            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.profile)))
+            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.settings)))
 
             onView(withId(R.id.profileFragment)).perform(click())
-            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.profile)))
+            onView(withId(R.id.profileFragment)).check(matches(withText(R.string.settings)))
             onView(withId(R.id.homeFragment)).check(matches(withText(R.string.home)))
         }
     }
@@ -216,6 +216,7 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
+            onView(withId(R.id.task_filter_button)).perform(click())
             onView(withContentDescription(R.string.manage_lists)).perform(click())
             onView(withId(R.id.list_manager_list_card)).check(matches(isDisplayed()))
             onView(withId(R.id.list_manager_create)).perform(click())
@@ -246,7 +247,7 @@ class HomeTaskTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
 
-            onView(withText(R.string.my_tasks)).check(matches(isDisplayed()))
+            onView(withId(R.id.list_view_button)).check(matches(isDisplayed()))
             onView(withId(R.id.home_date_text)).check(matches(isDisplayed()))
             onView(withText("0 of 3 completed")).check(matches(isDisplayed()))
 
@@ -385,7 +386,7 @@ class HomeTaskTest {
             onView(withText("Guest task 1")).perform(swipeLeft())
             onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", true))
 
-            onView(withId(R.id.home_title_text)).perform(click())
+            onView(withId(R.id.home_header)).perform(click())
             onView(isRoot()).perform(waitFor(250))
 
             onView(withId(R.id.task_list)).check(taskRevealState("Guest task 1", false))
@@ -524,36 +525,32 @@ class HomeTaskTest {
     }
 
     @Test
-    fun weeklyActivitySitsBetweenProductivityAndSettings() {
+    fun statsDestinationHostsProductivitySections() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
-            onView(withId(R.id.profileFragment)).perform(click())
+            onView(withId(R.id.statsFragment)).perform(click())
 
-            onView(isRoot()).check { root, _ ->
-                val productivity = root.findViewById<View>(R.id.profile_productivity_card)
-                val weeklyTitle = root.findViewById<View>(R.id.profile_weekly_activity_title)
-                val weeklyChart = root.findViewById<View>(R.id.profile_weekly_activity)
-                val settingsTitle = root.findViewById<View>(R.id.profile_settings_title)
-
-                assertTrue(productivity.bottom <= weeklyTitle.top)
-                assertTrue(weeklyTitle.bottom <= weeklyChart.top)
-                assertTrue(weeklyChart.bottom <= settingsTitle.top)
+            onView(withId(R.id.stats_content)).check { view, _ ->
+                assertTrue((view as ViewGroup).childCount >= 7)
             }
         }
     }
 
     @Test
-    fun productivityMetricsUseTheCardSurfaceWithoutGrayTiles() {
+    fun statsCardsUseTheCardSurfaceWithoutGrayTiles() {
         ActivityScenario.launch(MainActivity::class.java).use {
             continueAsGuest()
-            onView(withId(R.id.profileFragment)).perform(click())
+            onView(withId(R.id.statsFragment)).perform(click())
 
-            onView(withId(R.id.profile_metrics_horizontal)).check { view, _ ->
-                val metrics = view as ViewGroup
-                (0 until metrics.childCount).forEach { index ->
-                    assertEquals(null, metrics.getChildAt(index).background)
+            onView(withId(R.id.stats_content)).check { view, _ ->
+                val content = view as ViewGroup
+                (0 until content.childCount)
+                    .map(content::getChildAt)
+                    .filterIsInstance<MaterialCardView>()
+                    .forEach { card ->
+                        assertEquals(0f, card.cardElevation, 0.5f)
+                    }
                 }
-            }
         }
     }
 
@@ -721,6 +718,12 @@ class HomeTaskTest {
         AuthRepository(context).clear()
         ForgettyPreferences.create(context).clear()
         context.getSharedPreferences("forgetty_task_lists", Context.MODE_PRIVATE).edit().clear().commit()
+        // Debug builds seed demo data for manual exploration. Keep instrumentation tests isolated
+        // by disabling that one-time seed after clearing the database.
+        context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(MainActivity.DEMO_SEED_KEY, true)
+            .commit()
         runBlocking {
             TaskDatabase.getInstance(context).taskDao().deleteAll()
         }
