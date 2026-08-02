@@ -30,7 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
-                android:text="@string/profile"
+                android:text="@string/settings"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="22sp" />
 
@@ -146,9 +146,12 @@
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center" android:text="@string/google_privacy_reassurance" android:textColor="@color/text_secondary" android:textSize="12sp" />
             </LinearLayout>
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:fontFamily="sans-serif-medium" android:text="@string/productivity" android:textColor="?attr/colorOnSurface" android:textSize="18sp" />
+            <!-- Productivity metrics are presented on the Stats destination. -->
+            <TextView android:id="@+id/profile_settings_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:fontFamily="sans-serif-medium" android:text="@string/settings" android:textColor="?attr/colorOnSurface" android:textSize="18sp" />
 
-            <com.google.android.material.card.MaterialCardView
+            <!-- Productivity card moved to StatsFragment. -->
+            <!--
+                <com.google.android.material.card.MaterialCardView
                 android:id="@+id/profile_productivity_card"
                 android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
                 app:cardBackgroundColor="@color/profile_surface" app:cardCornerRadius="20dp" app:cardElevation="0dp" app:strokeWidth="0dp">
@@ -181,26 +184,8 @@
                     <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/profile_progress_indicator" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="16dp" app:indicatorColor="?attr/colorPrimary" app:trackColor="@color/surface_variant" app:trackCornerRadius="3dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+            -->
 
-            <TextView
-                android:id="@+id/profile_weekly_activity_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:fontFamily="sans-serif-medium"
-                android:text="@string/weekly_activity"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="15sp" />
-
-            <com.si13.app.WeeklyActivityView
-                android:id="@+id/profile_weekly_activity"
-                android:layout_width="match_parent"
-                android:layout_height="124dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_profile_card"
-                android:contentDescription="@string/weekly_activity_description" />
-
-            <TextView android:id="@+id/profile_settings_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:fontFamily="sans-serif-medium" android:text="@string/settings" android:textColor="?attr/colorOnSurface" android:textSize="18sp" />
             <com.google.android.material.card.MaterialCardView android:id="@+id/profile_settings_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" app:cardBackgroundColor="@color/profile_surface" app:cardCornerRadius="20dp" app:cardElevation="0dp" app:strokeWidth="0dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                     <include layout="@layout/profile_setting_lists" />
