@@ -69,6 +69,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var taskSearchPanel: View
     private lateinit var taskSearchButton: ImageButton
     private lateinit var taskSettingsButton: ImageButton
+    private lateinit var taskFilterButton: ImageButton
     private lateinit var taskSortButton: ImageButton
     private lateinit var homeDateText: TextView
     private lateinit var statusText: TextView
@@ -97,6 +98,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private var allTasks: List<Task> = emptyList()
     private var selectedList: String? = null
+    private var selectedTags: Set<String> = emptySet()
     private var statusFilter = HomeTaskFilter.ALL
     private var searchQuery = ""
     private var sortMode = TaskSortMode.DUE_DATE
@@ -131,6 +133,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         taskSearchPanel = view.findViewById(R.id.home_search_overlay)
         taskSearchButton = view.findViewById(R.id.task_search_button)
         taskSettingsButton = view.findViewById(R.id.task_settings_button)
+        taskFilterButton = view.findViewById(R.id.task_filter_button)
         taskSortButton = view.findViewById(R.id.task_sort_button)
         homeDateText = view.findViewById(R.id.home_date_text)
         statusText = view.findViewById(R.id.task_status_text)
@@ -255,6 +258,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 result.getString(SortMenuBottomSheet.RESULT_SORT_KEY).orEmpty()
             )
             preferences.sortMode = sortMode.key
+            renderTasks()
+        }
+        childFragmentManager.setFragmentResultListener(
+            FilterBottomSheet.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, result ->
+            selectedList = result.getString(FilterBottomSheet.RESULT_LIST)
+                ?.takeUnless { it == ForgettyPreferences.ALL_TASKS }
+            selectedTags = result.getStringArrayList(FilterBottomSheet.RESULT_TAGS)?.toSet().orEmpty()
+            preferences.selectedList = selectedList ?: ForgettyPreferences.ALL_TASKS
             renderTasks()
         }
         childFragmentManager.setFragmentResultListener(
@@ -485,6 +498,17 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             preferences.showCompleted = showCompleted
             renderShowCompletedControl()
             renderTasks()
+        }
+
+        taskFilterButton.setOnClickListener {
+            taskAdapter.closeRevealedAction()
+            FilterBottomSheet.show(
+                childFragmentManager,
+                selectedList,
+                selectedTags,
+                allTasks.map(Task::listName).distinct(),
+                allTasks.flatMap(Task::tags).distinct().sorted()
+            )
         }
 
         taskSortButton.setOnClickListener {
@@ -884,7 +908,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             task.listName,
             task.tags.joinToString(" ")
         ).any { it.contains(searchQuery, ignoreCase = true) }
-        matchesList && matchesSearch
+        val matchesTags = selectedTags.isEmpty() || selectedTags.any { it in task.tags }
+        matchesList && matchesTags && matchesSearch
     }
 
     private fun updateCurrentDate() {

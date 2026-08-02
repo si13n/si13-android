@@ -70,60 +70,17 @@
                     android:textColor="@color/forgetty_text_secondary"
                     android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/home_header_actions"
+                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:text="Saturday 1 August" />
 
-                <LinearLayout
-                    android:id="@+id/home_header_actions"
-                    android:layout_width="wrap_content"
-                    android:layout_height="48dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
-
-                    <ImageButton
-                        android:id="@+id/task_search_button"
-                        style="@style/Widget.Forgetty.HomeHeaderIcon"
-                        android:contentDescription="@string/search_tasks"
-                        android:src="@drawable/ic_search"
-                        app:tint="@color/forgetty_text_secondary" />
-
-                    <ImageButton
-                        android:id="@+id/task_settings_button"
-                        style="@style/Widget.Forgetty.HomeHeaderIcon"
-                        android:contentDescription="@string/show_completed_tasks"
-                        android:src="@drawable/ic_check_circle"
-                        app:tint="@color/forgetty_text_secondary" />
-
-                    <ImageButton
-                        android:id="@+id/task_sort_button"
-                        style="@style/Widget.Forgetty.HomeHeaderIcon"
-                        android:contentDescription="@string/sort_tasks"
-                        android:src="@drawable/ic_sort"
-                        app:tint="@color/forgetty_text_secondary" />
-                </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginBottom="8dp">
-
-                <TextView
-                    android:id="@+id/home_title_text"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:text="@string/my_tasks"
-                    android:textColor="@color/forgetty_text_primary"
-                    android:textSize="24sp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/view_mode_container"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
 
                 <LinearLayout
                     android:id="@+id/view_mode_container"
@@ -133,8 +90,9 @@
                     android:gravity="center"
                     android:orientation="horizontal"
                     android:padding="3dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent">
 
                     <TextView
                         android:id="@+id/list_view_button"
@@ -146,13 +104,48 @@
                         style="@style/Widget.Forgetty.Segment"
                         android:text="@string/calendar_view" />
                 </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/home_header_actions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+                    <ImageButton
+                        android:id="@+id/task_search_button"
+                        style="@style/Widget.Forgetty.HomeHeaderIcon"
+                        android:contentDescription="@string/search_tasks"
+                        android:src="@drawable/ic_search"
+                        app:tint="@color/forgetty_text_secondary" />
+                    <ImageButton
+                        android:id="@+id/task_settings_button"
+                        style="@style/Widget.Forgetty.HomeHeaderIcon"
+                        android:contentDescription="@string/show_completed_tasks"
+                        android:src="@drawable/ic_check_circle"
+                        app:tint="@color/forgetty_text_secondary" />
+                    <ImageButton
+                        android:id="@+id/task_filter_button"
+                        style="@style/Widget.Forgetty.HomeHeaderIcon"
+                        android:contentDescription="@string/filter_tasks"
+                        android:src="@drawable/ic_filter"
+                        app:tint="@color/forgetty_text_secondary" />
+                    <ImageButton
+                        android:id="@+id/task_sort_button"
+                        style="@style/Widget.Forgetty.HomeHeaderIcon"
+                        android:contentDescription="@string/sort_tasks"
+                        android:src="@drawable/ic_sort"
+                        app:tint="@color/forgetty_text_secondary" />
+                </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <LinearLayout
                 android:id="@+id/task_list_filter_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:visibility="gone">
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/task_list_filter_group"
