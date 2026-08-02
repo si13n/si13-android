@@ -37,10 +37,12 @@ class MainActivity : AppCompatActivity() {
         val bottomNavigationView = findViewById<View>(R.id.bottom_navigation)
         val homeButton = findViewById<MaterialButton>(R.id.homeFragment)
         val profileButton = findViewById<MaterialButton>(R.id.profileFragment)
+        val statsButton = findViewById<MaterialButton>(R.id.statsFragment)
         val addTaskButton = findViewById<MaterialButton>(R.id.add_task_fab)
 
         homeButton.setOnClickListener { navigateTo(navController, R.id.homeFragment) }
         profileButton.setOnClickListener { navigateTo(navController, R.id.profileFragment) }
+        statsButton.setOnClickListener { navigateTo(navController, R.id.statsFragment) }
         addTaskButton.setOnClickListener {
             navigateTo(navController, R.id.homeFragment)
             addTaskButton.post {
@@ -51,6 +53,7 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _, destination, _ ->
             updateNavigationButton(homeButton, destination.id == R.id.homeFragment)
             updateNavigationButton(profileButton, destination.id == R.id.profileFragment)
+            updateNavigationButton(statsButton, destination.id == R.id.statsFragment)
         }
 
         if (savedInstanceState == null) {
@@ -78,6 +81,17 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         handleExtensionIntent(intent)
+        seedDebugTasksIfNeeded()
+    }
+
+    private fun seedDebugTasksIfNeeded() {
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        val preferences = getPreferences(MODE_PRIVATE)
+        if (preferences.getBoolean(DEMO_SEED_KEY, false)) return
+        lifecycleScope.launch {
+            DemoTaskSeeder.seedIfEmpty(TaskRepository.create(applicationContext))
+            preferences.edit().putBoolean(DEMO_SEED_KEY, true).apply()
+        }
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -139,5 +153,6 @@ class MainActivity : AppCompatActivity() {
         const val ACTION_TODAY_TASKS = "com.si13.app.TODAY_TASKS"
         const val ACTION_VOICE_TASK = "com.si13.app.VOICE_TASK"
         const val ACTION_SEARCH_TASKS = "com.si13.app.SEARCH_TASKS"
+        private const val DEMO_SEED_KEY = "demo_seed_v1"
     }
 }

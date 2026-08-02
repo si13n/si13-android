@@ -36,27 +36,16 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private lateinit var avatarInitial: TextView
     private lateinit var displayName: TextView
     private lateinit var email: TextView
-    private lateinit var completedValue: TextView
-    private lateinit var weekValue: TextView
-    private lateinit var activeValue: TextView
-    private lateinit var rateValue: TextView
-    private lateinit var completedValueVertical: TextView
-    private lateinit var activeValueVertical: TextView
-    private lateinit var rateValueVertical: TextView
-    private lateinit var progress: LinearProgressIndicator
     private lateinit var signInButton: View
     private lateinit var signOutButton: MaterialButton
     private lateinit var guestContainer: View
     private lateinit var accountCard: View
-    private lateinit var metricsHorizontal: View
-    private lateinit var metricsVertical: View
     private lateinit var errorText: TextView
     private lateinit var syncStatus: View
     private lateinit var syncIcon: ImageView
     private lateinit var syncText: TextView
     private lateinit var appearancePreferences: AppearancePreferences
     private lateinit var appearanceValue: TextView
-    private lateinit var weeklyActivity: WeeklyActivityView
 
     private val authStateListener = FirebaseAuth.AuthStateListener { refreshUser() }
 
@@ -86,7 +75,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 .versionName
                 .orEmpty()
         )
-        weeklyActivity = view.findViewById(R.id.profile_weekly_activity)
         // Avoid showing the default guest state while the combined flow initializes.
         render(ProfileUiState(user = users.value))
         signInButton.setOnClickListener { signIn() }
@@ -108,11 +96,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }
         view.findViewById<View>(R.id.profile_data_sync_row).setOnClickListener {
             DataSyncBottomSheet.show(parentFragmentManager)
-        }
-        view.findViewById<View>(R.id.profile_content).addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            val vertical = resources.configuration.screenWidthDp < 360
-            metricsVertical.isVisible = vertical
-            metricsHorizontal.isVisible = !vertical
         }
         buildExtendedSettings(view.findViewById(R.id.profile_extended_settings))
 
@@ -139,20 +122,10 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         avatarInitial = view.findViewById(R.id.profile_avatar_initial)
         displayName = view.findViewById(R.id.profile_status_text)
         email = view.findViewById(R.id.profile_email_text)
-        completedValue = view.findViewById(R.id.profile_completed_value)
-        weekValue = view.findViewById(R.id.profile_week_value)
-        activeValue = view.findViewById(R.id.profile_active_value)
-        rateValue = view.findViewById(R.id.profile_rate_value)
-        completedValueVertical = view.findViewById(R.id.profile_completed_value_vertical)
-        activeValueVertical = view.findViewById(R.id.profile_active_value_vertical)
-        rateValueVertical = view.findViewById(R.id.profile_rate_value_vertical)
-        progress = view.findViewById(R.id.profile_progress_indicator)
         signInButton = view.findViewById(R.id.profile_sign_in_button)
         signOutButton = view.findViewById(R.id.profile_sign_out_button)
         guestContainer = view.findViewById(R.id.profile_guest_container)
         accountCard = view.findViewById(R.id.profile_account_card)
-        metricsHorizontal = view.findViewById(R.id.profile_metrics_horizontal)
-        metricsVertical = view.findViewById(R.id.profile_metrics_vertical)
         errorText = view.findViewById(R.id.profile_error_text)
         syncStatus = view.findViewById(R.id.profile_sync_status)
         syncIcon = view.findViewById(R.id.profile_sync_icon)
@@ -167,7 +140,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         setProgress(state)
         renderSyncStatus(state.isOnline)
         appearanceValue.setText(appearancePreferences.mode.labelRes)
-        weeklyActivity.values = state.weeklyActivity
         state.user?.let(::renderUser)
     }
 
@@ -197,15 +169,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     }
 
     private fun setProgress(state: ProfileUiState) {
-        val rate = getString(R.string.percentage_format, state.completionRate)
-        completedValue.text = state.completedToday.toString()
-        weekValue.text = state.completedThisWeek.toString()
-        activeValue.text = state.activeTaskCount.toString()
-        rateValue.text = rate
-        completedValueVertical.text = state.completedTaskCount.toString()
-        activeValueVertical.text = state.activeTaskCount.toString()
-        rateValueVertical.text = rate
-        progress.progress = state.completionRate
     }
 
     private fun buildExtendedSettings(container: LinearLayout) {

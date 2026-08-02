@@ -211,6 +211,7 @@
     <string name="active_tasks">Active tasks</string>
     <string name="percentage_format">%1$d%%</string>
     <string name="settings">Settings</string>
+    <string name="stats">Stats</string>
     <string name="task_preferences">Task preferences</string>
     <string name="task_preferences_summary">Default filter, list and start of week</string>
     <string name="close_task_preferences">Close task preferences</string>

@@ -192,6 +192,10 @@ class TaskRepository(
 
     suspend fun getTasks(): List<Task> = activeDataSource().getTasks()
 
+    internal suspend fun insertSeedTasks(tasks: List<Task>) {
+        activeDataSource().upsertAll(tasks)
+    }
+
     private fun validateTitle(value: String): String {
         val trimmed = value.trim()
         require(trimmed.isNotEmpty()) { "Task text cannot be empty." }

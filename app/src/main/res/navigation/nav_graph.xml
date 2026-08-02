@@ -12,5 +12,10 @@
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.si13.app.ProfileFragment"
-        android:label="@string/profile" />
+        android:label="@string/settings" />
+
+    <fragment
+        android:id="@+id/statsFragment"
+        android:name="com.si13.app.StatsFragment"
+        android:label="@string/stats" />
 </navigation>
