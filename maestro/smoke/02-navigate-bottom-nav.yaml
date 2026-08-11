@@ -1,0 +1,54 @@
+appId: com.si13.app
+name: Bottom navigation moves between Home, Stats and Settings
+tags:
+  - smoke
+---
+# WHY THIS IS A SMOKE TEST
+# Navigation is the app's skeleton. A broken nav graph or a crashing fragment makes every
+# feature unreachable, and this is the cheapest way to catch that on a real device.
+#
+# Each step asserts on a destination-specific view id, not on the tab's own label — a tab
+# can highlight while its fragment fails to inflate, and this must catch that.
+
+- runFlow: ../common/launch-fresh.yaml
+
+# Home -> Stats
+- tapOn:
+    id: "statsFragment"
+- extendedWaitUntil:
+    visible:
+      id: "stats_content"
+    timeout: 10000
+- assertNotVisible:
+    id: "home_header"
+
+# Stats -> Settings (the Profile destination, labelled "Settings" in the nav bar)
+- tapOn:
+    id: "profileFragment"
+- extendedWaitUntil:
+    visible:
+      id: "profile_content"
+    timeout: 10000
+- assertVisible:
+    id: "profile_title"
+# This suite runs as a guest, so assert the guest contract rather than just "a screen
+# appeared": ProfileFragment.kt:139 shows profile_guest_container when user == null, and
+# ProfileViewModel.kt:26 hides profile_account_card for the same reason.
+- assertVisible:
+    id: "profile_guest_container"
+- assertNotVisible:
+    id: "profile_account_card"
+- assertNotVisible:
+    id: "stats_content"
+
+# Settings -> Home, and Home is genuinely restored
+- tapOn:
+    id: "homeFragment"
+- extendedWaitUntil:
+    visible:
+      id: "home_header"
+    timeout: 10000
+- assertVisible:
+    id: "task_progress_card"
+- assertNotVisible:
+    id: "profile_guest_container"

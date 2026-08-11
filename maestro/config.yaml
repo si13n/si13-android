@@ -1,0 +1,10 @@
+# Maestro workspace configuration.
+# Picked up automatically when running `maestro test maestro/`.
+flows:
+  - "smoke/*.yaml"
+  - "regression/*.yaml"
+
+# common/ holds runFlow fragments, not standalone flows. Excluding the tag keeps them from
+# being executed on their own by a folder-level run.
+excludeTags:
+  - common

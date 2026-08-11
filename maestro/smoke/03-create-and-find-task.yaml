@@ -1,0 +1,70 @@
+appId: com.si13.app
+name: A created task is persisted and findable by search
+tags:
+  - smoke
+# NO flow-level `env:` default here, deliberately. Verified on Maestro 2.8.0: a flow-level
+# env value WINS over `-e` on the command line, so a default would silently override the
+# unique tag that scripts/run-maestro.sh injects and every run would reuse one title.
+# Run this flow through scripts/run-maestro.sh (or run-smoke.sh) to get a unique tag.
+---
+# WHY THIS IS A SMOKE TEST
+# Creating a task is the app's core loop. If it silently fails to persist, the product has
+# no value, and no unit test can prove the whole path (sheet -> repository -> Room -> list).
+#
+# WHY SEARCH IS THE ASSERTION
+# The debug build already holds ~100 seeded tasks, and a task with no due date lands in the
+# "No due date" section far down the list. Scrolling to find it would be slow and flaky.
+# Search filters by title, so it gives a direct, deterministic assertion — and exercises a
+# real feature at the same time.
+#
+# WHY A UNIQUE TITLE
+# MAESTRO_RUN_TAG is injected per run by scripts/run-maestro.sh, so this flow never
+# collides with seeded fixtures, with a previous run, or with a parallel shard.
+
+- runFlow: ../common/launch-fresh.yaml
+
+- tapOn:
+    id: "add_task_fab"
+- extendedWaitUntil:
+    visible:
+      id: "task_input"
+    timeout: 10000
+
+- tapOn:
+    id: "task_input"
+- inputText: "QA Lab smoke ${MAESTRO_RUN_TAG}"
+
+- tapOn:
+    id: "add_task_button"
+
+# The sheet closing is the app's own signal that the save was accepted.
+- extendedWaitUntil:
+    notVisible:
+      id: "task_input"
+    timeout: 10000
+# Wait for Home to come back rather than asserting immediately: the sheet dismissal and
+# the keyboard hide are animated, so a bare assertVisible here races them. This is a
+# condition, not a sleep.
+- extendedWaitUntil:
+    visible:
+      id: "home_header"
+    timeout: 10000
+
+# Find it by search: this asserts the task actually reached the data layer.
+- tapOn:
+    id: "task_search_button"
+- extendedWaitUntil:
+    visible:
+      id: "task_search_input"
+    timeout: 10000
+- tapOn:
+    id: "task_search_input"
+- inputText: "QA Lab smoke ${MAESTRO_RUN_TAG}"
+
+- extendedWaitUntil:
+    visible:
+      id: "search_results"
+    timeout: 10000
+- assertVisible: "QA Lab smoke ${MAESTRO_RUN_TAG}"
+- assertNotVisible:
+    id: "search_empty"

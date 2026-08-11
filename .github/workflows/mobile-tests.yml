@@ -1,0 +1,242 @@
+# Agentic Mobile QA Lab — build and validation pipeline.
+#
+# Split into two jobs on purpose:
+#
+#   1. build-and-validate  — fast, deterministic, no emulator. Runs on every PR and push.
+#   2. ui-tests            — emulator + Maestro. OPT-IN via workflow_dispatch only.
+#
+# Why the split: emulator jobs are the single largest source of flake in mobile CI. Keeping
+# them out of the default path means a device problem can never turn the build signal red,
+# and nobody learns to ignore a failing check. The device job is real and runnable — it is
+# just deliberately not automatic.
+#
+# The pre-existing .github/workflows/espresso.yml already runs the Espresso suite with an
+# emulator on every PR; this workflow does not duplicate it.
+
+name: Mobile QA Lab
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      run_ui_tests:
+        description: "Also run the Maestro smoke suite on an emulator"
+        type: boolean
+        default: false
+      api_level:
+        description: "Emulator API level for the UI job"
+        type: string
+        default: "30"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-validate:
+    name: Build and static validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Make scripts executable
+        run: chmod +x gradlew scripts/*.sh .claude/hooks/*.sh
+
+      # --- static checks: fast, no device, no build required -----------------------
+      - name: Shell syntax (bash -n)
+        run: |
+          fail=0
+          for s in scripts/*.sh .claude/hooks/*.sh; do
+            if bash -n "$s"; then echo "ok   $s"; else echo "FAIL $s"; fail=1; fi
+          done
+          exit $fail
+
+      - name: Install Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Validate Maestro flow syntax
+        run: |
+          fail=0
+          count=0
+          while IFS= read -r flow; do
+            count=$((count + 1))
+            if maestro check-syntax "$flow"; then echo "ok   $flow"; else echo "FAIL $flow"; fail=1; fi
+          done < <(find maestro -name '*.yaml' ! -name 'config.yaml' | sort)
+          echo "checked $count flow(s)"
+          [ "$count" -gt 0 ] || { echo "no flows found — expected at least one"; exit 1; }
+          exit $fail
+
+      # Enforce the repo's automation rules so they are not merely documentation.
+      - name: Enforce flow quality rules (no sleeps, no coordinate taps)
+        run: |
+          fail=0
+          if grep -rnE '^[[:space:]]*-?[[:space:]]*sleep:' maestro/; then
+            echo "::error::hard sleeps are not allowed in Maestro flows — wait on a condition"
+            fail=1
+          fi
+          if grep -rnE '^[[:space:]]*point:' maestro/; then
+            echo "::error::coordinate taps are not allowed — use a stable resource id"
+            fail=1
+          fi
+          [ "$fail" -eq 0 ] && echo "flow quality rules OK"
+          exit $fail
+
+      - name: Validate agent and skill definitions
+        run: |
+          python3 - <<'PY'
+          import glob, sys
+          bad = []
+          files = sorted(glob.glob(".claude/agents/*.md") + glob.glob(".claude/skills/*/SKILL.md"))
+          for path in files:
+              lines = open(path, encoding="utf-8").read().split("\n")
+              if not lines or lines[0].strip() != "---":
+                  bad.append(f"{path}: no YAML frontmatter on line 1"); continue
+              try:
+                  end = lines.index("---", 1)
+              except ValueError:
+                  bad.append(f"{path}: unterminated frontmatter"); continue
+              fm = lines[1:end]
+              for key in ("name:", "description:"):
+                  if not any(l.startswith(key) for l in fm):
+                      bad.append(f"{path}: missing {key}")
+          print(f"checked {len(files)} definition(s)")
+          if not files:
+              sys.exit("expected at least one agent/skill definition")
+          if bad:
+              sys.exit("\n".join(bad))
+          print("all agent and skill definitions valid")
+          PY
+
+      # --- build and unit tests ----------------------------------------------------
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --console=plain
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --console=plain
+
+      - name: Android Lint
+        run: ./gradlew lintDebug --console=plain
+        continue-on-error: true   # advisory only: lint findings are triaged, not gating
+
+      - name: Collect artifacts
+        if: always()
+        run: |
+          mkdir -p artifacts
+          ./scripts/collect-artifacts.sh || true
+          cp -r app/build/reports/tests/testDebugUnitTest artifacts/unit-test-report 2>/dev/null || true
+          cp app/build/reports/lint-results-debug.html artifacts/ 2>/dev/null || true
+          ls -R artifacts | head -50
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-and-validation-artifacts
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  # ================================================================================
+  # Opt-in emulator job. Run it from the Actions tab:
+  #   Actions > Mobile QA Lab > Run workflow > "Also run the Maestro smoke suite" = true
+  #
+  # NOT VERIFIED in this environment: no GitHub Actions run has executed this job yet.
+  # It mirrors the emulator setup already proven by espresso.yml (same action, same KVM
+  # enablement, same boot flags), and the smoke suite itself is verified locally.
+  # ================================================================================
+  ui-tests:
+    name: Maestro smoke on emulator (opt-in)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: build-and-validate
+    if: github.event_name == 'workflow_dispatch' && inputs.run_ui_tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Make scripts executable
+        run: chmod +x gradlew scripts/*.sh
+
+      - name: Install Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --console=plain
+
+      # Without KVM the emulator is ~10x slower and usually times out.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Maestro smoke suite
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ inputs.api_level }}
+          target: default
+          arch: x86_64
+          emulator-boot-timeout: 600
+          disable-animations: true     # animations race UI assertions
+          emulator-options: >-
+            -no-window
+            -gpu swiftshader_indirect
+            -noaudio
+            -no-boot-anim
+            -camera-back none
+            -no-snapshot-load
+            -no-snapshot-save
+            -no-metrics
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            ./scripts/run-smoke.sh
+
+      - name: Collect artifacts
+        if: always()
+        run: ./scripts/collect-artifacts.sh || true
+
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-smoke-artifacts
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7
