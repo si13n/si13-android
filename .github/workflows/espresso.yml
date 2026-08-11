@@ -1,20 +1,44 @@
-name: Android Espresso Test
+# Android Espresso Tests — the instrumented suite (44 tests) on an emulator, with Allure.
+#
+# Espresso ONLY. Maestro lives in .github/workflows/maestro-tests.yml.
+# Everything runs together on pull requests via .github/workflows/pr-checks.yml.
+#
+# Triggers:
+#   workflow_dispatch  run it by hand from the Actions tab
+#   workflow_call      pr-checks.yml reuses this job, so it is defined once
+#
+# The filename stays espresso.yml on purpose: GitHub keys a workflow's run history to its
+# path, so renaming it would discard the existing history.
+
+name: Android Espresso Tests
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      api_level:
+        description: "Emulator API level"
+        type: string
+        default: "29"
+  workflow_call:
+    inputs:
+      api_level:
+        type: string
+        required: false
+        default: "29"
 
 permissions:
   contents: read
   checks: write
 
+concurrency:
+  group: espresso-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   espresso-test:
+    name: Espresso suite (API ${{ inputs.api_level || '29' }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       # Download the project
@@ -44,7 +68,7 @@ jobs:
       - name: Run Espresso test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          api-level: ${{ inputs.api_level || '29' }}
           target: default
           arch: x86_64
           emulator-boot-timeout: 180

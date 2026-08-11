@@ -1,0 +1,138 @@
+# Android Maestro Tests — the Maestro UI smoke suite on an emulator.
+#
+# Maestro ONLY. No unit tests, no Espresso, no lint. Those live in:
+#   .github/workflows/espresso.yml    (manual)
+#   .github/workflows/pr-checks.yml   (everything, on pull requests)
+#
+# Triggers:
+#   workflow_dispatch  run it by hand from the Actions tab
+#   workflow_call      pr-checks.yml reuses this job, so it is defined once
+#
+# assembleDebug runs here because the APK is needed to install the app under test.
+# That is a build step, not a test.
+
+name: Android Maestro Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_level:
+        description: "Emulator API level"
+        type: string
+        default: "30"
+      flows:
+        description: "Flow file or directory to run"
+        type: string
+        default: "maestro/smoke"
+  workflow_call:
+    inputs:
+      api_level:
+        type: string
+        required: false
+        default: "30"
+      flows:
+        type: string
+        required: false
+        default: "maestro/smoke"
+
+permissions:
+  contents: read
+  checks: write      # required by the JUnit report step below
+
+concurrency:
+  group: maestro-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  maestro:
+    name: Maestro smoke (API ${{ inputs.api_level }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Make scripts executable
+        run: chmod +x gradlew scripts/*.sh
+
+      - name: Install Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      # Cheap, device-free validation of the flows before spending emulator minutes.
+      - name: Validate flow syntax
+        run: |
+          fail=0
+          count=0
+          while IFS= read -r flow; do
+            count=$((count + 1))
+            if maestro check-syntax "$flow"; then echo "ok   $flow"; else echo "FAIL $flow"; fail=1; fi
+          done < <(find maestro -name '*.yaml' ! -name 'config.yaml' | sort)
+          echo "checked $count flow(s)"
+          [ "$count" -gt 0 ] || { echo "no flows found — expected at least one"; exit 1; }
+          exit $fail
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --console=plain
+
+      # Without KVM the emulator is ~10x slower and usually times out.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Maestro suite
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ inputs.api_level }}
+          target: default
+          arch: x86_64
+          emulator-boot-timeout: 600
+          disable-animations: true     # animations race UI assertions
+          emulator-options: >-
+            -no-window
+            -gpu swiftshader_indirect
+            -noaudio
+            -no-boot-anim
+            -camera-back none
+            -no-snapshot-load
+            -no-snapshot-save
+            -no-metrics
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            scripts/run-maestro.sh "${{ inputs.flows }}"
+
+      - name: Publish Maestro test summary
+        if: always()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: Maestro Test Report
+          report_paths: "artifacts/maestro/**/junit.xml"
+          detailed_summary: true
+          include_passed: true
+          require_tests: false
+
+      - name: Collect artifacts
+        if: always()
+        run: scripts/collect-artifacts.sh || true
+
+      # Screenshots and logcat from a failed flow are the whole point of keeping these.
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-artifacts-api${{ inputs.api_level }}
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7
