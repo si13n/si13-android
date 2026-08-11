@@ -1,6 +1,11 @@
 # Forgetty Android
 
-Forgetty is a native Kotlin todo application built with Android Views, Material Components, Fragments, Room, Firebase Authentication, and Firestore. It works locally in guest mode and switches to user-scoped cloud storage after sign-in.
+Forgetty is a native Kotlin todo application built with Android Views, Material Components,
+Fragments, Room, Firebase Authentication, and Firestore. It works locally in guest mode and
+switches to user-scoped cloud storage after sign-in.
+
+This repository also contains the **Agentic Mobile QA Lab** — an agentic engineering workflow
+for mobile QA automation built around this app. See [Documentation](#documentation).
 
 ## Screenshots
 
@@ -20,6 +25,28 @@ Screenshots use emulator-only fixture data; production builds do not include har
     <td><img src="docs/screenshots/forgetty-profile.png" alt="Forgetty guest Profile screen" width="180" /></td>
   </tr>
 </table>
+
+## Documentation
+
+### Testing
+
+| Document | Covers |
+|---|---|
+| [Maestro UI tests](maestro/README.md) | CLI-only Maestro smoke suite, selectors, determinism hazards, how to run |
+| [Espresso / instrumented tests](app/src/androidTest/README.md) | 44 instrumented tests, Allure reporting, test isolation |
+| [Quality gates](docs/quality-gates.md) | the evidence standard, `IMPLEMENTED` vs `VERIFIED`, exit-code contract |
+| [Regression flows](maestro/regression/README.md) | what belongs in the regression suite, and what does not |
+
+### Agentic QA workflow
+
+| Document | Covers |
+|---|---|
+| [Agentic Mobile QA Lab](docs/agentic-qa-lab.md) | overview: agents, skills, workflow, interview talking points |
+| [Architecture](docs/architecture.md) | diagrams: agent loop, test levels, gate pipeline |
+| [Agent workflow](docs/agent-workflow.md) | a real end-to-end trace, including a failure and its fix |
+| [Demo scenario](docs/demo-scenario.md) | how to reproduce a failure-and-recovery demo on demand |
+| [Hook behaviour](.claude/README-hooks.md) | exactly what the PostToolUse hook checks |
+| [CLAUDE.md](CLAUDE.md) | the project instructions every agent reads first |
 
 ## Features
 
@@ -50,6 +77,9 @@ app/src/main/res                   XML layouts, themes, drawables, widgets
 app/src/test                       Unit tests
 app/src/androidTest                Espresso and Room migration tests
 app/schemas                        Exported Room schemas
+maestro/                           Maestro UI test flows
+.claude/                           agents, skills and hooks for the QA workflow
+scripts/                           build, test and evidence-collection scripts
 ```
 
 Important components:
@@ -88,6 +118,32 @@ The debug APK is generated at:
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
+
+Convenience wrappers that add device checks, artifacts and honest exit codes:
+
+```bash
+scripts/check-environment.sh    # git, java, adb, maestro + connected devices
+scripts/build-android.sh        # ./gradlew assembleDebug with a saved log
+scripts/run-smoke.sh            # the Maestro smoke suite
+scripts/verify-results.sh       # every quality gate: PASS / FAIL / SKIPPED
+```
+
+### Test levels
+
+| Level | Location | Count | Runs on |
+|---|---|---|---|
+| Unit (JVM) | `app/src/test/` | 12 classes | no device |
+| Instrumented ([docs](app/src/androidTest/README.md)) | `app/src/androidTest/` | 5 classes, 44 tests | device |
+| UI end-to-end ([docs](maestro/README.md)) | `maestro/smoke/` | 3 flows | device |
+
+Most coverage sits at the lowest level on purpose. See [docs/quality-gates.md](docs/quality-gates.md).
+
+## Continuous integration
+
+| Workflow | Trigger | Does |
+|---|---|---|
+| [`espresso.yml`](.github/workflows/espresso.yml) | PR, push to main, manual | boots an emulator, runs `connectedDebugAndroidTest`, publishes an Allure report |
+| [`mobile-tests.yml`](.github/workflows/mobile-tests.yml) | PR, push to main, manual | build, unit tests, static validation of flows/agents/skills; **opt-in** emulator + Maestro job |
 
 ## Firebase configuration
 

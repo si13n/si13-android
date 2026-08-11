@@ -1,0 +1,32 @@
+appId: com.si13.app
+name: Launch app from a clean state and reach the Home screen
+tags:
+  - common
+---
+# Reusable setup. Included with `runFlow: ../common/launch-fresh.yaml`.
+#
+# clearState wipes app data, which has two documented consequences in this app:
+#   1. LoginBottomSheet appears (MainActivity shows it whenever not authenticated).
+#   2. MainActivity.seedDebugTasksIfNeeded() re-seeds ~100 demo tasks asynchronously.
+# We dismiss (1) explicitly and never assert on (2). See maestro/README.md.
+- launchApp:
+    appId: com.si13.app
+    clearState: true
+
+# SplashActivity waits ~650 ms before starting MainActivity, so wait on the condition
+# rather than guessing a duration.
+- extendedWaitUntil:
+    visible:
+      id: "continue_as_guest_button"
+    timeout: 20000
+
+- tapOn:
+    id: "continue_as_guest_button"
+
+# Home is reached when its header is present and the login sheet is gone.
+- extendedWaitUntil:
+    visible:
+      id: "home_header"
+    timeout: 15000
+- assertNotVisible:
+    id: "continue_as_guest_button"

@@ -1,0 +1,36 @@
+appId: com.si13.app
+name: App launches from a clean install and reaches the Home screen
+tags:
+  - smoke
+---
+# WHY THIS IS A SMOKE TEST
+# If cold launch is broken, nothing else matters and no other result is trustworthy.
+# This is the one flow that must run first.
+
+- runFlow: ../common/launch-fresh.yaml
+
+# Home is really rendered, not just an empty Activity.
+- assertVisible:
+    id: "home_content"
+- assertVisible:
+    id: "home_header"
+- assertVisible:
+    id: "task_progress_card"
+
+# Navigation chrome is present, so the rest of the app is reachable.
+- assertVisible:
+    id: "bottom_navigation"
+- assertVisible:
+    id: "add_task_fab"
+
+# The default status filter is "All" and the header actions are available.
+- assertVisible:
+    id: "status_filter_all"
+- assertVisible:
+    id: "task_search_button"
+- assertVisible:
+    id: "task_sort_button"
+
+# NOTE: deliberately no assertion on task count or on any seeded task title.
+# Debug builds seed ~100 demo tasks asynchronously after a data clear, so any such
+# assertion would be a race. See maestro/README.md.
