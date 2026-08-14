@@ -1,55 +1,125 @@
 # Architecture — Agentic Android Engineering Harness v2
 
-## Role-based topology
+## Responsibility topology
 
 ```mermaid
 flowchart TD
-    R[Requirement / Issue] --> P[planner<br/>read-only]
-    P --> G{{Human approval<br/>when non-trivial}}
+    R[Requirement / Issue] --> C[Task contract]
+    C --> P[planner<br/>read-only + Bash guard]
+    P --> G{{Human approval}}
     G -->|revise| P
-    G -->|approved| ROUTE{Owner routing}
-    ROUTE --> D[android-developer<br/>production code]
-    ROUTE --> T[android-test-engineer<br/>UNIT / Espresso / Maestro]
-    D --> V[verifier<br/>read-only]
+    G -->|approved| S{Implementation sequence}
+    S --> D[android-developer<br/>production]
+    S --> T[android-test-engineer<br/>tests]
+    D --> V[verifier<br/>read-only + Bash guard]
     T --> V
     V -->|PASS| DONE([Done — evidence recorded])
-    V -->|INCONCLUSIVE| H([Missing evidence / human decision])
-    V -->|FAIL, cause unclear| F[failure-analyst<br/>read-only]
-    V -->|FAIL, product cause clear| D
-    V -->|FAIL, test cause clear| T
+    V -->|INCONCLUSIVE| H([Obtain missing evidence / human decision])
+    V -->|FAIL, unclear| F[failure-analyst<br/>read-only + Bash guard]
+    V -->|FAIL, product| D
+    V -->|FAIL, test| T
     F -->|PRODUCT / BUILD| D
     F -->|TEST / LOCATOR / test infra| T
     F -->|ENV / DEVICE / CI| H
 ```
 
-The main Claude Code session is the orchestrator. It routes work; it does not need to be a
-sixth agent until orchestration becomes an independently complex responsibility.
+The main Claude Code session orchestrates via `/change`; it is not a sixth implementation role.
 
 ## Why these boundaries
 
-| Role | Can edit? | What it owns | What it cannot do |
+| Role | Source edits? | Owns | Cannot do |
 |---|---:|---|---|
-| `planner` | no | requirement, impact, risks, test strategy, owner routing | implement |
-| `android-developer` | yes | production app behavior | approve itself, own test suite by default |
-| `android-test-engineer` | yes | automated tests and test infra | change product behavior silently, approve itself |
-| `verifier` | no | independent final evidence | repair what it verifies |
-| `failure-analyst` | no | root-cause classification and routing | make red disappear by editing |
+| `planner` | no | requirement, impact, risk, test strategy, file ownership, sequencing | implement/build |
+| `android-developer` | yes | production behavior | own tests by default / approve itself |
+| `android-test-engineer` | yes | automated tests and test infra | silently change product / approve itself |
+| `verifier` | no | independent evidence/final verdict | repair work it verifies |
+| `failure-analyst` | no | root-cause classification/routing | edit until red disappears |
 
-This separation is about **authority**, not job titles. The verifier's inability to edit and
-the implementers' inability to issue PASS are intentional guardrails.
+Read-only roles omit Write/Edit **and** use scoped `PreToolUse` Bash hooks. This closes the gap
+where an agent could otherwise mutate source/history through shell despite a textual rule.
 
-## Technology belongs in skills
+## Contract-based handoff
+
+Non-trivial runs use `artifacts/agent-runs/TASK-*/`:
+
+```text
+requirement.md
+plan.md
+approval.md
+developer-report.md      optional
+ test-report.md           optional
+verification.md
+failure-analysis.md      on diagnostic loop
+summary.md               on PASS
+```
+
+Subagents have isolated contexts. The contract is the precise handoff boundary; conversation
+summaries are not the canonical spec. See `docs/task-contract.md`.
+
+## Dynamic skills
 
 ```mermaid
 flowchart LR
-    D[android-developer] --> AD[android-development skill]
-    T[android-test-engineer] --> U[unit-testing skill]
-    T --> E[espresso-testing skill]
-    T --> M[maestro-testing skill]
-    T --> DBG[android-debugging skill]
+    D[android-developer] --> AD[android-development preloaded]
+    D -. when needed .-> DBG[android-debugging]
+    T[android-test-engineer] -. UNIT .-> U[unit-testing]
+    T -. runtime .-> I[android-instrumented-testing]
+    T -. UI .-> E[espresso-testing]
+    T -. E2E .-> M[maestro-testing]
 ```
 
-A new test framework should normally add or change a skill, not add another agent.
+Framework-specific skills are invoked through `Skill` only when the planned level needs them.
+A new framework normally changes/adds a skill, not an agent.
+
+## Test-level architecture
+
+```mermaid
+flowchart TD
+    U["UNIT / JVM<br/>pure logic"] --> I["ANDROID INSTRUMENTED<br/>Room / Context / prefs"]
+    I --> E["ESPRESSO UI<br/>in-process Views / lifecycle"]
+    E --> M["MAESTRO E2E<br/>few packaged-app journeys"]
+    M --> X["MANUAL / EXPLORATORY<br/>human judgement / real device-account"]
+```
+
+The planner chooses the lowest reliable level. `android-test-engineer` loads only the skill(s)
+for that level. The verifier asks whether the selected test would actually fail on the target
+regression.
+
+## Sequencing
+
+```text
+TEST_FIRST     regression test → product → verify
+PRODUCT_FIRST  product/testability → test → verify
+PARALLEL       dev || test only with disjoint files/stable contract
+TEST_ONLY      test → verify
+PRODUCT_ONLY   product → manual/other planned evidence → verify
+```
+
+One task has one owner per file. Shared Gradle/config files are never edited concurrently by
+both implementers.
+
+## Harness layers
+
+```text
+Claude Code / LLM
+      │
+CLAUDE.md + /change workflow + task contract
+      │
+5 role agents + just-in-time skills
+      │
+PreToolUse policy hooks + PostToolUse quick checks
+      │
+Git / Gradle / adb / emulator / Espresso / Maestro
+      │
+scripts/validate-harness.sh + scripts/verify-results.sh + CI
+      │
+JUnit / Allure / screenshots / logcat / artifacts
+      │
+independent verifier + failure feedback loop
+```
+
+Static harness policy has one executable source of truth: `scripts/validate-harness.sh` is
+called locally and from PR CI.
 
 ## System under test
 
@@ -57,65 +127,17 @@ A new test framework should normally add or change a skill, not add another agen
 app/
 ├── src/main/          native Kotlin + XML app
 ├── src/test/          JVM/unit tests
-├── src/androidTest/   Espresso/instrumented/Room tests
+├── src/androidTest/   Android instrumented/Espresso/Room tests
 └── schemas/           exported Room schemas
 ```
 
 Forgetty uses Activities/Fragments, Room for guest data, Firebase Auth and Firestore for
-signed-in data. The harness wraps the real application rather than a test-only toy.
-
-## Test-level architecture
-
-```mermaid
-flowchart TD
-    U["JVM UNIT<br/>fastest, most coverage"] --> E["ESPRESSO / INSTRUMENTED<br/>Android runtime + Room"]
-    E --> M["MAESTRO<br/>few critical E2E journeys"]
-    M --> X["MANUAL / EXPLORATORY<br/>human judgement / real account/device"]
-```
-
-The planner chooses the lowest reliable level. The test engineer implements that level. The
-verifier checks that the chosen test actually proves the acceptance criterion.
-
-## Harness layers
-
-```text
-LLM / Claude Code
-      │
-      ▼
-Project instructions + agent roles + dynamic skills
-      │
-      ▼
-Tools: Git / Gradle / adb / emulator / Espresso / Maestro
-      │
-      ▼
-Hooks + deterministic scripts + CI quality gates
-      │
-      ▼
-Evidence: exit codes / JUnit / Allure / screenshots / logcat / artifacts
-      │
-      ▼
-Independent verifier + failure feedback loop
-```
-
-## Quality loop
-
-```mermaid
-flowchart LR
-    I[Implement] --> B[Build / cheapest checks]
-    B --> T[Test at planned level]
-    T --> V[Independent verify]
-    V -->|PASS| D[Done]
-    V -->|FAIL| A[Analyze cause]
-    A --> F[Fix by correct owner]
-    F --> B
-```
-
-No path reaches Done without the verifier.
+signed-in data.
 
 ## Known determinism hazards
 
 1. Signed-out cold launch displays the login bottom sheet.
 2. Debug builds may seed ~100 tasks asynchronously after state clear.
-3. Device/emulator availability is an environmental fact, not a test result.
+3. Device/emulator availability is an environmental fact, not a passing test.
 
-The harness treats unavailable device evidence as skipped/unverified, never as success.
+Unavailable required evidence produces `INCONCLUSIVE`/`INCOMPLETE`, never PASS.

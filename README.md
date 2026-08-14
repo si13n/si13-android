@@ -4,30 +4,39 @@ Forgetty is a native Kotlin todo application built with Android Views, Material 
 Fragments, Room, Firebase Authentication and Firestore. It works locally in guest mode and
 switches to user-scoped cloud storage after sign-in.
 
-This repository also contains the **Agentic Android Engineering Lab** — a role-based agentic
-engineering harness for Android development and QA. It demonstrates planning, production
-implementation, unit/Espresso/Maestro automation, independent verification, failure analysis,
-quality gates and CI around the real app.
+This repository also contains the **Agentic Android Engineering Lab** — a role-based harness
+for planning, production development, risk-based automated testing, independent verification,
+failure analysis, deterministic guardrails and CI around the real app.
 
 ## Agentic Engineering
 
-The harness uses five agents organized by responsibility:
+Five agents are organized by responsibility:
 
 | Agent | Responsibility |
 |---|---|
-| `planner` | requirement + architecture impact + risks + test strategy + owner routing |
-| `android-developer` | production Kotlin/resources/Gradle |
-| `android-test-engineer` | JVM, Espresso/instrumented/Room and Maestro automation |
+| `planner` | requirement + architecture impact + risk + test strategy + ownership + sequencing |
+| `android-developer` | production Kotlin/resources/config |
+| `android-test-engineer` | JVM, Android instrumented, Espresso UI and Maestro automation |
 | `verifier` | independent final evidence and PASS/FAIL/INCONCLUSIVE |
 | `failure-analyst` | root-cause classification and repair routing |
 
-Frameworks are **skills**, not agent identities. The test engineer loads `unit-testing`,
-`espresso-testing` or `maestro-testing` as the planned test level requires.
+Frameworks are **skills**, not agent identities. Test/debugging skills load just in time so a
+unit-test task does not carry Espresso/Maestro instructions unless they are needed.
+
+For a real change, use the executable workflow:
+
+```text
+/change Add or fix <behavior>
+```
+
+It creates a gitignored task contract, calls the planner, asks for human approval, executes the
+planned role/sequence, then requires independent verification.
 
 See:
 
 - [Agentic Android Engineering Lab](docs/agentic-engineering-lab.md)
 - [Architecture](docs/architecture.md)
+- [Task contract](docs/task-contract.md)
 - [Quality gates](docs/quality-gates.md)
 - [Real failure/recovery trace](docs/agent-workflow.md)
 - [Claude project instructions](CLAUDE.md)
@@ -37,9 +46,7 @@ See:
 Screenshots use emulator-only fixture data; production builds do not include hardcoded sample tasks.
 
 <table>
-  <tr>
-    <th>Home</th><th>Sort tasks</th><th>Add task</th><th>Profile</th>
-  </tr>
+  <tr><th>Home</th><th>Sort tasks</th><th>Add task</th><th>Profile</th></tr>
   <tr>
     <td><img src="docs/screenshots/forgetty-home.png" alt="Forgetty Home screen" width="180" /></td>
     <td><img src="docs/screenshots/forgetty-sort.png" alt="Forgetty Sort screen" width="180" /></td>
@@ -54,11 +61,11 @@ Screenshots use emulator-only fixture data; production builds do not include har
 app/src/main/java/com/si13/app     Kotlin application code
 app/src/main/res                   XML layouts, themes, drawables, widgets
 app/src/test                       JVM/unit tests
-app/src/androidTest                Espresso/instrumented + Room migration tests
+app/src/androidTest                Android instrumented + Espresso + Room migration tests
 app/schemas                        exported Room schemas
 maestro/                           critical Maestro E2E flows
-.claude/                           agents, skills and hooks
-scripts/                           build/test/evidence gates
+.claude/                           agents, on-demand skills and hooks
+scripts/                           build/test/evidence/static harness gates
 ```
 
 Important components:
@@ -89,8 +96,6 @@ Important components:
 
 ## Build and test
 
-Use the checked-in Gradle wrapper:
-
 ```bash
 ./gradlew assembleDebug
 ./gradlew testDebugUnitTest
@@ -99,32 +104,29 @@ Use the checked-in Gradle wrapper:
 ./gradlew lintDebug
 ```
 
-Debug APK:
+Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
-
-Harness wrappers:
+Harness commands:
 
 ```bash
 scripts/check-environment.sh
-scripts/build-android.sh
+scripts/validate-harness.sh
 scripts/run-smoke.sh
 scripts/verify-results.sh
 ```
 
 ### Test levels
 
-| Level | Location | Current shape | Runs on |
+| Level | Location | Primary signal | Runs on |
 |---|---|---|---|
-| JVM unit | `app/src/test/` | 12 classes | no device |
-| Espresso/instrumented | `app/src/androidTest/` | 5 classes / 44 tests | device |
-| Maestro E2E | `maestro/smoke/` | 3 critical flows | device |
+| JVM unit | `app/src/test/` | pure logic/repository with fakes | JVM |
+| Android instrumented | `app/src/androidTest/` | Room/Context/prefs/runtime | device |
+| Espresso UI | `app/src/androidTest/` | Activity/Fragment/View behavior | device |
+| Maestro E2E | `maestro/smoke/` | critical packaged-app journeys | device |
 
 Most coverage deliberately lives below E2E. Details:
 
-- [Espresso/instrumented tests](app/src/androidTest/README.md)
+- [Instrumented/Espresso tests](app/src/androidTest/README.md)
 - [Maestro tests](maestro/README.md)
 - [Regression-flow policy](maestro/regression/README.md)
 
@@ -132,11 +134,12 @@ Most coverage deliberately lives below E2E. Details:
 
 | Workflow | Purpose |
 |---|---|
-| [PR Checks](.github/workflows/pr-checks.yml) | static checks, build/unit, then reusable device suites |
-| [Android Espresso Tests](.github/workflows/espresso.yml) | emulator + instrumented tests + Allure |
+| [PR Checks](.github/workflows/pr-checks.yml) | shared static harness validator, build/unit, then device suites |
+| [Android Espresso Tests](.github/workflows/espresso.yml) | emulator + instrumented/Espresso + Allure |
 | [Android Maestro Tests](.github/workflows/maestro-tests.yml) | emulator + Maestro smoke + artifacts |
 
-Cheap checks run before emulator work so a broken build does not waste device minutes.
+The same `scripts/validate-harness.sh` defines static harness rules locally and in CI so they
+cannot silently drift apart.
 
 ## Firebase configuration
 

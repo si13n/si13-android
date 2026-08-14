@@ -1,17 +1,16 @@
 # Agentic Android Engineering Lab
 
-> **Five engineering roles, framework-specific skills, independent verification, evidence over assertion.**
+> **Five engineering roles, just-in-time skills, executable orchestration, enforced authority boundaries and evidence over assertion.**
 
 ## Goal
 
 This repository uses a real Android application to demonstrate a disciplined agentic
 engineering harness. AI can plan changes, implement production code, create automated tests,
-diagnose failures and verify outcomes — but authority is deliberately separated so an
-implementation agent cannot approve its own work.
+diagnose failures and verify outcomes, while role boundaries and deterministic hooks prevent
+the same worker from silently expanding authority.
 
-The v2 topology simplifies the original QA-only lab. Roles are organized by responsibility,
-not by tool. Espresso and Maestro are skills used by one Android test engineer rather than
-separate agent identities.
+The design is intentionally small: responsibilities become agents; technologies/procedures
+become skills.
 
 ## Layout
 
@@ -26,124 +25,134 @@ si13-android/
 │   │   ├── verifier.md
 │   │   └── failure-analyst.md
 │   ├── skills/
+│   │   ├── change/                     executable /change workflow
 │   │   ├── android-development/
 │   │   ├── unit-testing/
+│   │   ├── android-instrumented-testing/
 │   │   ├── espresso-testing/
 │   │   ├── maestro-testing/
 │   │   ├── android-debugging/
 │   │   ├── qa-risk-analysis/
 │   │   ├── verification-gates/
 │   │   └── ci-debugging/
-│   ├── hooks/quick-check.sh
+│   ├── hooks/
+│   │   ├── guard-agent-bash.sh         PreToolUse authority guard
+│   │   └── quick-check.sh              PostToolUse file checks
 │   └── settings.json
 ├── app/
-│   ├── src/main/          production Android code
-│   ├── src/test/          JVM/unit tests
-│   └── src/androidTest/   Espresso/instrumented/Room tests
-├── maestro/               critical E2E journeys
-├── scripts/               executable gates and evidence collection
-├── artifacts/             run evidence
-└── .github/workflows/     PR, Espresso and Maestro CI
+├── maestro/
+├── scripts/
+│   ├── validate-harness.sh             static policy source of truth
+│   └── verify-results.sh               evidence gate
+├── artifacts/agent-runs/               runtime task contracts/evidence (ignored)
+└── .github/workflows/
 ```
 
 ## Why five roles
 
 | Role | Why it exists |
 |---|---|
-| `planner` | one coherent plan should include product impact **and** test strategy |
+| `planner` | one coherent plan includes product impact, test strategy, ownership and sequence |
 | `android-developer` | production implementation is a distinct authority boundary |
-| `android-test-engineer` | testing is one responsibility; UNIT/Espresso/Maestro are tools |
+| `android-test-engineer` | testing is one responsibility; frameworks are tools |
 | `verifier` | the writer must not grade its own work |
-| `failure-analyst` | diagnosis should happen before repair so red is not blindly "fixed" |
+| `failure-analyst` | diagnosis happens before repair so red is not blindly made green |
 
-The design avoids two common forms of overengineering:
+## Executable workflow
 
-1. **planner + QA planner duplication** — test strategy now belongs to planning.
-2. **agent per framework** — Maestro, Espresso and JVM testing are skills of the test role.
-
-## Workflow
+`/change <requirement>` turns the architecture into a repeatable process:
 
 ```text
-REQUIREMENT
-    ↓
-PLANNER
-  ├─ architecture impact
-  ├─ technical + quality risk
-  ├─ owner routing
-  ├─ test level
-  ├─ acceptance criteria
-  └─ verification plan
-    ↓
-HUMAN APPROVAL
-    ↓
-┌─────────────────────────────┐
-│ android-developer           │
-│ android-test-engineer       │
-│ (one or both, as planned)   │
-└─────────────────────────────┘
-    ↓
-VERIFIER
-  ├─ PASS → done
-  ├─ INCONCLUSIVE → obtain missing evidence / human decision
-  └─ FAIL
-       ↓
-  FAILURE-ANALYST
-       ↓
-  route root cause to the correct implementer
-       ↓
-  VERIFIER again
+requirement
+  ↓
+task contract
+  ↓
+planner
+  ↓
+human approval
+  ↓
+TEST_FIRST | PRODUCT_FIRST | PARALLEL | TEST_ONLY | PRODUCT_ONLY
+  ↓
+android-developer and/or android-test-engineer
+  ↓
+verifier
+  ├─ PASS → summary
+  ├─ INCONCLUSIVE → missing evidence/human decision
+  └─ FAIL → failure analyst or clear owner → repair → verifier
 ```
+
+The task contract is important because custom subagents work in isolated contexts. Each role
+reads the same persisted requirement/plan/approval instead of receiving a progressively lossy
+chat paraphrase.
 
 ## Agent vs skill
 
-A simple rule keeps the topology sane:
-
-- **Agent = who owns the work and authority boundary.**
+- **Agent = who owns the work/authority.**
 - **Skill = how that role performs a technology/procedure-specific task.**
 
-Examples:
+Detailed test skills are not all preloaded into `android-test-engineer`. They are available
+through `Skill` and loaded only when the planner-selected level needs them:
 
 ```text
-android-developer
-  └─ android-development
-
-android-test-engineer
-  ├─ unit-testing
-  ├─ espresso-testing
-  ├─ maestro-testing
-  └─ android-debugging
+UNIT                  → unit-testing
+ANDROID INSTRUMENTED  → android-instrumented-testing
+ESPRESSO UI           → android-instrumented-testing + espresso-testing
+MAESTRO E2E           → maestro-testing
+failure diagnosis     → android-debugging / ci-debugging when relevant
 ```
 
-Adding a new framework does not automatically create a new agent. A new agent is justified
-only when a new independent responsibility or authority boundary appears.
+This avoids context pollution while keeping one coherent testing role.
+
+## Guardrails
+
+Prompt instructions are guidance; hooks enforce deterministic rules.
+
+- Read-only roles omit `Write`/`Edit`.
+- Their agent-scoped `PreToolUse` hook blocks common git/source mutation through Bash before
+  execution.
+- `quick-check.sh` runs after Write/Edit and blocks malformed agent/skill definitions, shell
+  syntax errors, invalid Maestro syntax, hard sleeps and coordinate taps.
+- `validate-harness.sh` checks topology, required files, shell/frontmatter/flow rules and stale
+  workflow references. PR CI calls the same script used locally.
+
+The Bash guard is deliberately described as policy enforcement, not a perfect shell sandbox;
+its purpose is to make authority boundaries materially stronger than prompt text alone.
 
 ## Test strategy
-
-The planner selects the lowest reliable level. The test engineer follows that routing rather
-than defaulting to UI automation.
 
 | Level | Primary purpose |
 |---|---|
 | JVM unit | pure Kotlin rules, mapping, sorting, repository behavior with fakes |
-| Espresso/instrumented | Android runtime, view interaction, lifecycle/prefs, Room migrations |
-| Maestro | small set of critical cross-screen user journeys |
-| Manual/exploratory | real credentials, visual judgement, device-specific behavior |
+| Android instrumented | Room migrations, Context/preferences/framework runtime without UI focus |
+| Espresso UI | in-process Activity/Fragment/View behavior and interaction |
+| Maestro E2E | small set of critical packaged-app cross-screen journeys |
+| Manual/exploratory | credentials, visual judgement, hardware/device-specific concerns |
 
-The repository intentionally has far more low-level checks than Maestro flows.
+The planner chooses the lowest reliable level and also chooses implementation sequencing.
+`TEST_FIRST` is preferred when a deterministic regression can define behavior; it is not
+forced when UI/testability must exist first.
 
-## Harness components already present
+## Shared-file ownership
 
-- **Instructions/rules:** `CLAUDE.md`, agent prompts and skills.
-- **Tools/execution:** Gradle, adb, emulator, Espresso, Maestro, GitHub Actions.
-- **Guardrail hook:** `.claude/hooks/quick-check.sh` performs cheap post-edit checks.
-- **Deterministic gates:** `scripts/verify-results.sh` and PR workflows.
-- **Evidence:** JUnit, Android reports, Allure, Maestro debug output, logcat and artifacts.
-- **Failure loop:** verifier → failure analyst → correct implementation owner → verifier.
+One task has one owner per file. `app/build.gradle.kts` is a typical shared boundary:
+production dependencies normally belong to the developer, test dependencies to the test
+engineer, but if both need the file the planner selects one owner and records the other role's
+requested edit. `PARALLEL` is forbidden when shared-file ownership is unresolved.
 
-## What is deliberately next, not hidden
+## Evidence semantics
 
-This topology is the foundation. The next maturity layer is **agent evaluation**, separate
-from app tests: scenarios that measure whether the planner chooses the right test level,
-implementers stay in scope, the verifier refuses unsupported PASS, and the failure analyst
-classifies known failures correctly. Those evals should be added as a separate change so the
-role refactor itself remains reviewable.
+`scripts/verify-results.sh` uses distinct outcomes:
+
+- `0` — full PASS, or an explicitly requested PARTIAL run with `--allow-skips`;
+- `1` — FAIL;
+- `3` — INCOMPLETE because required evidence was skipped/unavailable.
+
+The word PASS is not used for missing device evidence.
+
+## What remains next
+
+The next maturity layer is **agent evals**, separate from app tests: scenarios measuring
+whether planner selects the right level/sequence, implementers respect ownership, verifier
+refuses unsupported PASS, guardrails block forbidden operations and failure analyst correctly
+classifies seeded failures. Those evals should remain a separate PR so this harness change can
+be reviewed independently.
