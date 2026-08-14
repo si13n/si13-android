@@ -1,8 +1,6 @@
 # Regression flows
 
-Slower, deeper UI coverage. **Not** part of the smoke gate.
-
-Runs on demand or on a schedule, never on every commit:
+Slower, deeper E2E coverage. **Not** part of the smoke gate.
 
 ```bash
 maestro test --include-tags regression maestro/
@@ -11,46 +9,44 @@ scripts/run-maestro.sh maestro/regression/<flow>.yaml
 
 ## What belongs here
 
-A flow earns a place here only if **all** of these are true:
+A flow earns a place here only if all are true:
 
 1. It covers a user-visible journey across real screens.
-2. No unit or integration test could prove the same thing. (Sorting rules, date maths and
-   mapping belong in `app/src/test/` — they are already covered there.)
-3. It is deterministic: it creates its own data and asserts on outcomes it controls.
-4. Its failure would be actionable, not merely interesting.
+2. No JVM or Espresso/instrumented test can prove the same requirement more cheaply.
+3. It is deterministic and creates/controls its own test data.
+4. Its failure is actionable.
+5. The `planner` selected MAESTRO in the approved test strategy.
 
-## What does not belong here
+## What goes elsewhere
 
-| Candidate | Where it goes instead | Why |
+| Candidate | Better level | Why |
 |---|---|---|
-| Sort order correctness | `TaskSorterTest` (unit) | pure logic, already covered |
-| Recurrence rule maths | `TaskRepeatRuleTest` (unit) | pure logic, no UI needed |
-| Room v4→v5 migration | `TaskDatabaseMigrationTest` (instrumented) | needs a real DB, not a real UI |
-| Firestore field defaults | `FirestoreTaskMapperTest` (unit) | contract test on the mapper |
-| Google sign-in with real credentials | manual | needs live auth; automating it means storing credentials |
-| Widgets, launcher shortcuts, notifications | manual / exploratory | outside the app process; Maestro cannot address them reliably |
-| Visual polish, animation feel | exploratory | needs human judgement |
+| Sort order correctness | UNIT | pure logic |
+| Recurrence maths | UNIT | pure Kotlin rule |
+| Room migration | ESPRESSO / instrumented | real DB/runtime, no E2E UI needed |
+| Firestore field defaults | UNIT | mapper/contract logic |
+| Google sign-in with real credentials | MANUAL | live auth and account/security concerns |
+| Visual polish / animation feel | EXPLORATORY | human judgement |
 
-## Candidate flows (designed, deliberately not yet implemented)
+## Candidate flows
 
-Listed so the intent is visible. Each would need a `qa-test-designer` argument for why UI
-level is required before it gets written.
+These are ideas, not a backlog commitment. The planner must still justify MAESTRO before the
+`android-test-engineer` implements one.
 
-| Candidate | Would prove | Level argument |
-|---|---|---|
-| Complete a task and see it move to Completed | the completion state transition survives the full stack | strong — crosses UI, repository and Room |
-| Swipe to delete, then Undo | destructive action is recoverable | strong — gesture-driven, unit-untestable |
-| Filter chips narrow the visible list | Today / High priority / Completed filters wire through | medium — `TaskPresentation` covers the logic; UI proves the wiring |
-| List ↔ Calendar view switch | calendar mode renders and stays in sync | medium |
-| Task survives process death | persistence, not just in-memory state | strong — `clearState: false` plus a force-stop |
+| Candidate | Would prove |
+|---|---|
+| Complete a task and see it move to Completed | full visible completion transition |
+| Swipe delete then Undo | gesture-driven recovery path |
+| List ↔ Calendar switch | cross-view wiring and rendered state |
+| Task survives process restart | user-visible persistence across process lifecycle |
 
-Empty by design. An empty regression suite with a documented rationale is more honest than
-a dozen shallow flows that mostly re-test the smoke path.
+Empty or small is acceptable. A few high-value E2E flows are better than duplicating the
+lower-level suite.
 
-## Rules (same as smoke)
+## Rules
 
-- Stable `id:` selectors; **no coordinate taps**.
-- **No `sleep:`** — wait on conditions with `extendedWaitUntil`.
-- Create your own data with a unique title; never assert on the ~100 seeded demo tasks.
-- Reuse `../common/launch-fresh.yaml` for setup.
-- Tag with `regression` so it stays out of the smoke gate.
+- Stable ids; no coordinate taps.
+- No arbitrary sleeps; wait on observable conditions.
+- Create unique data; never assert on debug seed counts/titles.
+- Reuse `../common/` setup.
+- Tag regression flows with `regression`.

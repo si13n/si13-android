@@ -34,6 +34,13 @@ tags:
     id: "task_input"
 - inputText: "QA Lab smoke ${MAESTRO_RUN_TAG}"
 
+# On compact headless emulators the software keyboard can cover the save button. Close the
+# IME explicitly, then wait on the control itself instead of using a sleep or retry.
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "add_task_button"
+    timeout: 10000
 - tapOn:
     id: "add_task_button"
 
