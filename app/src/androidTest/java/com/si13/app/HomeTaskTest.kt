@@ -222,14 +222,14 @@ class HomeTaskTest {
             onView(withId(R.id.list_manager_create)).perform(click())
             onView(withText(R.string.new_list)).check(matches(isDisplayed()))
             onView(withId(R.id.list_manager_name)).perform(replaceText("Errands"))
-            onView(withId(R.id.list_manager_save)).perform(click())
+            onView(withId(R.id.list_manager_name)).perform(pressImeActionButton())
             onView(withText("Errands")).check(matches(isDisplayed()))
 
             onView(withId(R.id.list_manager_list_card)).perform(clickEditForList("Errands"))
             onView(withText(R.string.edit_list)).check(matches(isDisplayed()))
             onView(withId(R.id.list_manager_name)).perform(replaceText("Weekend"))
             onView(withId(R.id.list_manager_colors)).perform(clickChildAt(2))
-            onView(withId(R.id.list_manager_save)).perform(click())
+            onView(withId(R.id.list_manager_name)).perform(pressImeActionButton())
             onView(withText("Weekend")).check(matches(isDisplayed()))
 
             onView(withContentDescription("Delete Weekend list")).perform(click())
