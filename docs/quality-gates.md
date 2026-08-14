@@ -1,131 +1,90 @@
 # Quality gates
 
-## The standard
+## Standard
 
 > **No claim of success without evidence.**
 
-Evidence is a command, its exit code, and its output — reproducible by someone else. An
-agent's confidence is not evidence. A summary of a command is not evidence.
+Evidence is a reproducible command, exit code and result/artifact. Agent confidence and
+summaries are not evidence.
 
 ## IMPLEMENTED vs VERIFIED
 
-| | IMPLEMENTED | VERIFIED |
+| State | Meaning | Who may say it |
 |---|---|---|
-| Means | the change was written | the change was proven to satisfy the requirement |
-| Who says it | the implementer | an independent verifier |
-| Based on | intent | evidence |
+| IMPLEMENTED | code/test change was written | implementation agents |
+| NOT VERIFIED | required evidence could not be gathered | anyone, with reason |
+| VERIFIED | acceptance criteria were proven with evidence | `verifier` only |
 
-Three legitimate states, and the third is not a failure:
+## Gates
 
-- **IMPLEMENTED, NOT VERIFIED** — written, nothing executed yet.
-- **VERIFIED** — evidence gathered, criteria checked, verdict issued.
-- **NOT VERIFIED** — could not be executed here; states *why* and *how the human can verify*.
+| Gate | Typical command | Signal |
+|---|---|---|
+| Harness structure | `scripts/verify-results.sh` | expected roles/skills/workflows exist |
+| Shell/YAML syntax | `bash -n`, YAML parse | harness files are structurally valid |
+| Maestro syntax/rules | `maestro check-syntax`, rule grep | E2E flows obey repo conventions |
+| Build | `./gradlew assembleDebug` | production compiles/packages |
+| JVM unit | `./gradlew testDebugUnitTest` | pure logic/repository contracts |
+| Espresso/instrumented | `./gradlew connectedDebugAndroidTest` | Android runtime + Room behavior |
+| Maestro | `scripts/run-smoke.sh` | critical cross-screen journeys |
+| Diff scope | `git diff --name-only` vs plan | role and scope boundaries respected |
+| Acceptance criteria | verifier evidence map | requested behavior was actually proven |
 
-## The gates
+Not every feature needs every framework. The **planner** selects relevant gates; the
+**verifier** confirms those gates actually prove the requirement.
 
-| Gate | Command | Proves | Gating? |
-|---|---|---|---|
-| Required files | `scripts/verify-results.sh` gate 1 | the repo structure is intact | yes |
-| Shell syntax | `bash -n scripts/*.sh` | scripts parse | yes |
-| Flow syntax | `maestro check-syntax` | flows are valid Maestro | yes |
-| Flow rules | grep for `sleep:` / `point:` | the repo's own rules hold | yes |
-| Agent/skill definitions | frontmatter check | the agentic layer loads | yes |
-| Build | `./gradlew assembleDebug` | it compiles and packages | yes |
-| Unit tests | `./gradlew testDebugUnitTest` | logic behaves | yes |
-| UI smoke | `scripts/run-smoke.sh` | the journeys work on a device | yes, when a device exists |
-| Lint | `./gradlew lintDebug` | code health | no — advisory, triaged |
-| Git diff review | `git diff --name-only` vs the plan | no scope creep | yes (human/verifier) |
-| Acceptance criteria | read the plan, check each | it does what was asked | yes (human/verifier) |
-
-Run them all:
+## Full repository gate
 
 ```bash
-scripts/verify-results.sh              # everything
-scripts/verify-results.sh --no-build   # fast static-only pass
+scripts/verify-results.sh
 ```
 
-## Exit codes are the contract
+With no device, device suites are `SKIPPED` and explicitly listed. For a fast static-only
+harness check:
 
 ```bash
-./gradlew assembleDebug --console=plain ; echo "EXIT=$?"
-scripts/run-smoke.sh ; echo "EXIT=$?"
+scripts/verify-results.sh --no-build
 ```
 
-`0` is the only success. A log full of green ticks with exit code 1 is a failure.
+`--no-build` skips build/unit and both device suites; it exists for validating harness
+structure/syntax quickly.
 
-`scripts/run-maestro.sh` distinguishes three outcomes on purpose:
+## Exit codes are contracts
+
+`0` is success for a command that actually ran. A skipped command is not a pass. A wall of
+green log text with a non-zero process exit is still a failure.
+
+Maestro wrapper semantics remain explicit:
 
 | Exit | Meaning |
 |---|---|
 | `0` | passed |
-| `1` | a flow failed — a real result |
-| `3` | could not run — `SKIPPED — NO DEVICE AVAILABLE` |
+| `1` | test failed |
+| `3` | could not run because no device is available |
 
-Collapsing `3` into either `0` or `1` would be the lie. It is neither a pass nor a defect.
+## A green test must be meaningful
 
-## SKIPPED is not PASS
+Before a test counts as evidence:
 
-`scripts/verify-results.sh` reports skipped gates separately and prints them again in the
-summary:
+1. Would it fail if the feature were broken?
+2. Does it assert the real outcome rather than incidental rendering?
+3. Is setup deterministic and independent from previous runs?
+4. Is the assertion tautological or tied to seeded/unstable data?
+5. Was anything weakened/excluded/retried merely to get green?
 
-```
- RESULT: 9 passed, 0 failed, 1 skipped
-
- SKIPPED gates are NOT passes. Unverified means unverified:
-   - maestro smoke suite: SKIPPED — NO DEVICE AVAILABLE
-
- VERDICT: PASS WITH SKIPS — the skipped gates above were not proven.
-```
-
-It exits `0`, because running without an emulator is an expected situation and not a defect —
-but it can never be mistaken for full verification. **`INCONCLUSIVE` is never rounded up to
-`PASS`.**
-
-## A green test is not automatically a correct test
-
-Before any test counts as evidence:
-
-1. **Would it fail if the feature were broken?** If you cannot argue yes, it proves nothing.
-2. Does it assert on the **outcome**, or merely that a screen rendered?
-3. Is it **tautological** — asserting a value the test itself just set?
-4. Is it asserting on something **incidental** — seeded data, a count, a timestamp?
-5. Was an assertion **weakened** to make it pass? Check the diff.
-
-The strongest available answer to (1) is a mutation test: break the feature, confirm red.
-This was done for the smoke suite — see `docs/agent-workflow.md` §9. Both mutations went red
-before the suite was treated as evidence.
+When risk justifies it, mutation thinking is the strongest challenge: deliberately break the
+behavior and confirm the test goes red.
 
 ## Forbidden ways to go green
 
-Each converts a **known** problem into an **unknown** one, which is strictly worse than red:
+- weaken/delete a correct assertion;
+- arbitrary sleeps or retry-until-green;
+- `|| true`, `set +e`, swallowed quality-gate exits;
+- excluding a failing test without a requirement-based reason;
+- converting `SKIPPED`, missing-device or missing-tool evidence into PASS.
 
-- Weakening or deleting an assertion. *Only* legitimate when the requirement proves the old
-  assertion was wrong — and then it must be stated explicitly in the report.
-- Adding a `sleep` or a retry to get past a race.
-- `continueOnFailure`, `|| true`, `set +e`, ignoring a non-zero exit code.
-- Excluding the failing test from the suite.
-- Rerunning until it happens to pass, then reporting the green run.
+## Human gates
 
-The first two are mechanically blocked: `verify-results.sh` and CI both fail the build if
-`sleep:` or a coordinate `point:` appears anywhere under `maestro/`, and the PostToolUse hook
-warns the moment one is written. A rule nobody checks is a suggestion.
+Human judgement remains important at two places:
 
-## Why retries are not a fix
-
-A retry does not make a test pass; it makes a failure intermittent. The bug stays, the signal
-degrades, and the team learns that red sometimes means nothing. Once that happens, the suite
-has stopped being a quality gate and become a ritual.
-
-Legitimate retry: genuine infrastructure flakiness (a runner losing its network). Even then
-it must be logged, visible, and paired with a ticket — never a silent default.
-
-## The human gates
-
-Two points where a person, not an agent, decides:
-
-1. **Plan approval**, before code exists — the cheapest place to catch a wrong approach.
-2. **Accepting a `PASS`**, including reviewing what was `SKIPPED` and what the verifier
-   admitted it could not prove.
-
-Agents are good at producing and checking work. They are not accountable for it. Keeping a
-human at those two points is what makes the loop trustworthy rather than merely fast.
+1. approving non-trivial plan/architecture/risk trade-offs before implementation;
+2. accepting the final verifier PASS and any explicitly carried residual risk.
