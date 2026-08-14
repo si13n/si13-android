@@ -118,7 +118,9 @@ else
   bad "Maestro CLI is required for full static harness validation"
 fi
 
-if grep -Rsn --exclude-dir=.git --exclude='*.lock' 'mobile-tests.yml' CLAUDE.md README.md docs scripts .github >/dev/null 2>&1; then
+# Do not let old workflow names creep back into canonical docs/config. Exclude this validator
+# itself because the forbidden token is necessarily present in the pattern below.
+if grep -Rsn --exclude-dir=.git --exclude='*.lock' --exclude='validate-harness.sh' 'mobile-tests.yml' CLAUDE.md README.md docs .github >/dev/null 2>&1; then
   bad "stale mobile-tests.yml reference found"
 else
   ok "no stale workflow references"
