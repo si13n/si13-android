@@ -32,6 +32,135 @@ For a real change, use the executable workflow:
 It creates a gitignored task contract, calls the planner, asks for human approval, executes the
 planned role/sequence, then requires independent verification.
 
+## How to use the agents
+
+Run Claude Code from the repository root. For normal feature, bug-fix or test work, use
+`/change` instead of manually calling individual agents. The main Claude Code session acts as
+the orchestrator and routes work to the correct role.
+
+### Create a new feature
+
+Describe the user-visible behavior and important constraints:
+
+```text
+/change Add an "Overdue only" filter on Home. It should work for guest and signed-in users,
+persist while the app is open, and existing filters must continue to work.
+```
+
+The workflow will:
+
+```text
+requirement
+    ↓
+planner
+    ↓
+risk + acceptance criteria + test level + file ownership + implementation sequence
+    ↓
+human approval
+    ↓
+android-developer and/or android-test-engineer
+    ↓
+verifier
+    ↓
+PASS | FAIL | INCONCLUSIVE
+```
+
+Review the planner output before approving it. In particular, check the acceptance criteria,
+chosen test level, files expected to change and implementation sequence. After approval, the
+agents implement only the routed scope. The agent that writes code cannot approve its own
+work; final PASS belongs only to `verifier`.
+
+Another example:
+
+```text
+/change Add a setting that lets the user choose Monday or Sunday as the first day of the week.
+The choice must persist after app restart and affect the calendar view.
+```
+
+The planner may route production code to `android-developer`, persistence/runtime coverage to
+Android instrumented tests, and UI behavior to Espresso only when that level adds a distinct
+signal.
+
+### Create a new automated test
+
+Use the same `/change` workflow. State the behavior that must be proven rather than choosing a
+framework unless the framework itself is part of the requirement.
+
+Preferred:
+
+```text
+/change Add automated coverage proving that tasks without a due date are sorted after tasks
+with a due date. Do not change production behavior unless the current implementation is wrong.
+```
+
+The planner should select the lowest reliable test level. For pure sorting logic this should
+normally become a JVM unit test rather than Espresso or Maestro.
+
+For Android runtime/UI behavior:
+
+```text
+/change Add automated coverage proving that the appearance preference is restored after the
+Activity is recreated.
+```
+
+For a real cross-screen journey where E2E is justified:
+
+```text
+/change Add automated coverage for the critical journey: create a task, search for the unique
+title, open it and verify the saved details. Use Maestro only if lower levels cannot prove the
+whole journey.
+```
+
+You can explicitly request a framework when that is the actual goal:
+
+```text
+/change Add an Espresso regression test for the guest Profile state after navigating from Home.
+Do not modify production code unless a missing stable selector or real product defect requires it.
+```
+
+### What to expect during a run
+
+Each `/change` execution creates a gitignored task contract under:
+
+```text
+artifacts/agent-runs/TASK-*/
+```
+
+Typical files are:
+
+```text
+requirement.md
+plan.md
+approval.md
+developer-report.md      # when production code is involved
+test-report.md           # when automated tests are involved
+verification.md
+failure-analysis.md      # only when diagnosis is needed
+summary.md
+```
+
+These files are the handoff boundary between agent contexts. Agents should read the contract
+instead of relying on a conversational summary.
+
+If verification fails, do not manually ask an implementer to "make it green". The harness
+routes a clear failure to the correct owner, or invokes `failure-analyst` first when root cause
+is uncertain. After every repair, work returns to `verifier`.
+
+### Choosing the right command
+
+| Goal | Command |
+|---|---|
+| New Android feature | `/change <describe feature and constraints>` |
+| Bug fix | `/change <describe observed vs expected behavior>` |
+| New unit/instrumented/Espresso/Maestro coverage | `/change <describe behavior to prove>` |
+| Full local repository gate | `scripts/verify-results.sh` |
+| Static harness validation only | `scripts/validate-harness.sh` |
+| Maestro smoke suite only | `scripts/run-smoke.sh` |
+
+Normally you **do not need to choose `planner`, `android-developer`, `android-test-engineer`,
+`verifier` or `failure-analyst` manually**. `/change` coordinates them. Direct invocation is
+mainly useful when debugging or demonstrating one role in isolation.
+
 See:
 
 - [Agentic Android Engineering Lab](docs/agentic-engineering-lab.md)
