@@ -72,7 +72,7 @@ Screenshots use emulator-only fixture data; production builds do not include har
 The project keeps the existing Activity, Fragment, RecyclerView, repository, and data-source architecture:
 
 ```text
-app/src/main/java/com/si13/app     Kotlin application code
+app/src/main/java/com/si13/forgetty     Kotlin application code
 app/src/main/res                   XML layouts, themes, drawables, widgets
 app/src/test                       Unit tests
 app/src/androidTest                Espresso and Room migration tests

@@ -31,7 +31,7 @@ automation breaks even though the product is fine.
 ```bash
 # Rename the Home header id in the layout the flow depends on.
 sed -i '' 's/@+id\/home_header/@+id\/home_header_v2/' app/src/main/res/layout/fragment_home.xml
-grep -rn "home_header" app/src/main/java/com/si13/app/HomeFragment.kt
+grep -rn "home_header" app/src/main/java/com/si13/forgetty/HomeFragment.kt
 ```
 
 `HomeFragment` does not reference `home_header` by id, so the app still builds and runs. Only
@@ -187,7 +187,7 @@ Expect `PASS WITH SKIPS`, with the smoke suite listed as
 Then show that the rules are mechanically enforced, not just documented:
 
 ```bash
-printf 'appId: com.si13.app\nname: bad\ntags:\n  - smoke\n---\n- sleep: 3000\n' \
+printf 'appId: com.si13.forgetty\nname: bad\ntags:\n  - smoke\n---\n- sleep: 3000\n' \
   > maestro/smoke/99-bad.yaml
 scripts/verify-results.sh --no-build ; echo "EXIT=$?"
 rm maestro/smoke/99-bad.yaml

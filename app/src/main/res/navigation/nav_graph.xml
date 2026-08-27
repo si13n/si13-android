@@ -6,16 +6,16 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.si13.app.HomeFragment"
+        android:name="com.si13.forgetty.HomeFragment"
         android:label="@string/home" />
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.si13.app.ProfileFragment"
+        android:name="com.si13.forgetty.ProfileFragment"
         android:label="@string/settings" />
 
     <fragment
         android:id="@+id/statsFragment"
-        android:name="com.si13.app.StatsFragment"
+        android:name="com.si13.forgetty.StatsFragment"
         android:label="@string/stats" />
 </navigation>

@@ -5,7 +5,7 @@
 This repository demonstrates **Agentic Engineering for Mobile QA**.
 
 The system under test is **Forgetty**, a real native Kotlin Android todo app
-(`com.si13.app`) that already lives in this repo. `README.md` documents the application.
+(`com.si13.forgetty`) that already lives in this repo. `README.md` documents the application.
 
 The QA Lab layer around it (`.claude/`, `maestro/`, `scripts/`, `docs/`) exists to show
 how AI agents can do useful mobile QA work **under quality gates that require evidence**.
@@ -113,7 +113,7 @@ scripts/verify-results.sh              # the deterministic quality gate
 
 ## Repo facts an agent must know
 
-- Package / appId: `com.si13.app`. Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
+- Package / appId: `com.si13.forgetty`. Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 - Launcher activity is `SplashActivity` (~650 ms), which then starts `MainActivity`.
 - **A login bottom sheet appears on every cold launch while signed out.** Flows must
   dismiss it via `id: continue_as_guest_button`. This is app behaviour, not a bug.

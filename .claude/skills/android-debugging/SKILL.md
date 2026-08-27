@@ -5,7 +5,7 @@ description: Practical Android and ADB debugging for this repo — device state,
 
 # Android debugging
 
-App under test: **`com.si13.app`**. Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
+App under test: **`com.si13.forgetty`**. Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Debugging order — follow it, do not skip ahead
 
@@ -43,12 +43,12 @@ adb kill-server && adb start-server
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb uninstall com.si13.app
-adb shell pm clear com.si13.app                 # wipe all app data (full reset)
-adb shell am force-stop com.si13.app            # kill the process, keep data
+adb uninstall com.si13.forgetty
+adb shell pm clear com.si13.forgetty                 # wipe all app data (full reset)
+adb shell am force-stop com.si13.forgetty            # kill the process, keep data
 adb shell pm list packages | grep si13          # is it installed at all?
-adb shell dumpsys package com.si13.app | grep -E "versionCode|firstInstallTime|flags"
-adb shell am start -n com.si13.app/.SplashActivity
+adb shell dumpsys package com.si13.forgetty | grep -E "versionCode|firstInstallTime|flags"
+adb shell am start -n com.si13.forgetty/.SplashActivity
 adb shell dumpsys activity activities | grep -i si13    # what is actually on top?
 ```
 
@@ -68,7 +68,7 @@ adb logcat -d > artifacts/logcat-<stamp>.txt    # -d = dump and exit, never tail
 adb logcat -d | grep -iE "fatal|androidruntime|si13"
 adb logcat -d -s AndroidRuntime:E ActivityManager:W
 adb logcat -d | grep -iE "anr in|not responding"
-adb logcat -d --pid=$(adb shell pidof -s com.si13.app)
+adb logcat -d --pid=$(adb shell pidof -s com.si13.forgetty)
 ```
 
 `scripts/collect-logcat.sh` does the timestamped dump into `artifacts/`. Always use `-d`
@@ -79,10 +79,10 @@ in automation — an untermined `adb logcat` hangs CI forever.
 | Category | How you recognize it | Where to look |
 |---|---|---|
 | **device** | empty/offline/unauthorized `adb devices` | `adb devices -l`, `adb reconnect` |
-| **permission** | `SecurityException`, a runtime dialog blocking the UI | `adb shell dumpsys package com.si13.app \| grep -A20 permissions` |
-| **process** | app died mid-test, next step "not found" | `adb shell pidof com.si13.app`, logcat |
+| **permission** | `SecurityException`, a runtime dialog blocking the UI | `adb shell dumpsys package com.si13.forgetty \| grep -A20 permissions` |
+| **process** | app died mid-test, next step "not found" | `adb shell pidof com.si13.forgetty`, logcat |
 | **crash** | `FATAL EXCEPTION` + stack trace | `adb logcat -d -s AndroidRuntime:E` |
-| **ANR** | `ANR in com.si13.app`, app frozen | logcat; `adb shell cat /data/anr/traces.txt` |
+| **ANR** | `ANR in com.si13.forgetty`, app frozen | logcat; `adb shell cat /data/anr/traces.txt` |
 | **activity** | wrong screen on top, navigation didn't happen | `adb shell dumpsys activity activities` |
 | **package** | `Unable to find explicit activity class` | `pm list packages`, reinstall |
 | **install** | `INSTALL_FAILED_*` | signature mismatch → `adb uninstall` first; no space → clear storage |
@@ -92,7 +92,7 @@ Common permissions in this app: `POST_NOTIFICATIONS` (runtime, API 33+),
 `ACCESS_NETWORK_STATE`, `INTERNET`. Grant one without a UI:
 
 ```bash
-adb shell pm grant com.si13.app android.permission.POST_NOTIFICATIONS
+adb shell pm grant com.si13.forgetty android.permission.POST_NOTIFICATIONS
 ```
 
 ## Useful odds and ends

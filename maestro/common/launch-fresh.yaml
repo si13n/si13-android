@@ -1,4 +1,4 @@
-appId: com.si13.app
+appId: com.si13.forgetty
 name: Launch app from a clean state and reach the Home screen
 tags:
   - common
@@ -10,7 +10,7 @@ tags:
 #   2. MainActivity.seedDebugTasksIfNeeded() re-seeds ~100 demo tasks asynchronously.
 # We dismiss (1) explicitly and never assert on (2). See maestro/README.md.
 - launchApp:
-    appId: com.si13.app
+    appId: com.si13.forgetty
     clearState: true
 
 # SplashActivity waits ~650 ms before starting MainActivity, so wait on the condition

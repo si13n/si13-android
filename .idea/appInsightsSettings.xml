@@ -9,7 +9,7 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.si13.app" />
+                  <option name="appId" value="com.si13.forgetty" />
                   <option name="mobileSdkAppId" value="1:796246251027:android:36e6a71946eb6fbb3091e6" />
                   <option name="projectId" value="si13-f6273" />
                   <option name="projectNumber" value="796246251027" />
