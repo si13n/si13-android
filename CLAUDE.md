@@ -65,6 +65,16 @@ A task is done only when the relevant evidence exists:
 If something could not be executed on this machine, it is reported as
 **NOT VERIFIED** with instructions for how to verify it. It is never reported as passing.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context layout: root `CONTEXT.md` and `docs/adr/` for architecture decisions. See `docs/agents/domain.md`.
+
 ## Never do this
 
 - Weaken or delete an assertion to make a test green. Only change an assertion when the
