@@ -1,172 +1,90 @@
-# Agent workflow — a real end-to-end example
+# Agent workflow — real failure-and-recovery trace
 
-This is not a hypothetical. It is what actually happened while bootstrapping this repo, kept
-because a real trace is more convincing than an invented one.
+This trace is based on what actually happened while bootstrapping the original QA lab. The
+v2 topology simplified the roles afterward: the old QA-design pass is now part of `planner`,
+and the old Maestro-specific implementation responsibility now belongs to the broader
+`android-test-engineer` role. The failure itself and the evidence are unchanged.
 
-**Requirement:** *"Add a Maestro smoke test proving the app's bottom navigation reaches
-Home, Stats and Settings."*
+**Requirement:** add a Maestro smoke test proving bottom navigation reaches Home, Stats and
+Settings.
 
----
+## 1. Planner — requirement, risk and test strategy
 
-## 1. Planner (read-only)
+Repository inspection found three important facts before YAML was written:
 
-Inspected the repo before proposing anything, and found the things that would have made a
-naive test flaky:
+- navigation controls had stable ids;
+- a login sheet appears on signed-out cold launch;
+- debug builds seed about 100 demo tasks asynchronously.
 
-- `app/src/main/res/layout/activity_main.xml` — nav buttons have stable ids: `homeFragment`,
-  `statsFragment`, `profileFragment`, `add_task_fab`.
-- `MainActivity.kt:60` — `LoginBottomSheet` is shown on every cold launch while signed out.
-- `MainActivity.kt:87` — `seedDebugTasksIfNeeded()` seeds ~100 demo tasks asynchronously.
+The planner selected `MAESTRO` because the requirement was specifically the real nav graph +
+fragment inflation + rendered destinations. A JVM test could not prove that combination.
+It also explicitly left real Google sign-in and visual polish out of automation.
 
-**Risks named:** the login sheet blocks every flow; the async seed makes any count-based
-assertion a race; a tab can highlight while its fragment fails to inflate.
+Acceptance criteria included reaching each destination, returning Home, destination-specific
+assertions, no coordinate taps and no fixed sleeps.
 
-**Test level chosen:** `MAESTRO`. Justified because a broken nav graph or a fragment that
-fails to inflate is only observable end-to-end on a device — no JVM unit test covers
-`NavController` plus fragment inflation plus the real view tree.
+## 2. Human plan approval
 
-**Acceptance criteria:**
-1. The flow launches from a clean state and reaches Home.
-2. Tapping Stats shows the Stats destination.
-3. Tapping Settings shows the Profile destination.
-4. Tapping Home returns to Home.
-5. Each assertion targets a destination-specific view id, not the tab label.
-6. No hard sleeps and no coordinate taps.
+The approach was reviewed before implementation. This is the cheapest point to reject wrong
+scope or a wrong test level.
 
----
+## 3. Android test engineer — first implementation
 
-## 2. QA test designer (read-only)
+The implementation created the navigation flow, reused common launch setup and passed:
 
-Confirmed the level and set the boundary of what this flow does **not** own:
-
-| Scenario | Level | Why |
-|---|---|---|
-| Nav reaches all three destinations | `MAESTRO` | needs the real nav graph and fragment inflation |
-| Tab highlight state | `UNIT`/skip | cosmetic; not worth a UI test |
-| Profile guest vs signed-in content | `MAESTRO` (this flow) | cheap to fold in, and it is a real state contract |
-| Google sign-in | `MANUAL` | needs live credentials; automating it means storing them |
-
----
-
-## 3. Plan approval (the human gate)
-
-The plan was reviewed *before* any YAML existed. This is the cheapest possible place to
-catch a wrong approach — an argument about a table costs minutes, an argument about a
-finished suite costs days.
-
----
-
-## 4. Implementer
-
-Wrote `maestro/smoke/02-navigate-bottom-nav.yaml`, reusing
-`maestro/common/launch-fresh.yaml` for the login-sheet dismissal.
-
-Ran `maestro check-syntax` (OK) and reported:
-
-> Implementation complete and ready for independent verification.
-
-Note the wording. It did **not** say "done" or "working".
-
----
-
-## 5. Verifier — first pass: **FAIL**
-
-Ran the flow for real instead of trusting the syntax check:
-
+```bash
+maestro check-syntax maestro/smoke/02-navigate-bottom-nav.yaml
 ```
-scripts/run-maestro.sh maestro/smoke/02-navigate-bottom-nav.yaml
-[Failed] (30s) Assertion is false: id: profile_account_card is visible
+
+It then handed off as **ready for independent verification**, not verified.
+
+## 4. Verifier — FAIL
+
+Real execution failed:
+
+```text
+Assertion is false: id: profile_account_card is visible
 MAESTRO FAILED (exit 1)
 ```
 
-**VERDICT: FAIL.** Criterion 3 unmet.
+Syntax validity had proven only syntax. It had not proven the requirement.
 
-This is the point of the whole design. A flow that passes `check-syntax` and looks correct
-was still wrong, and the agent that wrote it believed it was right.
+## 5. Failure analyst — classify before repair
 
----
+Investigation checked environment/app state, logcat, the resource id and then production
+visibility logic. The account card existed but was intentionally hidden for guest users.
+The smoke setup deliberately continued as guest.
 
-## 6. Failure analyst — investigation, no code changes
+**Classification: TEST.**
 
-Worked outside-in rather than editing the selector:
+The product was correct; the assertion was wrong about the actual contract. This distinction
+matters: changing a correct product to satisfy a wrong test would have been a worse bug.
 
-1. **Crash?** `grep -icE "fatal exception|androidruntime" logcat.txt` → 1 hit. Read it:
-   `AndroidRuntime: VM exiting with result code 0` — benign. **Not a crash.**
-   *(Side effect: this false positive was a real defect in `collect-logcat.sh`'s grep
-   pattern. It was tightened, because a crash detector that cries wolf gets ignored.)*
-2. **Does the id exist?** Yes — `fragment_profile.xml:38`.
-3. **Is it conditionally hidden?** `grep -n "isVisible" ProfileFragment.kt` →
-   line 137: `accountCard.isVisible = state.showProfileCard`
-   and `ProfileViewModel.kt:26`: `showProfileCard get() = user != null`.
+Recommended test fix: assert the guest-specific profile state rather than an authenticated
+account card.
 
-**Classification: `TEST`** — not `LOCATOR`, not `PRODUCT`.
+## 6. Android test engineer — targeted fix
 
-**Root cause:** the smoke suite deliberately continues *as a guest*, so `user == null` and
-the account card is **correctly** hidden. The app is right. The assertion asserted behaviour
-the requirement never specified.
+The test assertion was replaced with assertions that prove the correct guest state. This was
+not "weakening until green"; it aligned the test with the requirement and made the state
+assertion more precise.
 
-**Confidence: HIGH** — the conditional is two lines of source, not a theory.
+## 7. Verifier — PASS
 
-**Recommended fix:** assert the actual guest contract instead —
-`profile_guest_container` visible (`ProfileFragment.kt:139`), `profile_account_card` **not**
-visible, plus the unconditional `profile_title`.
+The verifier reran the flow, checked the diff and acceptance criteria, then issued PASS only
+after the real command returned success.
 
----
+## 8. Beyond green — mutation thinking
 
-## 7. Implementer — the fix
+The test was challenged by deliberately breaking the behavior and confirming it went red.
+That demonstrated the assertions could detect a regression rather than merely passing on the
+happy state.
 
-Applied exactly that.
+## What the trace demonstrates
 
-The important part: this is **not** weakening an assertion to get green. The original
-assertion was factually wrong about the specification, and the replacement is **stronger** —
-it now proves the Profile screen rendered the *correct guest state*, where before it only
-checked that a card existed.
-
-Had the app been at fault, the correct outcome would have been a bug report, not a test edit.
-That distinction is the difference between testing and decorating.
-
----
-
-## 8. Verifier — second pass: **PASS**
-
-```
-scripts/run-maestro.sh maestro/smoke/02-navigate-bottom-nav.yaml
-[Passed] Bottom navigation moves between Home, Stats and Settings (21s)
-MAESTRO PASSED (exit 0)
-```
-
-All six acceptance criteria met, evidence attached, diff limited to the one expected file.
-
----
-
-## 9. Beyond green — does the test actually prove the requirement?
-
-A green test is not automatically a correct test, so the suite's key assertion was
-**mutation tested**: break the feature on purpose, and confirm the test notices.
-
-| Mutation | Expected | Actual |
-|---|---|---|
-| A: tap `add_task_close` (cancel) instead of `add_task_button` (save) | flow must FAIL | FAILED, exit 1 |
-| B: search for a task that was never created | flow must FAIL at the search assertion | FAILED: `search_results is visible` |
-
-Mutation A also exposed a genuine fragility: it failed at
-`assertVisible: home_header` — an incidental step racing the sheet-dismissal animation.
-That was converted to `extendedWaitUntil` on the same condition. A wait on a condition, not
-a sleep.
-
-**Only after both mutations went red was the suite treated as evidence of anything.**
-
----
-
-## What this trace demonstrates
-
-1. The implementer produced plausible, syntactically valid, **wrong** code.
-2. It said "ready for independent verification", not "done".
-3. An independent verifier caught it by *executing* rather than reading.
-4. Diagnosis was separated from repair, so the fix addressed the cause.
-5. The failure was correctly classified `TEST` rather than the tempting `LOCATOR` — and the
-   product was exonerated on evidence.
-6. The fix made the assertion stronger, not weaker.
-7. Green was not trusted until mutation testing proved the test could fail.
-8. Two incidental defects were found along the way (the logcat false positive, the animation
-   race) because someone was actually looking.
+1. Planning includes test strategy; a second planner role was not necessary.
+2. The testing role is broader than Maestro; Maestro is a skill/tool chosen for this case.
+3. A syntactically valid generated test can still be wrong.
+4. Implementation and final verification must have separate authority.
+5. Failure classification before repair prevents "fixing" the wrong layer.
+6. Green is evidence only when the test would fail on the regression it claims to detect.

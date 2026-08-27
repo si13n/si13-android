@@ -1,16 +1,5 @@
-# PR Checks — the full gate for a pull request: every check and every test level.
-#
-#   static-checks   shell syntax, Maestro flow syntax, flow rules, agent/skill definitions
-#   build-and-unit  assembleDebug, JVM unit tests, lint (advisory)
-#   espresso        reuses .github/workflows/espresso.yml      (44 instrumented tests)
-#   maestro         reuses .github/workflows/maestro-tests.yml (3 smoke flows)
-#
-# The two device suites are REUSED, not copied. Each is defined once in its own manually
-# triggerable workflow and called from here via `uses:`, so there is one definition to
-# maintain and the manual runs are the same code path as the PR runs.
-#
-# Ordering: the cheap checks run first and the emulator jobs wait on the build. A broken
-# build should never spend 20 minutes of emulator time to tell you it is broken.
+# PR Checks — full pull-request gate.
+# Static harness rules are defined once in scripts/validate-harness.sh and reused locally.
 
 name: PR Checks
 
@@ -20,14 +9,13 @@ on:
 
 permissions:
   contents: read
-  checks: write      # the reusable workflows publish JUnit check runs
+  checks: write
 
 concurrency:
   group: pr-checks-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ------------------------------------------------------------------ cheap, no device
   static-checks:
     name: Static checks
     runs-on: ubuntu-latest
@@ -37,76 +25,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Make scripts executable
-        run: chmod +x scripts/*.sh .claude/hooks/*.sh
-
-      - name: Shell syntax (bash -n)
-        run: |
-          fail=0
-          for s in scripts/*.sh .claude/hooks/*.sh; do
-            if bash -n "$s"; then echo "ok   $s"; else echo "FAIL $s"; fail=1; fi
-          done
-          exit $fail
-
       - name: Install Maestro CLI
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
-      - name: Validate Maestro flow syntax
-        run: |
-          fail=0
-          count=0
-          while IFS= read -r flow; do
-            count=$((count + 1))
-            if maestro check-syntax "$flow"; then echo "ok   $flow"; else echo "FAIL $flow"; fail=1; fi
-          done < <(find maestro -name '*.yaml' ! -name 'config.yaml' | sort)
-          echo "checked $count flow(s)"
-          [ "$count" -gt 0 ] || { echo "no flows found — expected at least one"; exit 1; }
-          exit $fail
+      - name: Validate agentic harness
+        run: bash scripts/validate-harness.sh
 
-      # Enforce the repo's automation rules so they are not merely documentation.
-      - name: Enforce flow quality rules (no sleeps, no coordinate taps)
-        run: |
-          fail=0
-          if grep -rnE '^[[:space:]]*-?[[:space:]]*sleep:' maestro/; then
-            echo "::error::hard sleeps are not allowed in Maestro flows — wait on a condition"
-            fail=1
-          fi
-          if grep -rnE '^[[:space:]]*point:' maestro/; then
-            echo "::error::coordinate taps are not allowed — use a stable resource id"
-            fail=1
-          fi
-          [ "$fail" -eq 0 ] && echo "flow quality rules OK"
-          exit $fail
-
-      - name: Validate agent and skill definitions
-        run: |
-          python3 - <<'PY'
-          import glob, sys
-          bad = []
-          files = sorted(glob.glob(".claude/agents/*.md") + glob.glob(".claude/skills/*/SKILL.md"))
-          for path in files:
-              lines = open(path, encoding="utf-8").read().split("\n")
-              if not lines or lines[0].strip() != "---":
-                  bad.append(f"{path}: no YAML frontmatter on line 1"); continue
-              try:
-                  end = lines.index("---", 1)
-              except ValueError:
-                  bad.append(f"{path}: unterminated frontmatter"); continue
-              fm = lines[1:end]
-              for key in ("name:", "description:"):
-                  if not any(l.startswith(key) for l in fm):
-                      bad.append(f"{path}: missing {key}")
-          print(f"checked {len(files)} definition(s)")
-          if not files:
-              sys.exit("expected at least one agent/skill definition")
-          if bad:
-              sys.exit("\n".join(bad))
-          print("all agent and skill definitions valid")
-          PY
-
-  # ------------------------------------------------------- build + fastest real signal
   build-and-unit:
     name: Build and unit tests
     runs-on: ubuntu-latest
@@ -144,7 +70,7 @@ jobs:
 
       - name: Android Lint
         run: ./gradlew lintDebug --console=plain
-        continue-on-error: true   # advisory only: lint findings are triaged, not gating
+        continue-on-error: true
 
       - name: Upload reports
         if: always()
@@ -165,10 +91,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # ------------------------------------------------ device suites, reused not duplicated
   espresso:
     name: Espresso
-    needs: build-and-unit
+    needs: [static-checks, build-and-unit]
     permissions:
       contents: read
       checks: write
@@ -176,7 +101,7 @@ jobs:
 
   maestro:
     name: Maestro
-    needs: build-and-unit
+    needs: [static-checks, build-and-unit]
     permissions:
       contents: read
       checks: write

@@ -1,131 +1,111 @@
 # Quality gates
 
-## The standard
+## Standard
 
-> **No claim of success without evidence.**
+> **No claim of success without evidence. Missing evidence is not PASS.**
 
-Evidence is a command, its exit code, and its output — reproducible by someone else. An
-agent's confidence is not evidence. A summary of a command is not evidence.
+Evidence is a command, exit code and output/artifact reproducible by someone else. An agent's
+confidence or implementation summary is not evidence.
 
-## IMPLEMENTED vs VERIFIED
+## Authority
 
-| | IMPLEMENTED | VERIFIED |
+| State | Meaning | Authority |
 |---|---|---|
-| Means | the change was written | the change was proven to satisfy the requirement |
-| Who says it | the implementer | an independent verifier |
-| Based on | intent | evidence |
+| IMPLEMENTED | change was written | implementation agent |
+| VERIFIED | requirement proven with evidence | verifier only |
+| INCONCLUSIVE | required evidence unavailable | verifier / gate |
 
-Three legitimate states, and the third is not a failure:
+Implementers say **ready for independent verification**, never VERIFIED.
 
-- **IMPLEMENTED, NOT VERIFIED** — written, nothing executed yet.
-- **VERIFIED** — evidence gathered, criteria checked, verdict issued.
-- **NOT VERIFIED** — could not be executed here; states *why* and *how the human can verify*.
+## Static harness gate
 
-## The gates
+`scripts/validate-harness.sh` is the single executable source for static harness policy. It
+checks required files, exact five-agent topology, shell syntax/executable bits, agent/skill
+frontmatter, Maestro anti-patterns/syntax and stale workflow references.
 
-| Gate | Command | Proves | Gating? |
-|---|---|---|---|
-| Required files | `scripts/verify-results.sh` gate 1 | the repo structure is intact | yes |
-| Shell syntax | `bash -n scripts/*.sh` | scripts parse | yes |
-| Flow syntax | `maestro check-syntax` | flows are valid Maestro | yes |
-| Flow rules | grep for `sleep:` / `point:` | the repo's own rules hold | yes |
-| Agent/skill definitions | frontmatter check | the agentic layer loads | yes |
-| Build | `./gradlew assembleDebug` | it compiles and packages | yes |
-| Unit tests | `./gradlew testDebugUnitTest` | logic behaves | yes |
-| UI smoke | `scripts/run-smoke.sh` | the journeys work on a device | yes, when a device exists |
-| Lint | `./gradlew lintDebug` | code health | no — advisory, triaged |
-| Git diff review | `git diff --name-only` vs the plan | no scope creep | yes (human/verifier) |
-| Acceptance criteria | read the plan, check each | it does what was asked | yes (human/verifier) |
-
-Run them all:
+PR CI installs Maestro and calls the same script. `verify-results.sh` calls it locally. Rules
+are not duplicated across YAML and shell.
 
 ```bash
-scripts/verify-results.sh              # everything
-scripts/verify-results.sh --no-build   # fast static-only pass
+scripts/validate-harness.sh
+scripts/validate-harness.sh --allow-missing-maestro   # syntax explicitly not proven
 ```
 
-## Exit codes are the contract
+## Runtime gates
+
+| Gate | Typical command | Proves |
+|---|---|---|
+| Build | `./gradlew assembleDebug` | production compiles/packages |
+| JVM unit | `./gradlew testDebugUnitTest` | pure logic/contracts |
+| Android instrumented | `./gradlew connectedDebugAndroidTest` | Android runtime/Room/etc. |
+| Espresso UI | targeted/full `connectedDebugAndroidTest` | in-process UI behavior |
+| Maestro E2E | `scripts/run-maestro.sh <flow>` | packaged cross-screen journey |
+| Diff/ownership | `git diff --name-only` + task contract | scope and one-owner-per-file |
+| Acceptance criteria | contract + evidence | requested behavior, not merely green tests |
+
+Not every task needs every framework; every task needs the gates selected by its risk/test
+strategy.
+
+## `verify-results.sh` exit contract
 
 ```bash
-./gradlew assembleDebug --console=plain ; echo "EXIT=$?"
-scripts/run-smoke.sh ; echo "EXIT=$?"
+scripts/verify-results.sh
 ```
 
-`0` is the only success. A log full of green ticks with exit code 1 is a failure.
+- `0` — **PASS**: every configured required gate ran and passed.
+- `1` — **FAIL**: a required gate failed.
+- `3` — **INCOMPLETE**: required evidence was skipped/unavailable.
 
-`scripts/run-maestro.sh` distinguishes three outcomes on purpose:
+For an intentionally partial run:
 
-| Exit | Meaning |
-|---|---|
-| `0` | passed |
-| `1` | a flow failed — a real result |
-| `3` | could not run — `SKIPPED — NO DEVICE AVAILABLE` |
-
-Collapsing `3` into either `0` or `1` would be the lie. It is neither a pass nor a defect.
-
-## SKIPPED is not PASS
-
-`scripts/verify-results.sh` reports skipped gates separately and prints them again in the
-summary:
-
-```
- RESULT: 9 passed, 0 failed, 1 skipped
-
- SKIPPED gates are NOT passes. Unverified means unverified:
-   - maestro smoke suite: SKIPPED — NO DEVICE AVAILABLE
-
- VERDICT: PASS WITH SKIPS — the skipped gates above were not proven.
+```bash
+scripts/verify-results.sh --no-build --allow-skips
 ```
 
-It exits `0`, because running without an emulator is an expected situation and not a defect —
-but it can never be mistaken for full verification. **`INCONCLUSIVE` is never rounded up to
-`PASS`.**
+This may exit 0 so it is usable in scripts, but its verdict is **PARTIAL**, not PASS. The
+caller explicitly accepted that evidence is incomplete.
+
+## Read-only authority guard
+
+`planner`, `verifier` and `failure-analyst` omit Write/Edit and also have agent-scoped
+`PreToolUse` Bash hooks. The guard blocks common source/history mutation paths before shell
+execution. Verifier/failure analyst may still run builds/tests/diagnostics that mutate build
+outputs or device state; they may not repair source.
+
+The guard is a deterministic policy layer, not a claim that regex is a perfect shell sandbox.
+Its purpose is to materially enforce the role boundary rather than relying only on prompt text.
+
+## Post-edit gate
+
+`.claude/hooks/quick-check.sh` runs after Write/Edit. Syntax/structural defects block. Maestro
+hard sleeps and coordinate taps are blocking errors, not advisory warnings. Expensive builds
+and device tests remain deliberate verification steps rather than running after every edit.
 
 ## A green test is not automatically a correct test
 
-Before any test counts as evidence:
+Before using a test as evidence:
 
-1. **Would it fail if the feature were broken?** If you cannot argue yes, it proves nothing.
-2. Does it assert on the **outcome**, or merely that a screen rendered?
-3. Is it **tautological** — asserting a value the test itself just set?
-4. Is it asserting on something **incidental** — seeded data, a count, a timestamp?
-5. Was an assertion **weakened** to make it pass? Check the diff.
+1. Would it fail if the target regression existed?
+2. Does it assert the outcome rather than mere rendering?
+3. Is it tautological or dependent on incidental seeded state/count/time?
+4. Is it at the lowest reliable test level?
+5. Was an assertion weakened to make implementation green?
 
-The strongest available answer to (1) is a mutation test: break the feature, confirm red.
-This was done for the smoke suite — see `docs/agent-workflow.md` §9. Both mutations went red
-before the suite was treated as evidence.
+Mutation thinking is the strongest practical challenge: deliberately break the behavior and
+confirm the test goes red when worthwhile.
 
 ## Forbidden ways to go green
 
-Each converts a **known** problem into an **unknown** one, which is strictly worse than red:
+- weaken/delete a correct assertion;
+- add sleep/retry to pass a race;
+- swallow exit codes with `|| true`, `set +e` or `continueOnFailure` around a gate;
+- exclude a failing test;
+- rerun until a flaky test happens to pass and report only green;
+- convert skipped/unavailable required evidence into PASS.
 
-- Weakening or deleting an assertion. *Only* legitimate when the requirement proves the old
-  assertion was wrong — and then it must be stated explicitly in the report.
-- Adding a `sleep` or a retry to get past a race.
-- `continueOnFailure`, `|| true`, `set +e`, ignoring a non-zero exit code.
-- Excluding the failing test from the suite.
-- Rerunning until it happens to pass, then reporting the green run.
+## Human gates
 
-The first two are mechanically blocked: `verify-results.sh` and CI both fail the build if
-`sleep:` or a coordinate `point:` appears anywhere under `maestro/`, and the PostToolUse hook
-warns the moment one is written. A rule nobody checks is a suggestion.
+1. Approve/revise non-trivial plans before implementation.
+2. Accept the final verifier PASS and review residual/manual risk.
 
-## Why retries are not a fix
-
-A retry does not make a test pass; it makes a failure intermittent. The bug stays, the signal
-degrades, and the team learns that red sometimes means nothing. Once that happens, the suite
-has stopped being a quality gate and become a ritual.
-
-Legitimate retry: genuine infrastructure flakiness (a runner losing its network). Even then
-it must be logged, visible, and paired with a ticket — never a silent default.
-
-## The human gates
-
-Two points where a person, not an agent, decides:
-
-1. **Plan approval**, before code exists — the cheapest place to catch a wrong approach.
-2. **Accepting a `PASS`**, including reviewing what was `SKIPPED` and what the verifier
-   admitted it could not prove.
-
-Agents are good at producing and checking work. They are not accountable for it. Keeping a
-human at those two points is what makes the loop trustworthy rather than merely fast.
+Agents produce and check work; the human remains accountable for scope and acceptance.
