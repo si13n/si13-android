@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.si13.app"
+    namespace = "com.si13.forgetty"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.si13.app"
+        applicationId = "com.si13.forgetty"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

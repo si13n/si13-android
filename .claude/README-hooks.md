@@ -57,7 +57,7 @@ echo '{"tool_input":{"file_path":"maestro/smoke/01-app-launch.yaml"}}' \
   | .claude/hooks/quick-check.sh ; echo "EXIT=$?"
 
 # should fail (exit 2)
-printf 'appId: com.si13.app\nname: broken\n---\n- tapOn: [unclosed\n' > /tmp/bad.yaml
+printf 'appId: com.si13.forgetty\nname: broken\n---\n- tapOn: [unclosed\n' > /tmp/bad.yaml
 mkdir -p /tmp/maestro && cp /tmp/bad.yaml /tmp/maestro/bad.yaml
 echo '{"tool_input":{"file_path":"/tmp/maestro/bad.yaml"}}' \
   | .claude/hooks/quick-check.sh ; echo "EXIT=$?"

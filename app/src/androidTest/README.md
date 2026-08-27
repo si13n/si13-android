@@ -11,9 +11,9 @@ On-device tests for behaviour that needs a real Android runtime: view inflation,
 
 # one class / one test
 ./gradlew connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.si13.app.LoginBottomSheetTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.si13.forgetty.LoginBottomSheetTest
 ./gradlew connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.si13.app.HomeTaskTest#addsGuestTask
+  -Pandroid.testInstrumentationRunnerArguments.class=com.si13.forgetty.HomeTaskTest#addsGuestTask
 
 # with Allure result collection (what CI runs)
 scripts/run-espresso-with-allure.sh

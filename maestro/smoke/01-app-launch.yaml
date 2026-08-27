@@ -1,4 +1,4 @@
-appId: com.si13.app
+appId: com.si13.forgetty
 name: App launches from a clean install and reaches the Home screen
 tags:
   - smoke

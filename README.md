@@ -187,7 +187,7 @@ Screenshots use emulator-only fixture data; production builds do not include har
 ## Application architecture
 
 ```text
-app/src/main/java/com/si13/app     Kotlin application code
+app/src/main/java/com/si13/forgetty     Kotlin application code
 app/src/main/res                   XML layouts, themes, drawables, widgets
 app/src/test                       JVM/unit tests
 app/src/androidTest                Android instrumented + Espresso + Room migration tests

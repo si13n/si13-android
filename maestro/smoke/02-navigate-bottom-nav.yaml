@@ -1,4 +1,4 @@
-appId: com.si13.app
+appId: com.si13.forgetty
 name: Bottom navigation moves between Home, Stats and Settings
 tags:
   - smoke

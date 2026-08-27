@@ -9,7 +9,7 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
-APP_ID="com.si13.app"
+APP_ID="com.si13.forgetty"
 OUT_DIR="artifacts"
 
 command -v adb >/dev/null 2>&1 || { echo "ERROR: adb not on PATH" >&2; exit 2; }

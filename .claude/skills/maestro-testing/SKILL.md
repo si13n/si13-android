@@ -1,11 +1,11 @@
 ---
 name: maestro-testing
-description: Project-specific Maestro practices for the Forgetty Android app (com.si13.app) — CLI-only workflow, flow structure, stable resource-id selectors, assertions, reusable flows, deterministic state, and how to debug element-not-found. Use when writing, running, reviewing or debugging any Maestro flow in maestro/.
+description: Project-specific Maestro practices for the Forgetty Android app (com.si13.forgetty) — CLI-only workflow, flow structure, stable resource-id selectors, assertions, reusable flows, deterministic state, and how to debug element-not-found. Use when writing, running, reviewing or debugging any Maestro flow in maestro/.
 ---
 
 # Maestro testing in this repo
 
-App under test: **`com.si13.app`** (Forgetty). Flows live in `maestro/`.
+App under test: **`com.si13.forgetty`** (Forgetty). Flows live in `maestro/`.
 
 ## CLI-first — Maestro Studio is not required
 
@@ -36,7 +36,7 @@ scripts/run-smoke.sh
 Every flow starts with a YAML header block, `---`, then commands:
 
 ```yaml
-appId: com.si13.app
+appId: com.si13.forgetty
 name: Descriptive flow name
 tags:
   - smoke
@@ -76,7 +76,7 @@ Consequences:
 ## Selectors — in strict order of preference
 
 1. **`id:`** — the resource id. Matched against the full resource id as a regex, so
-   `id: "task_input"` matches `com.si13.app:id/task_input`. **This is the default choice.**
+   `id: "task_input"` matches `com.si13.forgetty:id/task_input`. **This is the default choice.**
 2. **accessibility text** — `contentDescription`, e.g. the bottom-nav buttons expose
    `Home`, `Stats`, `Settings`, `New task`.
 3. **visible text** — only for text that *is* the thing under test. Text is a locale- and
@@ -168,15 +168,15 @@ Rules:
 
 ```yaml
 - launchApp:
-    appId: com.si13.app
+    appId: com.si13.forgetty
     clearState: true      # wipes app data — the login sheet and the seeder will return
 ```
 
 Other resets, from the shell:
 
 ```bash
-adb shell pm clear com.si13.app
-adb shell am force-stop com.si13.app
+adb shell pm clear com.si13.forgetty
+adb shell am force-stop com.si13.forgetty
 ```
 
 A flow must never depend on what a previous flow left behind. `run-smoke.sh` runs flows in

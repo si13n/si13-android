@@ -1,4 +1,4 @@
-appId: com.si13.app
+appId: com.si13.forgetty
 name: A created task is persisted and findable by search
 tags:
   - smoke

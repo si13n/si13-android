@@ -71,7 +71,7 @@ seeded fixtures from ever colliding.
 > The existing Espresso suite solves the same problem differently — `HomeTaskTest.clearState()`
 > sets the seed flag to `true` and deletes all rows, giving it an empty database. Maestro has
 > no in-process hook to do that, so the smoke suite works *with* the seed instead of against
-> it. Read `app/src/androidTest/java/com/si13/app/HomeTaskTest.kt` before inventing new
+> it. Read `app/src/androidTest/java/com/si13/forgetty/HomeTaskTest.kt` before inventing new
 > isolation logic.
 
 ## Conventions
@@ -84,7 +84,7 @@ seeded fixtures from ever colliding.
 
 ### Selectors, in strict order of preference
 
-1. `id:` — the resource id (`id: "task_input"` matches `com.si13.app:id/task_input`)
+1. `id:` — the resource id (`id: "task_input"` matches `com.si13.forgetty:id/task_input`)
 2. accessibility text / `contentDescription`
 3. visible text — only when the text *is* the thing under test
 4. nothing else

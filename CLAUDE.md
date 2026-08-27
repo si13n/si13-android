@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository is Forgetty (`com.si13.app`), a real native Kotlin Android app plus an
+This repository is Forgetty (`com.si13.forgetty`), a real native Kotlin Android app plus an
 **Agentic Android Engineering Harness** for planning, development, automated testing,
 independent verification and failure analysis.
 
@@ -194,7 +194,7 @@ scripts/verify-results.sh --no-build --allow-skips   # explicit partial/static r
 
 ## Repo facts
 
-- App id `com.si13.app`; debug APK `app/build/outputs/apk/debug/app-debug.apk`.
+- App id `com.si13.forgetty`; debug APK `app/build/outputs/apk/debug/app-debug.apk`.
 - Signed-out cold launch shows a login bottom sheet; Maestro setup handles guest continuation.
 - Debug builds can seed ~100 demo tasks asynchronously after state clear; never assert on seed
   counts/titles.
